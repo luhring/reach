@@ -1,8 +1,11 @@
-module github.com/luhring/cnct
+module github.com/luhring/reach
 
 require (
 	github.com/aws/aws-sdk-go v1.16.5
-	github.com/gorilla/context v0.0.0-20160226214623-1ea25387ff6f
-	github.com/gorilla/mux v1.6.2
-	golang.org/x/crypto v0.0.0-20180420171155-e73bf333ef89
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/spf13/cobra v0.0.3
+	github.com/spf13/pflag v1.0.3 // indirect
+	github.com/stretchr/testify v1.3.0 // indirect
+	golang.org/x/net v0.0.0-20190213061140-3a22650c66bd // indirect
+	golang.org/x/text v0.3.0 // indirect
 )
