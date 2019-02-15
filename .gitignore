@@ -1,3 +1,6 @@
+# Personal GoLand settings
+.idea/*
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
