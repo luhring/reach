@@ -98,16 +98,18 @@ func (portRange *PortRange) isValid() bool {
 		return true
 	}
 
-	if false == isValidPortNumber(portRange.LowPort) {
-		return false
-	}
+	if portRange.Protocol == tcpName || portRange.Protocol == udpName {
+		if false == isValidPortNumber(portRange.LowPort) {
+			return false
+		}
 
-	if false == isValidPortNumber(portRange.HighPort) {
-		return false
-	}
+		if false == isValidPortNumber(portRange.HighPort) {
+			return false
+		}
 
-	if portRange.LowPort > portRange.HighPort {
-		return false
+		if portRange.LowPort > portRange.HighPort {
+			return false
+		}
 	}
 
 	return true

@@ -89,6 +89,7 @@ func (a *Analyzer) AnalyzeVector(instanceVector *InstanceVector) {
 
 	reachablePorts = network.DefragmentPortRanges(reachablePorts)
 
+	fmt.Printf("reachablePorts contains %v items...\n", len(reachablePorts))
 	description := network.DescribeListOfPortRanges(reachablePorts)
 	fmt.Println(description)
 }
@@ -126,14 +127,14 @@ func (a *Analyzer) CreateInstanceVector(fromIdentifier, toIdentifier string) (*I
 
 	from, err := a.findEC2Instance(fromIdentifier)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create instance to instance vector: %v", err)
+		return nil, fmt.Errorf("unable to create instance vector: %v", err)
 	}
 
 	vector.Source = from
 
 	to, err := a.findEC2Instance(toIdentifier)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create instance to instance vector: %v", err)
+		return nil, fmt.Errorf("unable to create instance vector: %v", err)
 	}
 
 	vector.Destination = to
