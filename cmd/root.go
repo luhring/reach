@@ -16,19 +16,12 @@ See https://github.com/luhring/reach for documentation.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		analyzer := reach.NewAnalyzer()
 
-		from, err := analyzer.FindEC2Instance(args[0])
+		vector, err := analyzer.CreateInstanceVector(args[0], args[1])
 		if err != nil {
 			exitWithError(err)
 		}
 
-		fmt.Printf("from:\n%v\n", from.NetworkInterfaces)
-
-		to, err := analyzer.FindEC2Instance(args[1])
-		if err != nil {
-			exitWithError(err)
-		}
-
-		fmt.Printf("to:\n%v\n", to.NetworkInterfaces)
+		analyzer.AnalyzeVector(vector)
 	},
 }
 

@@ -1450,7 +1450,7 @@ func TestGetIntersectionBetweenTwoListsOfPortRanges(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		result := GetIntersectionBetweenTwoListsOfPortRanges(
+		result := IntersectPortRangeSlices(
 			testCase.firstListOfPortRanges,
 			testCase.secondListOfPortRanges,
 		)

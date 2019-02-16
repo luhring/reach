@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/luhring/cnct/network"
+	"github.com/luhring/reach/network"
 )
 
 type analysisOfInstanceSecurityGroups struct {
@@ -56,7 +56,7 @@ func (instancePair *InstancePair) analyzeNetworkAccessViaInstanceSecurityGroups(
 			firstInstance,
 		)
 
-	portsAllowedByBothInstances := network.GetIntersectionBetweenTwoListsOfPortRanges(
+	portsAllowedByBothInstances := network.IntersectPortRangeSlices(
 		portsAllowedByFirstInstanceOutboundToSecondInstance,
 		portsAllowedBySecondInstanceInboundFromFirstInstance,
 	)
