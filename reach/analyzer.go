@@ -85,7 +85,7 @@ func (a *Analyzer) AnalyzeVector(instanceVector *InstanceVector) {
 	for i, v := range interfaceVectors {
 		vectorNumber := i + 1
 		fmt.Printf(
-			"Vector %v) Evaluating allowed traffic from source interface (%v) to destination interface (%v):\n\n",
+			"Vector %v) Analyzing security group rules to determine traffic allowed from source interface (%v) to destination interface (%v):\n\n",
 			vectorNumber,
 			v.Source.Name,
 			v.Destination.Name,

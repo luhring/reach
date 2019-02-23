@@ -100,7 +100,7 @@ func (m *MatchedIP) Describe() string {
 	}
 
 	return fmt.Sprintf(
-		"%s IP address (%v, which is within the specified IP range, %v)",
+		"%s IP address (%v) which is within the rule's specified IP range (%v)",
 		p,
 		m.TargetIP.String(),
 		m.MatchedIPRange.String(),
