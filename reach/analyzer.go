@@ -67,8 +67,8 @@ func (a *Analyzer) findSecurityGroup(id string) (*SecurityGroup, error) {
 }
 
 func (a *Analyzer) AnalyzeVector(instanceVector *InstanceVector) {
-	fmt.Printf("source:\n%v\n", instanceVector.Source)
-	fmt.Printf("destination:\n%v\n", instanceVector.Destination)
+	fmt.Printf("source: %v\n", instanceVector.Source)
+	fmt.Printf("destination: %v\n", instanceVector.Destination)
 	fmt.Println("")
 
 	interfaceVectors := a.createInterfaceVectors(instanceVector)
@@ -101,7 +101,7 @@ func (a *Analyzer) AnalyzeVector(instanceVector *InstanceVector) {
 	allowedTraffic = network.ConsolidateTrafficAllowances(allowedTraffic)
 
 	description := network.DescribeListOfTrafficAllowances(allowedTraffic)
-	fmt.Printf("\nAllowed traffic for vector:\n\n%v\n", description)
+	fmt.Printf("\nSummary of allowed traffic:\n\n%v\n", description)
 }
 
 func (a *Analyzer) createInterfaceVectors(instanceVector *InstanceVector) []InterfaceVector {
