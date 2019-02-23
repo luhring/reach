@@ -69,29 +69,39 @@ func (a *Analyzer) findSecurityGroup(id string) (*SecurityGroup, error) {
 func (a *Analyzer) AnalyzeVector(instanceVector *InstanceVector) {
 	fmt.Printf("source:\n%v\n", instanceVector.Source)
 	fmt.Printf("destination:\n%v\n", instanceVector.Destination)
+	fmt.Println("")
 
 	interfaceVectors := a.createInterfaceVectors(instanceVector)
 
 	if len(interfaceVectors) < 1 {
-		fmt.Println("No network interface vectors to analyze")
+		fmt.Println("No network interface vectors to analyze.")
 		return
 	}
 
-	var reachablePorts []*network.PortRange
+	fmt.Printf("Analyzing %v network interface vector(s)...\n\n", len(interfaceVectors))
 
-	for _, v := range interfaceVectors {
-		reachablePortsViaSecurityGroups := v.getReachablePortsViaSecurityGroups()
+	var allowedTraffic []*network.TrafficAllowance
+
+	for i, v := range interfaceVectors {
+		vectorNumber := i + 1
+		fmt.Printf(
+			"Vector %v) Evaluating allowed traffic from source interface (%v) to destination interface (%v):\n\n",
+			vectorNumber,
+			v.Source.Name,
+			v.Destination.Name,
+		)
+
+		reachablePortsViaSecurityGroups := v.getAllowedTrafficViaSecurityGroups()
 
 		if len(reachablePortsViaSecurityGroups) >= 1 {
-			reachablePorts = append(reachablePorts, reachablePortsViaSecurityGroups...)
+			allowedTraffic = append(allowedTraffic, reachablePortsViaSecurityGroups...)
 		}
 	}
 
-	reachablePorts = network.DefragmentPortRanges(reachablePorts)
+	allowedTraffic = network.ConsolidateTrafficAllowances(allowedTraffic)
 
-	fmt.Printf("reachablePorts contains %v items...\n", len(reachablePorts))
-	description := network.DescribeListOfPortRanges(reachablePorts)
-	fmt.Println(description)
+	description := network.DescribeListOfTrafficAllowances(allowedTraffic)
+	fmt.Printf("\nAllowed traffic for vector:\n\n%v\n", description)
 }
 
 func (a *Analyzer) createInterfaceVectors(instanceVector *InstanceVector) []InterfaceVector {

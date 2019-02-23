@@ -221,7 +221,7 @@ func TestPortRangeDoesDescribeOnlyASinglePort(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		result := testCase.portRange.doesDescribeOnlyASinglePort()
+		result := testCase.portRange.describesOnlyASinglePort()
 
 		if result != testCase.expectedOutput {
 			t.Errorf(
@@ -853,7 +853,7 @@ func TestPortRangeGetIntersection(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		result := testCase.firstPortRange.getIntersection(testCase.secondPortRange)
+		result := testCase.firstPortRange.intersectionWith(testCase.secondPortRange)
 
 		if result == nil && testCase.expectedOutput == nil {
 			continue
@@ -1587,7 +1587,7 @@ func TestPortRangeDescribe(t *testing.T) {
 		result := testCase.portRange.describe()
 		if result != testCase.expectedOutput {
 			t.Errorf(
-				"Expected portRange.describe() for %+v to result in \"%s\", but it resulted in \"%s\".",
+				"Expected portRange.Describe() for %+v to result in \"%s\", but it resulted in \"%s\".",
 				testCase.portRange,
 				testCase.expectedOutput,
 				result,
@@ -1754,10 +1754,10 @@ func TestPortRangeDescribePorts(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		result := testCase.portRange.describePorts()
+		result := testCase.portRange.describe()
 		if result != testCase.expectedOutput {
 			t.Errorf(
-				"Expected portRange.describePorts() for %+v to result in \"%s\", but it resulted in \"%s\".",
+				"Expected portRange.Describe() for %+v to result in \"%s\", but it resulted in \"%s\".",
 				testCase.portRange,
 				testCase.expectedOutput,
 				result,

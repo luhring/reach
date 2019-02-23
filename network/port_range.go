@@ -6,42 +6,21 @@ import (
 	"log"
 	"sort"
 	"strconv"
-	"strings"
 )
 
 const (
-	minimumPort    = 0
-	maximumPort    = 65535
-	tcpName        = "tcp"
-	udpName        = "udp"
-	icmpName       = "icmp"
-	icmpv6Name     = "icmpv6"
-	allIPProtocols = "-1"
+	minimumPort = 0     // for TCP and UDP
+	maximumPort = 65535 // for TCP and UDP
 )
 
 // PortRange keeps track of ranges of ports
 type PortRange struct {
 	LowPort  int64
 	HighPort int64
-	Protocol string
 }
 
-func NewPortRange(protocol string, lowPort, highPort int64) (*PortRange, error) {
-	if protocol == allIPProtocols {
-		return &PortRange{
-			Protocol: allIPProtocols,
-			LowPort:  minimumPort,
-			HighPort: maximumPort,
-		}, nil
-	}
-
-	// Convert protocol to named protocol if valid protocol number is specified in string
-	if i, err := strconv.ParseInt(protocol, 10, 64); err == nil {
-		protocol = getIPProtocolFromNumber(i)
-	}
-
+func NewPortRange(lowPort, highPort int64) (*PortRange, error) {
 	resultPortRange := &PortRange{
-		Protocol: protocol,
 		LowPort:  lowPort,
 		HighPort: highPort,
 	}
@@ -53,66 +32,28 @@ func NewPortRange(protocol string, lowPort, highPort int64) (*PortRange, error) 
 	return nil, fmt.Errorf("unable to create port range, result was invalid: %v", resultPortRange)
 }
 
-func (portRange *PortRange) IncludesAllProtocols() bool {
-	return portRange.Protocol == allIPProtocols
+func (r *PortRange) allPorts() bool {
+	return r.LowPort == minimumPort && r.HighPort == maximumPort
 }
 
-func (portRange *PortRange) doesIPProtocolImplyAllPorts() bool {
-	switch portRange.Protocol {
-	case allIPProtocols, tcpName, udpName, icmpName, icmpv6Name:
+func (r *PortRange) isValid() bool {
+	if false == isValidPortNumber(r.LowPort) {
 		return false
-	default:
-		return true
-	}
-}
-
-func (portRange *PortRange) IncludesAllPorts() bool {
-	if portRange.doesIPProtocolImplyAllPorts() {
-		return true
 	}
 
-	if portRange.Protocol == tcpName || portRange.Protocol == udpName {
-		return portRange.LowPort == minimumPort && portRange.HighPort == maximumPort
+	if false == isValidPortNumber(r.HighPort) {
+		return false
 	}
 
-	return false
-}
-
-func getIPProtocolFromNumber(protocolNumber int64) string {
-	switch protocolNumber {
-	case 1:
-		return icmpName
-	case 6:
-		return tcpName
-	case 17:
-		return udpName
-	case 58:
-		return icmpv6Name
-	default:
-		return string(protocolNumber)
-	}
-}
-
-func (portRange *PortRange) isValid() bool {
-	if portRange.IncludesAllPorts() {
-		return true
-	}
-
-	if portRange.Protocol == tcpName || portRange.Protocol == udpName {
-		if false == isValidPortNumber(portRange.LowPort) {
-			return false
-		}
-
-		if false == isValidPortNumber(portRange.HighPort) {
-			return false
-		}
-
-		if portRange.LowPort > portRange.HighPort {
-			return false
-		}
+	if r.LowPort > r.HighPort {
+		return false
 	}
 
 	return true
+}
+
+func (r *PortRange) describesOnlyASinglePort() bool {
+	return r.LowPort == r.HighPort
 }
 
 func isValidPortNumber(portNumber int64) bool {
@@ -123,27 +64,15 @@ func isValidPortNumber(portNumber int64) bool {
 	return true
 }
 
-func (portRange *PortRange) doesDescribeOnlyASinglePort() bool {
-	return false == portRange.IncludesAllPorts() && portRange.LowPort == portRange.HighPort
-}
+func (r *PortRange) isJuxtaposedWith(other *PortRange) bool {
+	if r.isValid() && other.isValid() {
+		forSorting := []*PortRange{
+			r,
+			other,
+		}
+		sortPortRanges(forSorting)
 
-func arePortRangesJuxtaposed(portRanges [2]*PortRange) bool {
-	if portRanges[0].IncludesAllPorts() || portRanges[1].IncludesAllPorts() {
-		return false
-	}
-
-	if (portRanges[0].IncludesAllProtocols() || portRanges[1].IncludesAllProtocols()) && false == (portRanges[0].IncludesAllProtocols() && portRanges[1].IncludesAllProtocols()) {
-		return false
-	}
-
-	if portRanges[0].Protocol != portRanges[1].Protocol {
-		return false
-	}
-
-	if portRanges[0].isValid() && portRanges[1].isValid() {
-		sortPortRanges(portRanges[:])
-
-		if (portRanges[0].HighPort + 1) == portRanges[1].LowPort {
+		if (forSorting[0].HighPort + 1) == forSorting[1].LowPort {
 			return true
 		}
 	}
@@ -151,73 +80,37 @@ func arePortRangesJuxtaposed(portRanges [2]*PortRange) bool {
 	return false
 }
 
-func (portRange *PortRange) getIntersection(secondPortRange *PortRange) *PortRange {
-	if false == doPortRangesIntersect(portRange, secondPortRange) {
+func sortPortRanges(portRanges []*PortRange) {
+	sort.Slice(portRanges, func(i, j int) bool {
+		return portRanges[i].LowPort < portRanges[j].LowPort
+	})
+}
+
+func (r *PortRange) intersectionWith(other *PortRange) *PortRange {
+	if false == r.doesIntersectWith(other) {
 		return nil
 	}
 
-	if portRange.IncludesAllPorts() {
-		return &PortRange{
-			LowPort:  secondPortRange.LowPort,
-			HighPort: secondPortRange.HighPort,
-			Protocol: portRange.Protocol,
-		}
-	}
-
-	if secondPortRange.IncludesAllPorts() {
-		return &PortRange{
-			LowPort:  portRange.LowPort,
-			HighPort: portRange.HighPort,
-			Protocol: portRange.Protocol,
-		}
-	}
-
-	intersectionLowPort := getHigherOfTwoNumbers(portRange.LowPort, secondPortRange.LowPort)
-	intersectionHighPort := getLowerOfTwoNumbers(portRange.HighPort, secondPortRange.HighPort)
+	intersectionLowPort := getHigherOfTwoNumbers(r.LowPort, other.LowPort)
+	intersectionHighPort := getLowerOfTwoNumbers(r.HighPort, other.HighPort)
 
 	return &PortRange{
 		LowPort:  intersectionLowPort,
 		HighPort: intersectionHighPort,
-		Protocol: portRange.Protocol,
 	}
 }
 
-func doPortRangesIntersect(firstPortRange *PortRange, secondPortRange *PortRange) bool {
-	if firstPortRange.IncludesAllProtocols() != secondPortRange.IncludesAllProtocols() {
-		return false
-	}
-
-	if firstPortRange.Protocol != secondPortRange.Protocol {
-		return false
-	}
-
-	if firstPortRange.IncludesAllPorts() || secondPortRange.IncludesAllPorts() {
-		return true
-	}
-
-	return firstPortRange.HighPort >= secondPortRange.LowPort && firstPortRange.LowPort <= secondPortRange.HighPort
+func (r *PortRange) doesIntersectWith(other *PortRange) bool {
+	return r.HighPort >= other.LowPort && r.LowPort <= other.HighPort
 }
 
-func mergePortRanges(firstPortRange *PortRange, secondPortRange *PortRange) (*PortRange, error) {
-	portRanges := [2]*PortRange{
-		firstPortRange,
-		secondPortRange,
-	}
-
-	if false == doPortRangesIntersect(firstPortRange, secondPortRange) && false == arePortRangesJuxtaposed(portRanges) {
+func (r *PortRange) mergeWith(other *PortRange) (*PortRange, error) {
+	if false == r.doesIntersectWith(other) && false == r.isJuxtaposedWith(other) {
 		return nil, errors.New("specified port ranges cannot be merged")
 	}
 
-	if firstPortRange.IncludesAllPorts() || secondPortRange.IncludesAllPorts() {
-		return &PortRange{
-			LowPort:  0,
-			HighPort: 0,
-			Protocol: firstPortRange.Protocol,
-		}, nil
-	}
-
-	mergeResultLowPort := getLowerOfTwoNumbers(firstPortRange.LowPort, secondPortRange.LowPort)
-	mergeResultHighPort := getHigherOfTwoNumbers(firstPortRange.HighPort, secondPortRange.HighPort)
+	mergeResultLowPort := getLowerOfTwoNumbers(r.LowPort, other.LowPort)
+	mergeResultHighPort := getHigherOfTwoNumbers(r.HighPort, other.HighPort)
 
 	if mergeResultLowPort == minimumPort && mergeResultHighPort == maximumPort {
 		mergeResultLowPort = 0
@@ -227,7 +120,6 @@ func mergePortRanges(firstPortRange *PortRange, secondPortRange *PortRange) (*Po
 	return &PortRange{
 		LowPort:  mergeResultLowPort,
 		HighPort: mergeResultHighPort,
-		Protocol: firstPortRange.Protocol,
 	}, nil
 }
 
@@ -245,12 +137,6 @@ func getLowerOfTwoNumbers(firstNumber int64, secondNumber int64) int64 {
 	}
 
 	return secondNumber
-}
-
-func sortPortRanges(portRanges []*PortRange) {
-	sort.Slice(portRanges, func(i, j int) bool {
-		return portRanges[i].LowPort < portRanges[j].LowPort
-	})
 }
 
 func arePortRangesSlicesEqual(first []*PortRange, second []*PortRange) bool {
@@ -285,9 +171,9 @@ func DefragmentPortRanges(portRanges []*PortRange) []*PortRange {
 
 	for i := 0; i < len(portRanges); i++ {
 		if i > 0 {
-			if doPortRangesIntersect(portRanges[i], portRanges[i-1]) {
+			if portRanges[i].doesIntersectWith(portRanges[i-1]) {
 				// merge with previous
-				mergeResult, err := mergePortRanges(portRanges[i-1], portRanges[i])
+				mergeResult, err := portRanges[i-1].mergeWith(portRanges[i])
 				if err != nil {
 					log.Println("warning: attempted to merge unmergeable port ranges")
 					continue
@@ -315,7 +201,7 @@ func IntersectPortRangeSlices(
 	for _, portRangeFromFirstList := range firstPortRangeSlice {
 		for _, portRangeFromSecondList := range secondPortRangeSlice {
 			currentIntersection :=
-				portRangeFromFirstList.getIntersection(portRangeFromSecondList)
+				portRangeFromFirstList.intersectionWith(portRangeFromSecondList)
 
 			if currentIntersection != nil {
 				intersectionPortRanges = append(intersectionPortRanges, currentIntersection)
@@ -337,55 +223,18 @@ func DescribeListOfPortRanges(listOfPortRanges []*PortRange) string {
 	return description
 }
 
-func (portRange *PortRange) describe() string {
-	return portRange.describeProtocol() + " " + portRange.describePorts()
-}
-
-func (portRange *PortRange) describeProtocol() string {
-	if portRange.IncludesAllProtocols() {
-		return "(ALL protocols)"
-	}
-
-	const textForTCP = "TCP"
-	const textForUDP = "UDP"
-	const textForICMP = "ICMP"
-	const textForICMPv6 = "ICMPv6"
-	const protocolNumberForICMPv6 = "58"
-
-	if strings.EqualFold(portRange.Protocol, textForTCP) {
-		return textForTCP
-	}
-
-	if strings.EqualFold(portRange.Protocol, textForUDP) {
-		return textForUDP
-	}
-
-	if strings.EqualFold(portRange.Protocol, textForICMP) {
-		return textForICMP
-	}
-
-	if strings.EqualFold(portRange.Protocol, textForICMPv6) || portRange.Protocol == protocolNumberForICMPv6 {
-		return textForICMPv6
-	}
-
-	return fmt.Sprintf(
-		"(IP protocol %s)",
-		portRange.Protocol,
-	)
-}
-
-func (portRange *PortRange) describePorts() string {
-	if portRange.IncludesAllPorts() {
+func (r *PortRange) describe() string {
+	if r.allPorts() {
 		return "ALL ports"
 	}
 
-	if portRange.doesDescribeOnlyASinglePort() {
-		return strconv.FormatInt(portRange.LowPort, 10)
+	if r.describesOnlyASinglePort() {
+		return strconv.FormatInt(r.LowPort, 10)
 	}
 
 	return fmt.Sprintf(
 		"%d - %d",
-		portRange.LowPort,
-		portRange.HighPort,
+		r.LowPort,
+		r.HighPort,
 	)
 }

@@ -10,6 +10,7 @@ import (
 
 type NetworkInterface struct {
 	ID                 string
+	Name               string
 	PrivateIPAddresses []net.IP
 	PublicIPAddress    net.IP
 	SecurityGroups     []*SecurityGroup
@@ -53,6 +54,7 @@ func NewNetworkInterface(networkInterface *ec2.InstanceNetworkInterface, findSec
 
 	return &NetworkInterface{
 		ID:                 aws.StringValue(networkInterface.NetworkInterfaceId),
+		Name:               aws.StringValue(networkInterface.NetworkInterfaceId),
 		PrivateIPAddresses: privateIPAddresses,
 		PublicIPAddress:    publicIPAddress,
 		SecurityGroups:     securityGroups,

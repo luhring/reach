@@ -9,24 +9,13 @@ import (
 )
 
 type SecurityGroupRule struct {
-	Ports    *network.PortRange
-	IPRanges []*net.IPNet
-	SGRefs   []*SecurityGroupReference
-}
-
-type SecurityGroupReference struct {
-	ID     string
-	Name   string
-	UserID string
-	VPCID  string
+	TrafficAllowance *network.TrafficAllowance
+	IPRanges         []*net.IPNet
+	SGRefs           []*SecurityGroupReference
 }
 
 func NewSecurityGroupRule(permission *ec2.IpPermission) (*SecurityGroupRule, error) {
-	portRange, err := network.NewPortRange(
-		aws.StringValue(permission.IpProtocol),
-		aws.Int64Value(permission.FromPort),
-		aws.Int64Value(permission.ToPort),
-	)
+	trafficAllowance, err := network.NewTrafficAllowanceFromAWS(permission.IpProtocol, permission.FromPort, permission.ToPort)
 	if err != nil {
 		return nil, fmt.Errorf("unable to ingest security group rule: %v", err)
 	}
@@ -43,18 +32,31 @@ func NewSecurityGroupRule(permission *ec2.IpPermission) (*SecurityGroupRule, err
 		ipRanges[i] = ipNetwork
 	}
 
+	var sgRefs []*SecurityGroupReference
+
+	if pairs := permission.UserIdGroupPairs; pairs != nil {
+		sgRefs := make([]*SecurityGroupReference, len(pairs))
+
+		for i, p := range pairs {
+			sgRefs[i] = NewSecurityGroupReference(p)
+		}
+	}
+
 	return &SecurityGroupRule{
-		Ports:    portRange,
-		IPRanges: ipRanges,
+		TrafficAllowance: trafficAllowance,
+		IPRanges:         ipRanges,
+		SGRefs:           sgRefs,
 	}, nil
 }
 
-func (rule *SecurityGroupRule) doesApplyToInterface(targetInterface *NetworkInterface) bool {
+func (rule *SecurityGroupRule) doesApplyToInterface(targetInterface *NetworkInterface) (bool, MatchedTarget) {
 	// Does rule mention a security group of the target interface?
 	for _, sgRef := range rule.SGRefs {
 		for _, targetSecurityGroup := range targetInterface.SecurityGroups {
 			if sgRef.ID == targetSecurityGroup.ID {
-				return true
+				return true, &MatchedSGRef{
+					sgRef,
+				}
 			}
 		}
 	}
@@ -63,10 +65,48 @@ func (rule *SecurityGroupRule) doesApplyToInterface(targetInterface *NetworkInte
 	for _, ipRange := range rule.IPRanges {
 		for _, privateIPAddress := range targetInterface.PrivateIPAddresses {
 			if ipRange.Contains(privateIPAddress) {
-				return true
+				return true, &MatchedIP{
+					ipRange,
+					privateIPAddress,
+					false,
+				}
 			}
 		}
 	}
 
-	return false
+	return false, nil
+}
+
+type MatchedSGRef struct {
+	SGRef *SecurityGroupReference
+}
+
+func (m *MatchedSGRef) Describe() string {
+	return fmt.Sprintf("security group (%v)", m.SGRef.Name)
+}
+
+type MatchedIP struct {
+	MatchedIPRange   *net.IPNet
+	TargetIP         net.IP
+	IsTargetIPPublic bool
+}
+
+func (m *MatchedIP) Describe() string {
+	var p string
+	if m.IsTargetIPPublic {
+		p = "public"
+	} else {
+		p = "private"
+	}
+
+	return fmt.Sprintf(
+		"%s IP address (%v, which is within the specified IP range, %v)",
+		p,
+		m.TargetIP.String(),
+		m.MatchedIPRange.String(),
+	)
+}
+
+type MatchedTarget interface {
+	Describe() string
 }
