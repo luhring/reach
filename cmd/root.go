@@ -21,7 +21,7 @@ See https://github.com/luhring/reach for documentation.`,
 			exitWithError(err)
 		}
 
-		analyzer.AnalyzeVector(vector)
+		analyzer.Analyze(vector)
 	},
 }
 

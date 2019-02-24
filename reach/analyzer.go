@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/logrusorgru/aurora"
 	"github.com/luhring/reach/network"
 	"strings"
 )
@@ -66,42 +67,52 @@ func (a *Analyzer) findSecurityGroup(id string) (*SecurityGroup, error) {
 	return securityGroup, nil
 }
 
-func (a *Analyzer) AnalyzeVector(instanceVector *InstanceVector) {
-	fmt.Printf("source: %v\n", instanceVector.Source)
-	fmt.Printf("destination: %v\n", instanceVector.Destination)
-	fmt.Println("")
+func (a *Analyzer) Analyze(instanceVector *InstanceVector) {
+	var analysisExplanation Explanation
+
+	analysisExplanation.AddLineFormat("source EC2 instance: %v", aurora.Bold(instanceVector.Source.LongName()))
+	analysisExplanation.AddLineFormat("destination EC2 instance: %v", aurora.Bold(instanceVector.Destination.LongName()))
+	analysisExplanation.AddBlankLine()
+	analysisExplanation.AddLine("network interface vectors:")
 
 	interfaceVectors := a.createInterfaceVectors(instanceVector)
+	vectorCount := len(interfaceVectors)
 
-	if len(interfaceVectors) < 1 {
-		fmt.Println("No network interface vectors to analyze.")
+	if vectorCount < 1 {
+		fmt.Println("no network interface vectors to analyze.") // TODO: logger
 		return
 	}
-
-	fmt.Printf("Analyzing %v network interface vector(s)...\n\n", len(interfaceVectors))
 
 	var allowedTraffic []*network.TrafficAllowance
 
 	for i, v := range interfaceVectors {
 		vectorNumber := i + 1
-		fmt.Printf(
-			"Vector %v) Analyzing security group rules to determine traffic allowed from source interface (%v) to destination interface (%v):\n\n",
-			vectorNumber,
-			v.Source.Name,
-			v.Destination.Name,
-		)
 
-		reachablePortsViaSecurityGroups := v.getAllowedTrafficViaSecurityGroups()
+		var vectorExplanation Explanation
+
+		vectorExplanation.AddLineFormat("vector %v (of %v):", vectorNumber, vectorCount)
+		vectorExplanation.Subsume(v.explainSourceAndDestination())
+		vectorExplanation.AddBlankLine()
+
+		reachablePortsViaSecurityGroups, sgExplanation := v.getAllowedTrafficViaSecurityGroups()
 
 		if len(reachablePortsViaSecurityGroups) >= 1 {
 			allowedTraffic = append(allowedTraffic, reachablePortsViaSecurityGroups...)
+
+			vectorExplanation.Subsume(sgExplanation)
 		}
+
+		analysisExplanation.Subsume(vectorExplanation)
 	}
 
 	allowedTraffic = network.ConsolidateTrafficAllowances(allowedTraffic)
 
 	description := network.DescribeListOfTrafficAllowances(allowedTraffic)
-	fmt.Printf("\nSummary of allowed traffic:\n\n%v\n", description)
+	fmt.Printf("%v\n", description)
+
+	// TODO: only if explanation is requested via --explain
+	fmt.Printf("Explanation:\n\n")
+	fmt.Print(analysisExplanation.Render())
 }
 
 func (a *Analyzer) createInterfaceVectors(instanceVector *InstanceVector) []InterfaceVector {

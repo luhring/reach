@@ -272,7 +272,7 @@ func (t *TrafficAllowance) mergeWith(other *TrafficAllowance) (*TrafficAllowance
 
 func (t *TrafficAllowance) Describe() string {
 	if t.allProtocols() {
-		return "(ALL traffic)"
+		return "ALL traffic"
 	}
 
 	var constraintPredicate string

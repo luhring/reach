@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/logrusorgru/aurora"
 	"github.com/luhring/reach/network"
 	"net"
 )
@@ -49,12 +50,13 @@ func NewSecurityGroupRule(permission *ec2.IpPermission) (*SecurityGroupRule, err
 	}, nil
 }
 
-func (rule *SecurityGroupRule) doesApplyToInterface(targetInterface *NetworkInterface) (bool, MatchedTarget) {
+func (rule *SecurityGroupRule) matchWithInterface(targetInterface *NetworkInterface) RuleMatch {
 	// Does rule mention a security group of the target interface?
 	for _, sgRef := range rule.SGRefs {
 		for _, targetSecurityGroup := range targetInterface.SecurityGroups {
 			if sgRef.ID == targetSecurityGroup.ID {
-				return true, &MatchedSGRef{
+				return &SGRefRuleMatch{
+					rule,
 					sgRef,
 				}
 			}
@@ -65,7 +67,8 @@ func (rule *SecurityGroupRule) doesApplyToInterface(targetInterface *NetworkInte
 	for _, ipRange := range rule.IPRanges {
 		for _, privateIPAddress := range targetInterface.PrivateIPAddresses {
 			if ipRange.Contains(privateIPAddress) {
-				return true, &MatchedIP{
+				return &IPRuleMatch{
+					rule,
 					ipRange,
 					privateIPAddress,
 					false,
@@ -74,39 +77,52 @@ func (rule *SecurityGroupRule) doesApplyToInterface(targetInterface *NetworkInte
 		}
 	}
 
-	return false, nil
+	return nil
 }
 
-type MatchedSGRef struct {
+type SGRefRuleMatch struct {
+	Rule  *SecurityGroupRule
 	SGRef *SecurityGroupReference
 }
 
-func (m *MatchedSGRef) Describe() string {
-	return fmt.Sprintf("security group (%v)", m.SGRef.Name)
+func (m *SGRefRuleMatch) Explain(observedDescriptor string) Explanation {
+	var explanation Explanation
+
+	explanation.AddLineFormat("security group (%v)", m.SGRef.Name)
+
+	return explanation
 }
 
-type MatchedIP struct {
+type IPRuleMatch struct {
+	Rule             *SecurityGroupRule
 	MatchedIPRange   *net.IPNet
 	TargetIP         net.IP
 	IsTargetIPPublic bool
 }
 
-func (m *MatchedIP) Describe() string {
-	var p string
+func (m *IPRuleMatch) Explain(observedDescriptor string) Explanation {
+	var explanation Explanation
+
+	var publicOrPrivate string
 	if m.IsTargetIPPublic {
-		p = "public"
+		publicOrPrivate = "public"
 	} else {
-		p = "private"
+		publicOrPrivate = "private"
 	}
 
-	return fmt.Sprintf(
-		"%s IP address (%v) which is within the rule's specified IP range (%v)",
-		p,
-		m.TargetIP.String(),
+	explanation.AddLineFormatWithEffect(aurora.Green, "- rule: allow %v", aurora.Bold(m.Rule.TrafficAllowance.Describe()))
+	explanation.AddLineFormatWithIndents(
+		1,
+		"(This rule handles an IP address range '%v' that includes the %s network interface's %s IP address '%v'.)",
 		m.MatchedIPRange.String(),
+		observedDescriptor,
+		publicOrPrivate,
+		m.TargetIP.String(),
 	)
+
+	return explanation
 }
 
-type MatchedTarget interface {
-	Describe() string
+type RuleMatch interface {
+	Explain(observedDescriptor string) Explanation
 }

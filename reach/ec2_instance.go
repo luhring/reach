@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+const sourceWord = "source"
+const destinationWord = "destination"
+
 type EC2Instance struct {
 	ID                string
 	NameTag           string
@@ -37,6 +40,14 @@ func NewEC2Instance(instance *ec2.Instance, findSecurityGroup func(id string) (*
 func (i *EC2Instance) doesStateAllowAccess() bool {
 	const running = "running"
 	return strings.EqualFold(i.State, running)
+}
+
+func (i *EC2Instance) LongName() string {
+	if len(i.NameTag) >= 1 {
+		return fmt.Sprintf("\"%v\" (%v)", i.NameTag, i.ID)
+	}
+
+	return i.ID
 }
 
 func getNameTagValueFromTags(tags []*ec2.Tag) string {

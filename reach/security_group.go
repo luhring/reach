@@ -43,3 +43,11 @@ func NewSecurityGroup(group *ec2.SecurityGroup) (*SecurityGroup, error) {
 		OutboundRules: outboundRules,
 	}, nil
 }
+
+func (sg *SecurityGroup) LongName() string {
+	if len(sg.Name) >= 1 {
+		return fmt.Sprintf("\"%v\" (%v)", sg.Name, sg.ID)
+	}
+
+	return sg.ID
+}

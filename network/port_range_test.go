@@ -1587,7 +1587,7 @@ func TestPortRangeDescribe(t *testing.T) {
 		result := testCase.portRange.describe()
 		if result != testCase.expectedOutput {
 			t.Errorf(
-				"Expected portRange.Describe() for %+v to result in \"%s\", but it resulted in \"%s\".",
+				"Expected portRange.Explain() for %+v to result in \"%s\", but it resulted in \"%s\".",
 				testCase.portRange,
 				testCase.expectedOutput,
 				result,
@@ -1757,7 +1757,7 @@ func TestPortRangeDescribePorts(t *testing.T) {
 		result := testCase.portRange.describe()
 		if result != testCase.expectedOutput {
 			t.Errorf(
-				"Expected portRange.Describe() for %+v to result in \"%s\", but it resulted in \"%s\".",
+				"Expected portRange.Explain() for %+v to result in \"%s\", but it resulted in \"%s\".",
 				testCase.portRange,
 				testCase.expectedOutput,
 				result,
