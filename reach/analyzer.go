@@ -83,7 +83,6 @@ func (a *Analyzer) Analyze(instanceVector *InstanceVector, shouldExplain bool) {
 
 	if shouldExplain {
 		fmt.Println("")
-		fmt.Printf("Explanation...\n\n")
 		fmt.Print(analysisExplanation.Render())
 	}
 }
