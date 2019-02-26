@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	color "github.com/mgutz/ansi"
 	"strings"
 )
-
-const sourceWord = "source"
-const destinationWord = "destination"
 
 type EC2Instance struct {
 	ID                string
@@ -60,4 +58,26 @@ func getNameTagValueFromTags(tags []*ec2.Tag) string {
 	}
 
 	return ""
+}
+
+func (i *EC2Instance) analyzeState(sourceOrDestination string) (bool, Explanation) {
+	const running = "running"
+
+	state := strings.ToLower(i.State)
+	isRunning := state == running
+
+	var c string
+	if isRunning {
+		c = "green"
+	} else {
+		c = "red"
+	}
+
+	label := color.Color(fmt.Sprintf("%v instance state:", sourceOrDestination), c)
+	value := color.Color(state, c+"+b")
+
+	var explanation Explanation
+	explanation.AddLineFormat("%v %v", label, value)
+
+	return isRunning, explanation
 }

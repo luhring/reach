@@ -37,6 +37,12 @@ func (e *Explanation) AddBlankLine() {
 	e.AddLine("")
 }
 
+func (e *Explanation) Append(explanation Explanation) {
+	for _, line := range explanation.lines {
+		e.AddLineWithIndents(line.indents, line.text)
+	}
+}
+
 func (e *Explanation) Subsume(explanation Explanation) {
 	for _, line := range explanation.lines {
 		e.AddLineWithIndents(line.indents+1, line.text)

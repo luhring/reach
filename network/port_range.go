@@ -233,7 +233,7 @@ func (r *PortRange) describe() string {
 	}
 
 	return fmt.Sprintf(
-		"%d-%d",
+		"%d - %d",
 		r.LowPort,
 		r.HighPort,
 	)

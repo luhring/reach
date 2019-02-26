@@ -70,10 +70,15 @@ func (a *Analyzer) findSecurityGroup(id string) (*SecurityGroup, error) {
 func (a *Analyzer) Analyze(instanceVector *InstanceVector) {
 	var analysisExplanation Explanation
 
-	analysisExplanation.AddLineFormat("source EC2 instance: %v", aurora.Bold(instanceVector.Source.LongName()))
-	analysisExplanation.AddLineFormat("destination EC2 instance: %v", aurora.Bold(instanceVector.Destination.LongName()))
+	analysisExplanation.AddLineFormat("source instance: %v", aurora.Bold(instanceVector.Source.LongName()))
+	analysisExplanation.AddLineFormat("destination instance: %v", aurora.Bold(instanceVector.Destination.LongName()))
 	analysisExplanation.AddBlankLine()
-	analysisExplanation.AddLine("network interface vectors:")
+
+	doStatesAllowTraffic, statesExplanation := instanceVector.analyzeInstanceStates()
+	analysisExplanation.Append(statesExplanation)
+
+	analysisExplanation.AddBlankLine()
+	analysisExplanation.AddLine("source and destination network interface pairings:")
 
 	interfaceVectors := a.createInterfaceVectors(instanceVector)
 	vectorCount := len(interfaceVectors)
@@ -85,21 +90,18 @@ func (a *Analyzer) Analyze(instanceVector *InstanceVector) {
 
 	var allowedTraffic []*network.TrafficAllowance
 
-	for i, v := range interfaceVectors {
-		vectorNumber := i + 1
-
+	for _, v := range interfaceVectors {
 		var vectorExplanation Explanation
 
-		vectorExplanation.AddLineFormat("vector %v (of %v):", vectorNumber, vectorCount)
-		vectorExplanation.Subsume(v.explainSourceAndDestination())
+		vectorExplanation.Append(v.explainSourceAndDestination())
 		vectorExplanation.AddBlankLine()
 
-		reachablePortsViaSecurityGroups, sgExplanation := v.getAllowedTrafficViaSecurityGroups()
+		reachablePortsViaSecurityGroups, sgExplanation := v.analyzeSecurityGroups()
 
 		if len(reachablePortsViaSecurityGroups) >= 1 {
 			allowedTraffic = append(allowedTraffic, reachablePortsViaSecurityGroups...)
 
-			vectorExplanation.Subsume(sgExplanation)
+			vectorExplanation.Append(sgExplanation)
 		}
 
 		analysisExplanation.Subsume(vectorExplanation)
@@ -107,26 +109,19 @@ func (a *Analyzer) Analyze(instanceVector *InstanceVector) {
 
 	allowedTraffic = network.ConsolidateTrafficAllowances(allowedTraffic)
 
+	if doStatesAllowTraffic == false {
+		allowedTraffic = []*network.TrafficAllowance{}
+	}
+
 	description := network.DescribeListOfTrafficAllowances(allowedTraffic)
 	fmt.Printf("%v\n", description)
 
 	// TODO: only if explanation is requested via --explain
-	fmt.Printf("Explanation:\n\n")
+	fmt.Printf("Explanation...\n\n")
 	fmt.Print(analysisExplanation.Render())
 }
 
 func (a *Analyzer) createInterfaceVectors(instanceVector *InstanceVector) []InterfaceVector {
-	if instanceVector.Source.doesStateAllowAccess() == false {
-		// Source instance is not running -- ideally, we'd aggregate reasons for the explanation
-		// instead of returning early
-		return nil
-	}
-
-	if instanceVector.Destination.doesStateAllowAccess() == false {
-		// Destination instance is not running
-		return nil
-	}
-
 	var interfaceVectors []InterfaceVector
 
 	for _, fromInterface := range instanceVector.Source.NetworkInterfaces {

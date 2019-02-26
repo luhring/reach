@@ -29,7 +29,7 @@ func (v *InterfaceVector) explainSourceAndDestination() Explanation {
 	return explanation
 }
 
-func (v *InterfaceVector) getAllowedTrafficViaSecurityGroups() ([]*network.TrafficAllowance, Explanation) {
+func (v *InterfaceVector) analyzeSecurityGroups() ([]*network.TrafficAllowance, Explanation) {
 	var explanation Explanation
 	explanation.AddLineFormat("%v analysis", aurora.Bold("security group"))
 
@@ -80,7 +80,7 @@ func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective 
 		getRulesForPerspective = func(sg *SecurityGroup) []*SecurityGroupRule { return sg.InboundRules }
 	}
 
-	securityGroupsExplanation.AddLineFormat("%s interface's security groups:", perspectiveDescriptor)
+	securityGroupsExplanation.AddLineFormat("%s network interface's security groups:", perspectiveDescriptor)
 
 	var allowedTraffic []*network.TrafficAllowance
 

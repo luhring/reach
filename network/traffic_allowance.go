@@ -358,15 +358,23 @@ func IntersectTrafficAllowances(
 
 func sortTrafficAllowances(allowances []*TrafficAllowance) {
 	sort.Slice(allowances, func(i, j int) bool {
+		if allowances[i].Protocol == allowances[j].Protocol && allowances[i].specifiesTCPOrUDPPortRange() {
+			return allowances[i].PortRange.LowPort < allowances[j].PortRange.LowPort
+		}
+
 		return allowances[i].Protocol < allowances[j].Protocol
 	})
 }
 
 func DescribeListOfTrafficAllowances(allowances []*TrafficAllowance) string {
+	if len(allowances) < 1 {
+		return "source traffic cannot reach destination\n"
+	}
+
 	var description string
 
 	for _, allowance := range allowances {
-		description += allowance.Describe() + "\n"
+		description += "→ " + allowance.Describe() + "\n"
 	}
 
 	return description
