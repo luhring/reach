@@ -32,42 +32,7 @@ func NewAnalyzer() *Analyzer {
 	}
 }
 
-func (a *Analyzer) findSecurityGroup(id string) (*SecurityGroup, error) {
-	// lookup from cache, return if found
-	if group := a.SecurityGroups[id]; group != nil {
-		return group, nil
-	}
-
-	// lookup from AWS API. If found, store in cache and return
-	input := &ec2.DescribeSecurityGroupsInput{
-		GroupIds: []*string{
-			aws.String(id),
-		},
-	}
-	output, err := a.EC2Client.DescribeSecurityGroups(input)
-	if err != nil {
-		return nil, fmt.Errorf("error: unable to find security group: %v", err)
-	}
-
-	groups := output.SecurityGroups
-	if len(groups) > 1 {
-		return nil, fmt.Errorf("error: found more than one security group matching id: %v", id)
-	}
-
-	group := groups[0]
-
-	securityGroup, err := NewSecurityGroup(group)
-	if err != nil {
-		return nil, fmt.Errorf("error: unable to find security group: %v", err)
-	}
-
-	// Save ingested group to local cache
-	a.SecurityGroups[id] = securityGroup
-
-	return securityGroup, nil
-}
-
-func (a *Analyzer) Analyze(instanceVector *InstanceVector) {
+func (a *Analyzer) Analyze(instanceVector *InstanceVector, shouldExplain bool) {
 	var analysisExplanation Explanation
 
 	analysisExplanation.AddLineFormat("source instance: %v", aurora.Bold(instanceVector.Source.LongName()))
@@ -114,11 +79,48 @@ func (a *Analyzer) Analyze(instanceVector *InstanceVector) {
 	}
 
 	description := network.DescribeListOfTrafficAllowances(allowedTraffic)
-	fmt.Printf("%v\n", description)
+	fmt.Print(description)
 
-	// TODO: only if explanation is requested via --explain
-	fmt.Printf("Explanation...\n\n")
-	fmt.Print(analysisExplanation.Render())
+	if shouldExplain {
+		fmt.Println("")
+		fmt.Printf("Explanation...\n\n")
+		fmt.Print(analysisExplanation.Render())
+	}
+}
+
+func (a *Analyzer) findSecurityGroup(id string) (*SecurityGroup, error) {
+	// lookup from cache, return if found
+	if group := a.SecurityGroups[id]; group != nil {
+		return group, nil
+	}
+
+	// lookup from AWS API. If found, store in cache and return
+	input := &ec2.DescribeSecurityGroupsInput{
+		GroupIds: []*string{
+			aws.String(id),
+		},
+	}
+	output, err := a.EC2Client.DescribeSecurityGroups(input)
+	if err != nil {
+		return nil, fmt.Errorf("error: unable to find security group: %v", err)
+	}
+
+	groups := output.SecurityGroups
+	if len(groups) > 1 {
+		return nil, fmt.Errorf("error: found more than one security group matching id: %v", id)
+	}
+
+	group := groups[0]
+
+	securityGroup, err := NewSecurityGroup(group)
+	if err != nil {
+		return nil, fmt.Errorf("error: unable to find security group: %v", err)
+	}
+
+	// Save ingested group to local cache
+	a.SecurityGroups[id] = securityGroup
+
+	return securityGroup, nil
 }
 
 func (a *Analyzer) createInterfaceVectors(instanceVector *InstanceVector) []InterfaceVector {
