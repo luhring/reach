@@ -5,8 +5,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/logrusorgru/aurora"
 	"github.com/luhring/reach/network"
+	"github.com/mgutz/ansi"
 	"strings"
 )
 
@@ -35,8 +35,14 @@ func NewAnalyzer() *Analyzer {
 func (a *Analyzer) Analyze(instanceVector *InstanceVector, shouldExplain bool) {
 	var analysisExplanation Explanation
 
-	analysisExplanation.AddLineFormat("source instance: %v", aurora.Bold(instanceVector.Source.LongName()))
-	analysisExplanation.AddLineFormat("destination instance: %v", aurora.Bold(instanceVector.Destination.LongName()))
+	analysisExplanation.AddLineFormat(
+		"source instance: %v",
+		ansi.Color(instanceVector.Source.LongName(), "default+b"),
+	)
+	analysisExplanation.AddLineFormat(
+		"destination instance: %v",
+		ansi.Color(instanceVector.Destination.LongName(), "default+b"),
+	)
 	analysisExplanation.AddBlankLine()
 
 	doStatesAllowTraffic, statesExplanation := instanceVector.analyzeInstanceStates()

@@ -3,7 +3,6 @@ module github.com/luhring/reach
 require (
 	github.com/aws/aws-sdk-go v1.16.5
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/logrusorgru/aurora v0.0.0-20181002194514-a7b3b318ed4e
 	github.com/mattn/go-colorable v0.1.1 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/spf13/cobra v0.0.3

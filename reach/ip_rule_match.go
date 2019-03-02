@@ -1,7 +1,7 @@
 package reach
 
 import (
-	"github.com/logrusorgru/aurora"
+	"github.com/mgutz/ansi"
 	"net"
 )
 
@@ -22,7 +22,10 @@ func (m *IPRuleMatch) Explain(observedDescriptor string) Explanation {
 		publicOrPrivate = "private"
 	}
 
-	explanation.AddLineFormatWithEffect(aurora.Green, "- rule: allow %v", aurora.Bold(m.Rule.TrafficAllowance.Describe()))
+	explanation.AddLineFormat(
+		ansi.Color("- rule: allow %v", "green"),
+		ansi.Color(m.Rule.TrafficAllowance.Describe(), "green+b"),
+	)
 	explanation.AddLineFormatWithIndents(
 		1,
 		"(This rule handles an IP address range '%v' that includes the %s network interface's %s IP address '%v'.)",
