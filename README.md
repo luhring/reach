@@ -2,6 +2,10 @@
 
 A tool for examining network reachability issues in AWS.
 
+[![CircleCI](https://circleci.com/gh/luhring/reach.svg?style=svg)](https://circleci.com/gh/luhring/reach)
+[![Go Report Card](https://goreportcard.com/badge/github.com/luhring/reach)](https://goreportcard.com/report/github.com/luhring/reach)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/luhring/reach/blob/master/LICENSE)
+
 ## Overview
 
 reach evaluates the potential for network connectivity between EC2 instances by querying the AWS API for network configuration data.
