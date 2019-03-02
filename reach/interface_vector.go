@@ -87,10 +87,7 @@ func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective 
 	for _, securityGroup := range perspectiveInterface.SecurityGroups {
 		var securityGroupExplanation Explanation
 
-		securityGroupExplanation.AddLineFormat(
-			"%v",
-			ansi.Color(securityGroup.LongName(), "default+b"),
-		)
+		securityGroupExplanation.AddLine(ansi.Color(securityGroup.LongName(), "default+b"))
 		securityGroupExplanation.AddLineFormat(
 			"%s security group rules that refer to the %s network interface:",
 			rulePerspective,
@@ -106,18 +103,25 @@ func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective 
 			}
 		}
 
-		if len(ruleMatches) == 0 {
-			var noMatchingRules Explanation
-			noMatchingRules.AddLine(ansi.Color("(no rules that meet this criteria)", "red"))
-			securityGroupExplanation.Subsume(noMatchingRules)
-		}
-
 		for _, match := range ruleMatches {
 			securityGroupExplanation.Subsume(match.Explain(observedDescriptor))
 			allowedTraffic = append(allowedTraffic, match.GetRule().TrafficAllowance)
 		}
 
-		securityGroupsExplanation.Subsume(securityGroupExplanation)
+		if len(ruleMatches) >= 1 {
+			securityGroupsExplanation.Subsume(securityGroupExplanation)
+		}
+	}
+
+	if len(allowedTraffic) == 0 {
+		var noMatchingRules Explanation
+		noMatchingRules.AddLineFormat(
+			ansi.Color("This network interface has no security groups with %v rules that refer to the %s network interface!", "red"),
+			rulePerspective,
+			observedDescriptor,
+		)
+
+		securityGroupsExplanation.Subsume(noMatchingRules)
 	}
 
 	allowedTraffic = network.ConsolidateTrafficAllowances(allowedTraffic)
