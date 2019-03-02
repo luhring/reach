@@ -12,5 +12,5 @@ jobs:
     steps:
       - checkout
 
-      - run: go build
+      - run: go build -a -o "./build/reach"
       - run: go test -v -cover ./...
