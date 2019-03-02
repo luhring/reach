@@ -2,7 +2,6 @@ package reach
 
 import (
 	"fmt"
-	"github.com/logrusorgru/aurora"
 )
 
 const indent = "  "
@@ -22,11 +21,6 @@ func (e *Explanation) AddLineWithIndents(indents int, text string) {
 
 func (e *Explanation) AddLineFormat(format string, a ...interface{}) {
 	e.AddLine(fmt.Sprintf(format, a...))
-}
-
-func (e *Explanation) AddLineFormatWithEffect(effect func(arg interface{}) aurora.Value, format string, a ...interface{}) {
-	text := effect(fmt.Sprintf(format, a...))
-	e.AddLineFormat("%v", text)
 }
 
 func (e *Explanation) AddLineFormatWithIndents(indents int, format string, a ...interface{}) {

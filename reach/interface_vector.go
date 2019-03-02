@@ -1,8 +1,8 @@
 package reach
 
 import (
-	"github.com/logrusorgru/aurora"
 	"github.com/luhring/reach/network"
+	"github.com/mgutz/ansi"
 )
 
 const (
@@ -23,15 +23,15 @@ func (v *InterfaceVector) sameSubnet() bool {
 func (v *InterfaceVector) explainSourceAndDestination() Explanation {
 	var explanation Explanation
 
-	explanation.AddLineFormat("source network interface: %v", aurora.Bold(v.Source.Name))
-	explanation.AddLineFormat("destination network interface: %v", aurora.Bold(v.Destination.Name))
+	explanation.AddLineFormat("source network interface: %v", ansi.Color(v.Source.Name, "default+b"))
+	explanation.AddLineFormat("destination network interface: %v", ansi.Color(v.Destination.Name, "default+b"))
 
 	return explanation
 }
 
 func (v *InterfaceVector) analyzeSecurityGroups() ([]*network.TrafficAllowance, Explanation) {
 	var explanation Explanation
-	explanation.AddLineFormat("%v analysis", aurora.Bold("security group"))
+	explanation.AddLineFormat("%v analysis", ansi.Color("security group", "default+b"))
 
 	outboundAllowedTraffic, sourceExplanation := v.analyzeSinglePerspectiveViaSecurityGroups(sourcePerspective)
 	explanation.Subsume(sourceExplanation)
@@ -87,26 +87,41 @@ func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective 
 	for _, securityGroup := range perspectiveInterface.SecurityGroups {
 		var securityGroupExplanation Explanation
 
-		securityGroupExplanation.AddLineFormat(
-			"%v",
-			aurora.Bold(securityGroup.LongName()),
-		)
+		securityGroupExplanation.AddLine(ansi.Color(securityGroup.LongName(), "default+b"))
 		securityGroupExplanation.AddLineFormat(
 			"%s security group rules that refer to the %s network interface:",
 			rulePerspective,
 			observedDescriptor,
 		)
 
+		var ruleMatches []RuleMatch
+
 		for _, rule := range getRulesForPerspective(securityGroup) {
 			ruleMatch := rule.matchWithInterface(observedInterface)
 			if ruleMatch != nil {
-				securityGroupExplanation.Subsume(ruleMatch.Explain(observedDescriptor))
-
-				allowedTraffic = append(allowedTraffic, rule.TrafficAllowance)
+				ruleMatches = append(ruleMatches, ruleMatch)
 			}
 		}
 
-		securityGroupsExplanation.Subsume(securityGroupExplanation)
+		for _, match := range ruleMatches {
+			securityGroupExplanation.Subsume(match.Explain(observedDescriptor))
+			allowedTraffic = append(allowedTraffic, match.GetRule().TrafficAllowance)
+		}
+
+		if len(ruleMatches) >= 1 {
+			securityGroupsExplanation.Subsume(securityGroupExplanation)
+		}
+	}
+
+	if len(allowedTraffic) == 0 {
+		var noMatchingRules Explanation
+		noMatchingRules.AddLineFormat(
+			ansi.Color("This network interface has no security groups with %v rules that refer to the %s network interface.", "red"),
+			rulePerspective,
+			observedDescriptor,
+		)
+
+		securityGroupsExplanation.Subsume(noMatchingRules)
 	}
 
 	allowedTraffic = network.ConsolidateTrafficAllowances(allowedTraffic)
