@@ -116,7 +116,7 @@ func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective 
 	if len(allowedTraffic) == 0 {
 		var noMatchingRules Explanation
 		noMatchingRules.AddLineFormat(
-			ansi.Color("This network interface has no security groups with %v rules that refer to the %s network interface!", "red"),
+			ansi.Color("This network interface has no security groups with %v rules that refer to the %s network interface.", "red"),
 			rulePerspective,
 			observedDescriptor,
 		)
