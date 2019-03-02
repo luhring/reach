@@ -3,6 +3,7 @@ package reach
 import (
 	"github.com/logrusorgru/aurora"
 	"github.com/luhring/reach/network"
+	"github.com/mgutz/ansi"
 )
 
 const (
@@ -97,13 +98,24 @@ func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective 
 			observedDescriptor,
 		)
 
+		var ruleMatches []RuleMatch
+
 		for _, rule := range getRulesForPerspective(securityGroup) {
 			ruleMatch := rule.matchWithInterface(observedInterface)
 			if ruleMatch != nil {
-				securityGroupExplanation.Subsume(ruleMatch.Explain(observedDescriptor))
-
-				allowedTraffic = append(allowedTraffic, rule.TrafficAllowance)
+				ruleMatches = append(ruleMatches, ruleMatch)
 			}
+		}
+
+		if len(ruleMatches) == 0 {
+			var noMatchingRules Explanation
+			noMatchingRules.AddLine(ansi.Color("(no rules that meet this criteria)", "red"))
+			securityGroupExplanation.Subsume(noMatchingRules)
+		}
+
+		for _, match := range ruleMatches {
+			securityGroupExplanation.Subsume(match.Explain(observedDescriptor))
+			allowedTraffic = append(allowedTraffic, match.GetRule().TrafficAllowance)
 		}
 
 		securityGroupsExplanation.Subsume(securityGroupExplanation)

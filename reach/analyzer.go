@@ -65,9 +65,9 @@ func (a *Analyzer) Analyze(instanceVector *InstanceVector, shouldExplain bool) {
 
 		if len(reachablePortsViaSecurityGroups) >= 1 {
 			allowedTraffic = append(allowedTraffic, reachablePortsViaSecurityGroups...)
-
-			vectorExplanation.Append(sgExplanation)
 		}
+
+		vectorExplanation.Append(sgExplanation)
 
 		analysisExplanation.Subsume(vectorExplanation)
 	}
