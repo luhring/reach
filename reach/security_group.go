@@ -14,10 +14,10 @@ type SecurityGroup struct {
 	OutboundRules []*SecurityGroupRule
 }
 
-func NewSecurityGroup(group *ec2.SecurityGroup) (*SecurityGroup, error) {
+func newSecurityGroup(group *ec2.SecurityGroup) (*SecurityGroup, error) {
 	inboundRules := make([]*SecurityGroupRule, len(group.IpPermissions))
 	for i, r := range group.IpPermissions {
-		newRule, err := NewSecurityGroupRule(r)
+		newRule, err := newSecurityGroupRule(r)
 		if err != nil {
 			return nil, fmt.Errorf("error: unable to ingest inbound security group rule at index %v: %v", i, err)
 		}
@@ -27,7 +27,7 @@ func NewSecurityGroup(group *ec2.SecurityGroup) (*SecurityGroup, error) {
 
 	outboundRules := make([]*SecurityGroupRule, len(group.IpPermissionsEgress))
 	for i, r := range group.IpPermissionsEgress {
-		newRule, err := NewSecurityGroupRule(r)
+		newRule, err := newSecurityGroupRule(r)
 		if err != nil {
 			return nil, fmt.Errorf("error: unable to ingest outbound security group rule at index %v: %v", i, err)
 		}
@@ -44,7 +44,7 @@ func NewSecurityGroup(group *ec2.SecurityGroup) (*SecurityGroup, error) {
 	}, nil
 }
 
-func (sg *SecurityGroup) LongName() string {
+func (sg *SecurityGroup) longName() string {
 	if len(sg.Name) >= 1 {
 		return fmt.Sprintf("\"%v\" (%v)", sg.Name, sg.ID)
 	}

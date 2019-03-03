@@ -12,7 +12,7 @@ type SecurityGroupReference struct {
 	VPCID  string
 }
 
-func NewSecurityGroupReference(p *ec2.UserIdGroupPair) *SecurityGroupReference {
+func newSecurityGroupReference(p *ec2.UserIdGroupPair) *SecurityGroupReference {
 	return &SecurityGroupReference{
 		ID:     aws.StringValue(p.GroupId),
 		Name:   aws.StringValue(p.GroupName),

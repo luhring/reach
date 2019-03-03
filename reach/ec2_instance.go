@@ -19,7 +19,7 @@ func NewEC2Instance(instance *ec2.Instance, findSecurityGroup func(id string) (*
 	networkInterfaces := make([]*NetworkInterface, len(instance.NetworkInterfaces))
 
 	for i, networkInterface := range instance.NetworkInterfaces {
-		newInterface, err := NewNetworkInterface(networkInterface, findSecurityGroup)
+		newInterface, err := newNetworkInterface(networkInterface, findSecurityGroup)
 		if err != nil {
 			return nil, fmt.Errorf("unable to create new EC2Instance object due to network interface error: %v", err)
 		}
@@ -75,9 +75,7 @@ func (i *EC2Instance) analyzeState(sourceOrDestination string) (bool, Explanatio
 
 	label := color.Color(fmt.Sprintf("%v instance state:", sourceOrDestination), c)
 	value := color.Color(state, c+"+b")
-
-	var explanation Explanation
-	explanation.AddLineFormat("%v %v", label, value)
+	explanation := newExplanation(fmt.Sprintf("%v %v", label, value))
 
 	return isRunning, explanation
 }
