@@ -78,10 +78,11 @@ func (rule *SecurityGroupRule) matchWithInterface(targetInterface *NetworkInterf
 	return nil
 }
 
-func (rule *SecurityGroupRule) filter(filter *TrafficAllowance) *SecurityGroupRule {
-	return &SecurityGroupRule{
-		rule.TrafficAllowance.intersectWith(filter),
-		rule.IPRanges,
-		rule.SGRefs,
+func (rule *SecurityGroupRule) withinScopeOfFilter(filter *TrafficAllowance) bool {
+	if filter == nil {
+		filter = newTrafficAllowanceForAllTraffic()
 	}
+
+	overlap := rule.TrafficAllowance.intersectWith(filter)
+	return overlap != nil
 }

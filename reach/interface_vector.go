@@ -24,39 +24,31 @@ func (v *InterfaceVector) explainSourceAndDestination() Explanation {
 }
 
 func (v *InterfaceVector) analyzeSecurityGroups(filter *TrafficAllowance) ([]*TrafficAllowance, Explanation) {
-	if filter == nil {
-		filter = newTrafficAllowanceForAllTraffic()
-	}
-
 	explanation := newExplanation(
 		fmt.Sprintf("%v analysis", ansi.Color("security group", "default+b")),
 	)
 
 	p := newPerspectiveFromSource(v)
-	outboundAllowedTraffic, sourceExplanation := v.analyzeSinglePerspectiveViaSecurityGroups(p)
+	outboundAllowedTraffic, sourceExplanation := v.analyzeSinglePerspectiveViaSecurityGroups(p, filter)
 	explanation.subsume(sourceExplanation)
 
-	// ----
-
 	p = newPerspectiveFromDestination(v)
-	inboundAllowedTraffic, destinationExplanation := v.analyzeSinglePerspectiveViaSecurityGroups(p)
+	inboundAllowedTraffic, destinationExplanation := v.analyzeSinglePerspectiveViaSecurityGroups(p, filter)
 	explanation.subsume(destinationExplanation)
 
 	intersection := intersectTrafficAllowances(outboundAllowedTraffic, inboundAllowedTraffic)
 
-	// TODO: allow filtering by specific port (via PortRange object, probably)
-	// if v.PortRange != nil {
-	// 	vectorPortRangeFilter := []*network.PortRange{
-	// 		v.PortRange,
-	// 	}
-	//
-	// 	intersection = network.IntersectPortRangeSlices(intersection, vectorPortRangeFilter)
-	// }
+	if filter != nil {
+		intersection = intersectTrafficAllowances(intersection, []*TrafficAllowance{filter})
+	}
 
 	return intersection, explanation
 }
 
-func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(p perspective) ([]*TrafficAllowance, Explanation) {
+func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(
+	p perspective,
+	filter *TrafficAllowance,
+) ([]*TrafficAllowance, Explanation) {
 	securityGroupsExplanation := newExplanation(
 		fmt.Sprintf("%s network interface's security groups:", p.self),
 	)
@@ -68,17 +60,25 @@ func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(p perspectiv
 			ansi.Color(securityGroup.longName(), "default+b"),
 		)
 
-		securityGroupExplanation.addLineFormat(
-			"%s security group rules that refer to the %s network interface:",
-			p.direction,
-			p.other,
-		)
+		if filter == nil {
+			securityGroupExplanation.addLineFormat(
+				"%s security group rules that refer to the %s network interface:",
+				p.direction,
+				p.other,
+			)
+		} else {
+			securityGroupExplanation.addLineFormat(
+				"%s security group rules that refer to the %s network interface and fall within the specified analysis scope:",
+				p.direction,
+				p.other,
+			)
+		}
 
 		var ruleMatches []RuleMatch
 
 		for _, rule := range p.rules(securityGroup) {
 			ruleMatch := rule.matchWithInterface(p.otherInterface)
-			if ruleMatch != nil {
+			if ruleMatch != nil && rule.withinScopeOfFilter(filter) {
 				ruleMatches = append(ruleMatches, ruleMatch)
 			}
 		}
@@ -94,13 +94,25 @@ func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(p perspectiv
 	}
 
 	if len(allowedTraffic) == 0 {
-		noMatchingRules := newExplanation(
-			fmt.Sprintf(
-				ansi.Color("This network interface has no security groups with %v rules that refer to the %s network interface.", "red"),
-				p.direction,
-				p.other,
-			),
-		)
+		var noMatchingRules Explanation
+
+		if filter == nil {
+			noMatchingRules = newExplanation(
+				fmt.Sprintf(
+					ansi.Color("This network interface has no security groups with %v rules that refer to the %s network interface.", "red"),
+					p.direction,
+					p.other,
+				),
+			)
+		} else {
+			noMatchingRules = newExplanation(
+				fmt.Sprintf(
+					ansi.Color("This network interface has no security groups with %v rules that refer to the %s network interface for the specified analysis scope.", "red"),
+					p.direction,
+					p.other,
+				),
+			)
+		}
 
 		securityGroupsExplanation.subsume(noMatchingRules)
 	}

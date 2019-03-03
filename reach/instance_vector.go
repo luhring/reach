@@ -11,10 +11,6 @@ type InstanceVector struct {
 }
 
 func (instanceVector *InstanceVector) Analyze(filter *TrafficAllowance) Analysis {
-	if filter == nil {
-		filter = newTrafficAllowanceForAllTraffic()
-	}
-
 	explanation := newExplanation(
 		fmt.Sprintf("source instance: %v", ansi.Color(instanceVector.Source.LongName(), "default+b")),
 		fmt.Sprintf("destination instance: %v", ansi.Color(instanceVector.Destination.LongName(), "default+b")),
@@ -47,7 +43,7 @@ func (instanceVector *InstanceVector) Analyze(filter *TrafficAllowance) Analysis
 
 		// Security groups
 
-		reachablePortsViaSecurityGroups, sgExplanation := v.analyzeSecurityGroups(nil)
+		reachablePortsViaSecurityGroups, sgExplanation := v.analyzeSecurityGroups(filter)
 
 		if len(reachablePortsViaSecurityGroups) >= 1 {
 			allowedTraffic = append(allowedTraffic, reachablePortsViaSecurityGroups...)

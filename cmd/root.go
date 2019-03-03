@@ -9,6 +9,7 @@ import (
 
 const explainFlag = "explain"
 const portFlag = "port"
+const portFlagShorthand = "p"
 
 var shouldExplain bool
 var port uint16
@@ -32,6 +33,7 @@ See https://github.com/luhring/reach for documentation.`,
 			filter = nil
 		} else {
 			filter = reach.NewTrafficAllowanceForTCPPort(port)
+			fmt.Printf("analysis scope: TCP %v\n", port)
 		}
 
 		analysis := instanceVector.Analyze(filter)
@@ -52,7 +54,7 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().BoolVar(&shouldExplain, explainFlag, false, "explain how the configuration was analyzed")
-	rootCmd.Flags().Uint16Var(&port, portFlag, 0, "restrict analysis to a specified TCP port")
+	rootCmd.Flags().Uint16VarP(&port, portFlag, portFlagShorthand, 0, "restrict analysis to a specified TCP port")
 }
 
 func exitWithError(err error) {

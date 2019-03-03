@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/mgutz/ansi"
 	"sort"
 	"strconv"
 	"strings"
@@ -378,13 +379,13 @@ func sortTrafficAllowances(allowances []*TrafficAllowance) {
 
 func describeListOfTrafficAllowances(allowances []*TrafficAllowance) string {
 	if len(allowances) < 1 {
-		return "source traffic cannot reach destination\n"
+		return ansi.Color("not reachable", "red") + "\n"
 	}
 
 	var description string
 
 	for _, allowance := range allowances {
-		description += "→ " + allowance.describe() + "\n"
+		description += "✔ " + allowance.describe() + "\n"
 	}
 
 	return description
