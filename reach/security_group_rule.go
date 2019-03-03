@@ -77,3 +77,11 @@ func (rule *SecurityGroupRule) matchWithInterface(targetInterface *NetworkInterf
 
 	return nil
 }
+
+func (rule *SecurityGroupRule) filter(filter *TrafficAllowance) *SecurityGroupRule {
+	return &SecurityGroupRule{
+		rule.TrafficAllowance.intersectWith(filter),
+		rule.IPRanges,
+		rule.SGRefs,
+	}
+}

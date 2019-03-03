@@ -17,5 +17,5 @@ func (a *Analysis) Results() string {
 }
 
 func (a *Analysis) Explanation() string {
-	return a.explanation.Render()
+	return a.explanation.render()
 }

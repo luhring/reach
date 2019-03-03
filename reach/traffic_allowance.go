@@ -41,6 +41,16 @@ func newTrafficAllowanceForTCPOrUDP(protocol int64, portRange *PortRange) *Traff
 	}
 }
 
+func NewTrafficAllowanceForTCPPort(port uint16) *TrafficAllowance {
+	return &TrafficAllowance{
+		Protocol: ipProtocolNumberForTCP,
+		PortRange: &PortRange{
+			int64(port),
+			int64(port),
+		},
+	}
+}
+
 func newTrafficAllowanceForICMP(protocol int64, constraint *ICMPConstraint) *TrafficAllowance {
 	return &TrafficAllowance{
 		Protocol:       protocol,

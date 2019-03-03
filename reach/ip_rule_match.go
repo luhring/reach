@@ -26,7 +26,7 @@ func (m *IPRuleMatch) explain(observedDescriptor string) Explanation {
 		ansi.Color(m.Rule.TrafficAllowance.describe(), "green+b"),
 	))
 
-	explanation.AddLineFormatWithIndents(
+	explanation.addLineFormatWithIndents(
 		1,
 		"(This rule handles an IP address range '%v' that includes the %s network interface's %s IP address '%v'.)",
 		m.MatchedIPRange.String(),

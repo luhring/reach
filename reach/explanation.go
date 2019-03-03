@@ -14,50 +14,50 @@ func newExplanation(lines ...string) Explanation {
 	var explanation Explanation
 
 	for _, line := range lines {
-		explanation.AddLine(line)
+		explanation.addLine(line)
 	}
 
 	return explanation
 }
 
-func (e *Explanation) AddLine(text string) {
-	e.AddLineWithIndents(0, text)
+func (e *Explanation) addLine(text string) {
+	e.addLineWithIndents(0, text)
 }
 
-func (e *Explanation) AddLineWithIndents(indents int, text string) {
-	l := NewExplanationLine(indents, text)
+func (e *Explanation) addLineWithIndents(indents int, text string) {
+	l := newExplanationLine(indents, text)
 	e.lines = append(e.lines, l)
 }
 
-func (e *Explanation) AddLineFormat(format string, a ...interface{}) {
-	e.AddLine(fmt.Sprintf(format, a...))
+func (e *Explanation) addLineFormat(format string, a ...interface{}) {
+	e.addLine(fmt.Sprintf(format, a...))
 }
 
-func (e *Explanation) AddLineFormatWithIndents(indents int, format string, a ...interface{}) {
-	e.AddLineWithIndents(indents, fmt.Sprintf(format, a...))
+func (e *Explanation) addLineFormatWithIndents(indents int, format string, a ...interface{}) {
+	e.addLineWithIndents(indents, fmt.Sprintf(format, a...))
 }
 
-func (e *Explanation) AddBlankLine() {
-	e.AddLine("")
+func (e *Explanation) addBlankLine() {
+	e.addLine("")
 }
 
-func (e *Explanation) Append(explanation Explanation) {
+func (e *Explanation) append(explanation Explanation) {
 	for _, line := range explanation.lines {
-		e.AddLineWithIndents(line.indents, line.text)
+		e.addLineWithIndents(line.indents, line.text)
 	}
 }
 
-func (e *Explanation) Subsume(explanation Explanation) {
+func (e *Explanation) subsume(explanation Explanation) {
 	for _, line := range explanation.lines {
-		e.AddLineWithIndents(line.indents+1, line.text)
+		e.addLineWithIndents(line.indents+1, line.text)
 	}
 }
 
-func (e *Explanation) Render() string {
+func (e *Explanation) render() string {
 	var output string
 
 	for _, line := range e.lines {
-		r := line.Render()
+		r := line.render()
 		output += r + "\n"
 	}
 
@@ -69,14 +69,14 @@ type ExplanationLine struct {
 	text    string
 }
 
-func NewExplanationLine(indents int, text string) ExplanationLine {
+func newExplanationLine(indents int, text string) ExplanationLine {
 	return ExplanationLine{
 		indents,
 		text,
 	}
 }
 
-func (l *ExplanationLine) Render() string {
+func (l *ExplanationLine) render() string {
 	var lineIndentation string
 
 	for i := 0; i < l.indents; i++ {

@@ -22,16 +22,17 @@ func (instanceVector *InstanceVector) Analyze(filter *TrafficAllowance) Analysis
 	)
 
 	doStatesAllowTraffic, statesExplanation := instanceVector.analyzeInstanceStates()
-	explanation.Append(statesExplanation)
+	explanation.append(statesExplanation)
 
-	explanation.AddBlankLine()
-	explanation.AddLine("source and destination network interface pairings:")
+	explanation.addBlankLine()
+	explanation.addLine("source and destination network interface pairings:")
 
 	interfaceVectors := instanceVector.createInterfaceVectors()
 	if interfaceVectors == nil {
-		var lackOfInterfaceVectors Explanation
-		lackOfInterfaceVectors.AddLine(ansi.Color("one or both instances are missing a network interface", "red"))
-		explanation.Subsume(lackOfInterfaceVectors)
+		lackOfInterfaceVectors := newExplanation(
+			ansi.Color("one or both instances are missing a network interface", "red"),
+		)
+		explanation.subsume(lackOfInterfaceVectors)
 
 		return newAnalysisWithNoTrafficAllowances(explanation)
 	}
@@ -41,22 +42,22 @@ func (instanceVector *InstanceVector) Analyze(filter *TrafficAllowance) Analysis
 	for _, v := range interfaceVectors {
 		var vectorExplanation Explanation
 
-		vectorExplanation.Append(v.explainSourceAndDestination())
-		vectorExplanation.AddBlankLine()
+		vectorExplanation.append(v.explainSourceAndDestination())
+		vectorExplanation.addBlankLine()
 
 		// Security groups
 
-		reachablePortsViaSecurityGroups, sgExplanation := v.analyzeSecurityGroups()
+		reachablePortsViaSecurityGroups, sgExplanation := v.analyzeSecurityGroups(nil)
 
 		if len(reachablePortsViaSecurityGroups) >= 1 {
 			allowedTraffic = append(allowedTraffic, reachablePortsViaSecurityGroups...)
 		}
 
-		vectorExplanation.Append(sgExplanation)
+		vectorExplanation.append(sgExplanation)
 
 		// (Other analyses...)
 
-		explanation.Subsume(vectorExplanation)
+		explanation.subsume(vectorExplanation)
 	}
 
 	allowedTraffic = consolidateTrafficAllowances(allowedTraffic)
@@ -97,8 +98,8 @@ func (instanceVector *InstanceVector) analyzeInstanceStates() (bool, Explanation
 
 	doStatesAllowTraffic := isSourceRunning && isDestinationRunning
 
-	explanation.Subsume(sourceExplanation)
-	explanation.Subsume(destinationExplanation)
+	explanation.subsume(sourceExplanation)
+	explanation.subsume(destinationExplanation)
 
 	return doStatesAllowTraffic, explanation
 }

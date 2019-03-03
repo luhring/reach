@@ -31,7 +31,7 @@ See https://github.com/luhring/reach for documentation.`,
 		if port == 0 {
 			filter = nil
 		} else {
-			filter = nil
+			filter = reach.NewTrafficAllowanceForTCPPort(port)
 		}
 
 		analysis := instanceVector.Analyze(filter)

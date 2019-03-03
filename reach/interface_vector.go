@@ -5,15 +5,9 @@ import (
 	"github.com/mgutz/ansi"
 )
 
-const (
-	sourcePerspective      = 100
-	destinationPerspective = 200
-)
-
 type InterfaceVector struct {
 	Source      *NetworkInterface
 	Destination *NetworkInterface
-	PortRange   *PortRange
 }
 
 func (v *InterfaceVector) sameSubnet() bool {
@@ -29,18 +23,24 @@ func (v *InterfaceVector) explainSourceAndDestination() Explanation {
 	return explanation
 }
 
-func (v *InterfaceVector) analyzeSecurityGroups() ([]*TrafficAllowance, Explanation) {
+func (v *InterfaceVector) analyzeSecurityGroups(filter *TrafficAllowance) ([]*TrafficAllowance, Explanation) {
+	if filter == nil {
+		filter = newTrafficAllowanceForAllTraffic()
+	}
+
 	explanation := newExplanation(
 		fmt.Sprintf("%v analysis", ansi.Color("security group", "default+b")),
 	)
 
-	outboundAllowedTraffic, sourceExplanation := v.analyzeSinglePerspectiveViaSecurityGroups(sourcePerspective)
-	explanation.Subsume(sourceExplanation)
+	p := newPerspectiveFromSource(v)
+	outboundAllowedTraffic, sourceExplanation := v.analyzeSinglePerspectiveViaSecurityGroups(p)
+	explanation.subsume(sourceExplanation)
 
 	// ----
 
-	inboundAllowedTraffic, destinationExplanation := v.analyzeSinglePerspectiveViaSecurityGroups(destinationPerspective)
-	explanation.Subsume(destinationExplanation)
+	p = newPerspectiveFromDestination(v)
+	inboundAllowedTraffic, destinationExplanation := v.analyzeSinglePerspectiveViaSecurityGroups(p)
+	explanation.subsume(destinationExplanation)
 
 	intersection := intersectTrafficAllowances(outboundAllowedTraffic, inboundAllowedTraffic)
 
@@ -56,73 +56,53 @@ func (v *InterfaceVector) analyzeSecurityGroups() ([]*TrafficAllowance, Explanat
 	return intersection, explanation
 }
 
-func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective int) ([]*TrafficAllowance, Explanation) {
-	var securityGroupsExplanation Explanation
-
-	var perspectiveDescriptor string
-	var perspectiveInterface *NetworkInterface
-	var observedInterface *NetworkInterface
-	var observedDescriptor string
-	var rulePerspective string
-	var getRulesForPerspective func(sg *SecurityGroup) []*SecurityGroupRule
-	if perspective == sourcePerspective {
-		perspectiveDescriptor = "source"
-		perspectiveInterface = v.Source
-		observedInterface = v.Destination
-		observedDescriptor = "destination"
-		rulePerspective = "outbound"
-		getRulesForPerspective = func(sg *SecurityGroup) []*SecurityGroupRule { return sg.OutboundRules }
-	} else {
-		perspectiveDescriptor = "destination"
-		perspectiveInterface = v.Destination
-		observedInterface = v.Source
-		observedDescriptor = "source"
-		rulePerspective = "inbound"
-		getRulesForPerspective = func(sg *SecurityGroup) []*SecurityGroupRule { return sg.InboundRules }
-	}
-
-	securityGroupsExplanation.AddLineFormat("%s network interface's security groups:", perspectiveDescriptor)
+func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(p perspective) ([]*TrafficAllowance, Explanation) {
+	securityGroupsExplanation := newExplanation(
+		fmt.Sprintf("%s network interface's security groups:", p.self),
+	)
 
 	var allowedTraffic []*TrafficAllowance
 
-	for _, securityGroup := range perspectiveInterface.SecurityGroups {
-		var securityGroupExplanation Explanation
+	for _, securityGroup := range p.selfInterface.SecurityGroups {
+		securityGroupExplanation := newExplanation(
+			ansi.Color(securityGroup.longName(), "default+b"),
+		)
 
-		securityGroupExplanation.AddLine(ansi.Color(securityGroup.longName(), "default+b"))
-		securityGroupExplanation.AddLineFormat(
+		securityGroupExplanation.addLineFormat(
 			"%s security group rules that refer to the %s network interface:",
-			rulePerspective,
-			observedDescriptor,
+			p.direction,
+			p.other,
 		)
 
 		var ruleMatches []RuleMatch
 
-		for _, rule := range getRulesForPerspective(securityGroup) {
-			ruleMatch := rule.matchWithInterface(observedInterface)
+		for _, rule := range p.rules(securityGroup) {
+			ruleMatch := rule.matchWithInterface(p.otherInterface)
 			if ruleMatch != nil {
 				ruleMatches = append(ruleMatches, ruleMatch)
 			}
 		}
 
 		for _, match := range ruleMatches {
-			securityGroupExplanation.Subsume(match.explain(observedDescriptor))
+			securityGroupExplanation.subsume(match.explain(p.other))
 			allowedTraffic = append(allowedTraffic, match.getRule().TrafficAllowance)
 		}
 
 		if len(ruleMatches) >= 1 {
-			securityGroupsExplanation.Subsume(securityGroupExplanation)
+			securityGroupsExplanation.subsume(securityGroupExplanation)
 		}
 	}
 
 	if len(allowedTraffic) == 0 {
-		var noMatchingRules Explanation
-		noMatchingRules.AddLineFormat(
-			ansi.Color("This network interface has no security groups with %v rules that refer to the %s network interface.", "red"),
-			rulePerspective,
-			observedDescriptor,
+		noMatchingRules := newExplanation(
+			fmt.Sprintf(
+				ansi.Color("This network interface has no security groups with %v rules that refer to the %s network interface.", "red"),
+				p.direction,
+				p.other,
+			),
 		)
 
-		securityGroupsExplanation.Subsume(noMatchingRules)
+		securityGroupsExplanation.subsume(noMatchingRules)
 	}
 
 	allowedTraffic = consolidateTrafficAllowances(allowedTraffic)
