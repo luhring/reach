@@ -13,7 +13,7 @@ type IPRuleMatch struct {
 	IsTargetIPPublic bool
 }
 
-func (m *IPRuleMatch) Explain(observedDescriptor string) Explanation {
+func (m *IPRuleMatch) explain(observedDescriptor string) Explanation {
 	var publicOrPrivate string
 	if m.IsTargetIPPublic {
 		publicOrPrivate = "public"
@@ -23,7 +23,7 @@ func (m *IPRuleMatch) Explain(observedDescriptor string) Explanation {
 
 	explanation := newExplanation(fmt.Sprintf(
 		ansi.Color("- rule: allow %v", "green"),
-		ansi.Color(m.Rule.TrafficAllowance.Describe(), "green+b"),
+		ansi.Color(m.Rule.TrafficAllowance.describe(), "green+b"),
 	))
 
 	explanation.AddLineFormatWithIndents(
@@ -38,6 +38,6 @@ func (m *IPRuleMatch) Explain(observedDescriptor string) Explanation {
 	return explanation
 }
 
-func (m *IPRuleMatch) GetRule() *SecurityGroupRule {
+func (m *IPRuleMatch) getRule() *SecurityGroupRule {
 	return m.Rule
 }

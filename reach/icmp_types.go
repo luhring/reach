@@ -1,4 +1,4 @@
-package network
+package reach
 
 var icmpv4TypeNames = map[int64]string{
 	0:  "echo reply",

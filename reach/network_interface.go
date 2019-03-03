@@ -18,11 +18,11 @@ type NetworkInterface struct {
 	VPCID              string
 }
 
-func NewNetworkInterface(networkInterface *ec2.InstanceNetworkInterface, findSecurityGroup func(id string) (*SecurityGroup, error)) (*NetworkInterface, error) {
+func newNetworkInterface(networkInterface *ec2.InstanceNetworkInterface, findSecurityGroup func(id string) (*SecurityGroup, error)) (*NetworkInterface, error) {
 	privateIPAddresses := make([]net.IP, len(networkInterface.PrivateIpAddresses))
 
 	for i, address := range networkInterface.PrivateIpAddresses {
-		privateIPAddresses[i] = NewIP(address)
+		privateIPAddresses[i] = newIP(address)
 	}
 
 	securityGroupIDs := make([]string, len(networkInterface.Groups))
@@ -63,7 +63,7 @@ func NewNetworkInterface(networkInterface *ec2.InstanceNetworkInterface, findSec
 	}, nil
 }
 
-func NewIP(address *ec2.InstancePrivateIpAddress) net.IP {
+func newIP(address *ec2.InstancePrivateIpAddress) net.IP {
 	if address.PrivateIpAddress == nil {
 		return nil
 	}

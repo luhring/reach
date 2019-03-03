@@ -4,18 +4,17 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/luhring/reach/network"
 	"net"
 )
 
 type SecurityGroupRule struct {
-	TrafficAllowance *network.TrafficAllowance
+	TrafficAllowance *TrafficAllowance
 	IPRanges         []*net.IPNet
 	SGRefs           []*SecurityGroupReference
 }
 
-func NewSecurityGroupRule(permission *ec2.IpPermission) (*SecurityGroupRule, error) {
-	trafficAllowance, err := network.NewTrafficAllowanceFromAWS(permission.IpProtocol, permission.FromPort, permission.ToPort)
+func newSecurityGroupRule(permission *ec2.IpPermission) (*SecurityGroupRule, error) {
+	trafficAllowance, err := newTrafficAllowanceFromAWS(permission.IpProtocol, permission.FromPort, permission.ToPort)
 	if err != nil {
 		return nil, fmt.Errorf("unable to ingest security group rule: %v", err)
 	}
@@ -38,7 +37,7 @@ func NewSecurityGroupRule(permission *ec2.IpPermission) (*SecurityGroupRule, err
 		sgRefs := make([]*SecurityGroupReference, len(pairs))
 
 		for i, p := range pairs {
-			sgRefs[i] = NewSecurityGroupReference(p)
+			sgRefs[i] = newSecurityGroupReference(p)
 		}
 	}
 

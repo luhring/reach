@@ -7,7 +7,7 @@ type SGRefRuleMatch struct {
 	SGRef *SecurityGroupReference
 }
 
-func (m *SGRefRuleMatch) Explain(observedDescriptor string) Explanation {
+func (m *SGRefRuleMatch) explain(observedDescriptor string) Explanation {
 	explanation := newExplanation(
 		fmt.Sprintf("security group (%v)", m.SGRef.Name),
 	)
@@ -15,6 +15,6 @@ func (m *SGRefRuleMatch) Explain(observedDescriptor string) Explanation {
 	return explanation
 }
 
-func (m *SGRefRuleMatch) GetRule() *SecurityGroupRule {
+func (m *SGRefRuleMatch) getRule() *SecurityGroupRule {
 	return m.Rule
 }

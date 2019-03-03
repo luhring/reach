@@ -54,7 +54,7 @@ func (a *AWSManager) findSecurityGroup(id string) (*SecurityGroup, error) {
 
 	group := groups[0]
 
-	securityGroup, err := NewSecurityGroup(group)
+	securityGroup, err := newSecurityGroup(group)
 	if err != nil {
 		return nil, fmt.Errorf("error: unable to find security group: %v", err)
 	}

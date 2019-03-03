@@ -1,4 +1,4 @@
-package network
+package reach
 
 import (
 	"errors"
@@ -139,30 +139,7 @@ func getLowerOfTwoNumbers(firstNumber int64, secondNumber int64) int64 {
 	return secondNumber
 }
 
-func arePortRangesSlicesEqual(first []*PortRange, second []*PortRange) bool {
-	if first == nil && second == nil {
-		return true
-	}
-
-	if first == nil || second == nil {
-		return false
-	}
-
-	if len(first) != len(second) {
-		return false
-	}
-
-	for i := range first {
-		if *first[i] != *second[i] {
-			return false
-		}
-	}
-
-	return true
-}
-
-// DefragmentPortRanges ...
-func DefragmentPortRanges(portRanges []*PortRange) []*PortRange {
+func defragmentPortRanges(portRanges []*PortRange) []*PortRange {
 	if len(portRanges) == 1 {
 		return portRanges
 	}
@@ -189,38 +166,6 @@ func DefragmentPortRanges(portRanges []*PortRange) []*PortRange {
 	}
 
 	return portRanges
-}
-
-// IntersectPortRangeSlices ...
-func IntersectPortRangeSlices(
-	firstPortRangeSlice []*PortRange,
-	secondPortRangeSlice []*PortRange,
-) []*PortRange {
-	var intersectionPortRanges []*PortRange
-
-	for _, portRangeFromFirstList := range firstPortRangeSlice {
-		for _, portRangeFromSecondList := range secondPortRangeSlice {
-			currentIntersection :=
-				portRangeFromFirstList.intersectionWith(portRangeFromSecondList)
-
-			if currentIntersection != nil {
-				intersectionPortRanges = append(intersectionPortRanges, currentIntersection)
-			}
-		}
-	}
-
-	return DefragmentPortRanges(intersectionPortRanges)
-}
-
-// DescribeListOfPortRanges ...
-func DescribeListOfPortRanges(listOfPortRanges []*PortRange) string {
-	description := ""
-
-	for _, portRange := range listOfPortRanges {
-		description += portRange.describe() + "\n"
-	}
-
-	return description
 }
 
 func (r *PortRange) describe() string {

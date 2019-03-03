@@ -1,4 +1,4 @@
-package network
+package reach
 
 import (
 	"errors"

@@ -2,7 +2,6 @@ package reach
 
 import (
 	"fmt"
-	"github.com/luhring/reach/network"
 	"github.com/mgutz/ansi"
 )
 
@@ -14,7 +13,7 @@ const (
 type InterfaceVector struct {
 	Source      *NetworkInterface
 	Destination *NetworkInterface
-	PortRange   *network.PortRange
+	PortRange   *PortRange
 }
 
 func (v *InterfaceVector) sameSubnet() bool {
@@ -30,7 +29,7 @@ func (v *InterfaceVector) explainSourceAndDestination() Explanation {
 	return explanation
 }
 
-func (v *InterfaceVector) analyzeSecurityGroups() ([]*network.TrafficAllowance, Explanation) {
+func (v *InterfaceVector) analyzeSecurityGroups() ([]*TrafficAllowance, Explanation) {
 	explanation := newExplanation(
 		fmt.Sprintf("%v analysis", ansi.Color("security group", "default+b")),
 	)
@@ -43,7 +42,7 @@ func (v *InterfaceVector) analyzeSecurityGroups() ([]*network.TrafficAllowance, 
 	inboundAllowedTraffic, destinationExplanation := v.analyzeSinglePerspectiveViaSecurityGroups(destinationPerspective)
 	explanation.Subsume(destinationExplanation)
 
-	intersection := network.IntersectTrafficAllowances(outboundAllowedTraffic, inboundAllowedTraffic)
+	intersection := intersectTrafficAllowances(outboundAllowedTraffic, inboundAllowedTraffic)
 
 	// TODO: allow filtering by specific port (via PortRange object, probably)
 	// if v.PortRange != nil {
@@ -57,7 +56,7 @@ func (v *InterfaceVector) analyzeSecurityGroups() ([]*network.TrafficAllowance, 
 	return intersection, explanation
 }
 
-func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective int) ([]*network.TrafficAllowance, Explanation) {
+func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective int) ([]*TrafficAllowance, Explanation) {
 	var securityGroupsExplanation Explanation
 
 	var perspectiveDescriptor string
@@ -84,12 +83,12 @@ func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective 
 
 	securityGroupsExplanation.AddLineFormat("%s network interface's security groups:", perspectiveDescriptor)
 
-	var allowedTraffic []*network.TrafficAllowance
+	var allowedTraffic []*TrafficAllowance
 
 	for _, securityGroup := range perspectiveInterface.SecurityGroups {
 		var securityGroupExplanation Explanation
 
-		securityGroupExplanation.AddLine(ansi.Color(securityGroup.LongName(), "default+b"))
+		securityGroupExplanation.AddLine(ansi.Color(securityGroup.longName(), "default+b"))
 		securityGroupExplanation.AddLineFormat(
 			"%s security group rules that refer to the %s network interface:",
 			rulePerspective,
@@ -106,8 +105,8 @@ func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective 
 		}
 
 		for _, match := range ruleMatches {
-			securityGroupExplanation.Subsume(match.Explain(observedDescriptor))
-			allowedTraffic = append(allowedTraffic, match.GetRule().TrafficAllowance)
+			securityGroupExplanation.Subsume(match.explain(observedDescriptor))
+			allowedTraffic = append(allowedTraffic, match.getRule().TrafficAllowance)
 		}
 
 		if len(ruleMatches) >= 1 {
@@ -126,7 +125,7 @@ func (v *InterfaceVector) analyzeSinglePerspectiveViaSecurityGroups(perspective 
 		securityGroupsExplanation.Subsume(noMatchingRules)
 	}
 
-	allowedTraffic = network.ConsolidateTrafficAllowances(allowedTraffic)
+	allowedTraffic = consolidateTrafficAllowances(allowedTraffic)
 
 	return allowedTraffic, securityGroupsExplanation
 }

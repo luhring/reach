@@ -2,7 +2,6 @@ package reach
 
 import (
 	"fmt"
-	"github.com/luhring/reach/network"
 	"github.com/mgutz/ansi"
 )
 
@@ -11,9 +10,9 @@ type InstanceVector struct {
 	Destination *EC2Instance
 }
 
-func (instanceVector *InstanceVector) Analyze(filter *network.TrafficAllowance) Analysis {
+func (instanceVector *InstanceVector) Analyze(filter *TrafficAllowance) Analysis {
 	if filter == nil {
-		filter = network.NewTrafficAllowanceForAllTraffic()
+		filter = newTrafficAllowanceForAllTraffic()
 	}
 
 	explanation := newExplanation(
@@ -37,7 +36,7 @@ func (instanceVector *InstanceVector) Analyze(filter *network.TrafficAllowance) 
 		return newAnalysisWithNoTrafficAllowances(explanation)
 	}
 
-	var allowedTraffic []*network.TrafficAllowance
+	var allowedTraffic []*TrafficAllowance
 
 	for _, v := range interfaceVectors {
 		var vectorExplanation Explanation
@@ -60,10 +59,10 @@ func (instanceVector *InstanceVector) Analyze(filter *network.TrafficAllowance) 
 		explanation.Subsume(vectorExplanation)
 	}
 
-	allowedTraffic = network.ConsolidateTrafficAllowances(allowedTraffic)
+	allowedTraffic = consolidateTrafficAllowances(allowedTraffic)
 
 	if doStatesAllowTraffic == false {
-		allowedTraffic = []*network.TrafficAllowance{}
+		allowedTraffic = []*TrafficAllowance{}
 	}
 
 	return Analysis{
@@ -80,7 +79,6 @@ func (instanceVector *InstanceVector) createInterfaceVectors() []InterfaceVector
 			newVector := InterfaceVector{
 				Source:      fromInterface,
 				Destination: toInterface,
-				PortRange:   instanceVector.PortRange,
 			}
 			interfaceVectors = append(interfaceVectors, newVector)
 		}

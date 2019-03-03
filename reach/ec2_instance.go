@@ -19,7 +19,7 @@ func NewEC2Instance(instance *ec2.Instance, findSecurityGroup func(id string) (*
 	networkInterfaces := make([]*NetworkInterface, len(instance.NetworkInterfaces))
 
 	for i, networkInterface := range instance.NetworkInterfaces {
-		newInterface, err := NewNetworkInterface(networkInterface, findSecurityGroup)
+		newInterface, err := newNetworkInterface(networkInterface, findSecurityGroup)
 		if err != nil {
 			return nil, fmt.Errorf("unable to create new EC2Instance object due to network interface error: %v", err)
 		}

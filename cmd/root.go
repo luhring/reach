@@ -27,7 +27,14 @@ See https://github.com/luhring/reach for documentation.`,
 			exitWithError(err)
 		}
 
-		analysis := instanceVector.Analyze()
+		var filter *reach.TrafficAllowance
+		if port == 0 {
+			filter = nil
+		} else {
+			filter = nil
+		}
+
+		analysis := instanceVector.Analyze(filter)
 		fmt.Print(analysis.Results())
 
 		if shouldExplain {
