@@ -13,7 +13,7 @@ func newAnalysisWithNoTrafficAllowances(explanation Explanation) Analysis {
 }
 
 func (a *Analysis) Results() string {
-	return DescribeListOfTrafficAllowances(a.trafficAllowances)
+	return describeListOfTrafficAllowances(a.trafficAllowances)
 }
 
 func (a *Analysis) Explanation() string {

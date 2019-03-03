@@ -79,7 +79,7 @@ func newTrafficAllowanceFromAWS(ipProtocol *string, fromPort *int64, toPort *int
 			return nil, errors.New("cannot construct traffic allowance with nil toPort")
 		}
 
-		portRange, err := NewPortRange(*fromPort, *toPort)
+		portRange, err := newPortRange(*fromPort, *toPort)
 		if err != nil {
 			return nil, fmt.Errorf("unable to construct traffic allowance due to error constructing port range: %v", err)
 		}
@@ -366,7 +366,7 @@ func sortTrafficAllowances(allowances []*TrafficAllowance) {
 	})
 }
 
-func DescribeListOfTrafficAllowances(allowances []*TrafficAllowance) string {
+func describeListOfTrafficAllowances(allowances []*TrafficAllowance) string {
 	if len(allowances) < 1 {
 		return "source traffic cannot reach destination\n"
 	}
