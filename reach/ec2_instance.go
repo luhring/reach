@@ -75,9 +75,7 @@ func (i *EC2Instance) analyzeState(sourceOrDestination string) (bool, Explanatio
 
 	label := color.Color(fmt.Sprintf("%v instance state:", sourceOrDestination), c)
 	value := color.Color(state, c+"+b")
-
-	var explanation Explanation
-	explanation.AddLineFormat("%v %v", label, value)
+	explanation := newExplanation(fmt.Sprintf("%v %v", label, value))
 
 	return isRunning, explanation
 }

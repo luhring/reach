@@ -1,14 +1,16 @@
 package reach
 
+import "fmt"
+
 type SGRefRuleMatch struct {
 	Rule  *SecurityGroupRule
 	SGRef *SecurityGroupReference
 }
 
 func (m *SGRefRuleMatch) Explain(observedDescriptor string) Explanation {
-	var explanation Explanation
-
-	explanation.AddLineFormat("security group (%v)", m.SGRef.Name)
+	explanation := newExplanation(
+		fmt.Sprintf("security group (%v)", m.SGRef.Name),
+	)
 
 	return explanation
 }

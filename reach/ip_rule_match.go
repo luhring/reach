@@ -1,6 +1,7 @@
 package reach
 
 import (
+	"fmt"
 	"github.com/mgutz/ansi"
 	"net"
 )
@@ -13,8 +14,6 @@ type IPRuleMatch struct {
 }
 
 func (m *IPRuleMatch) Explain(observedDescriptor string) Explanation {
-	var explanation Explanation
-
 	var publicOrPrivate string
 	if m.IsTargetIPPublic {
 		publicOrPrivate = "public"
@@ -22,10 +21,11 @@ func (m *IPRuleMatch) Explain(observedDescriptor string) Explanation {
 		publicOrPrivate = "private"
 	}
 
-	explanation.AddLineFormat(
+	explanation := newExplanation(fmt.Sprintf(
 		ansi.Color("- rule: allow %v", "green"),
 		ansi.Color(m.Rule.TrafficAllowance.Describe(), "green+b"),
-	)
+	))
+
 	explanation.AddLineFormatWithIndents(
 		1,
 		"(This rule handles an IP address range '%v' that includes the %s network interface's %s IP address '%v'.)",

@@ -1,6 +1,7 @@
 package reach
 
 import (
+	"fmt"
 	"github.com/luhring/reach/network"
 	"github.com/mgutz/ansi"
 )
@@ -21,17 +22,18 @@ func (v *InterfaceVector) sameSubnet() bool {
 }
 
 func (v *InterfaceVector) explainSourceAndDestination() Explanation {
-	var explanation Explanation
-
-	explanation.AddLineFormat("source network interface: %v", ansi.Color(v.Source.Name, "default+b"))
-	explanation.AddLineFormat("destination network interface: %v", ansi.Color(v.Destination.Name, "default+b"))
+	explanation := newExplanation(
+		fmt.Sprintf("source network interface: %v", ansi.Color(v.Source.Name, "default+b")),
+		fmt.Sprintf("destination network interface: %v", ansi.Color(v.Destination.Name, "default+b")),
+	)
 
 	return explanation
 }
 
 func (v *InterfaceVector) analyzeSecurityGroups() ([]*network.TrafficAllowance, Explanation) {
-	var explanation Explanation
-	explanation.AddLineFormat("%v analysis", ansi.Color("security group", "default+b"))
+	explanation := newExplanation(
+		fmt.Sprintf("%v analysis", ansi.Color("security group", "default+b")),
+	)
 
 	outboundAllowedTraffic, sourceExplanation := v.analyzeSinglePerspectiveViaSecurityGroups(sourcePerspective)
 	explanation.Subsume(sourceExplanation)

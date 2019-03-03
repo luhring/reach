@@ -1,6 +1,7 @@
 package reach
 
 import (
+	"fmt"
 	"github.com/luhring/reach/network"
 	"github.com/mgutz/ansi"
 )
@@ -8,21 +9,18 @@ import (
 type InstanceVector struct {
 	Source      *EC2Instance
 	Destination *EC2Instance
-	PortRange   *network.PortRange
 }
 
-func (instanceVector *InstanceVector) Analyze() Analysis {
-	var explanation Explanation
+func (instanceVector *InstanceVector) Analyze(filter *network.TrafficAllowance) Analysis {
+	if filter == nil {
+		filter = network.NewTrafficAllowanceForAllTraffic()
+	}
 
-	explanation.AddLineFormat(
-		"source instance: %v",
-		ansi.Color(instanceVector.Source.LongName(), "default+b"),
+	explanation := newExplanation(
+		fmt.Sprintf("source instance: %v", ansi.Color(instanceVector.Source.LongName(), "default+b")),
+		fmt.Sprintf("destination instance: %v", ansi.Color(instanceVector.Destination.LongName(), "default+b")),
+		"",
 	)
-	explanation.AddLineFormat(
-		"destination instance: %v",
-		ansi.Color(instanceVector.Destination.LongName(), "default+b"),
-	)
-	explanation.AddBlankLine()
 
 	doStatesAllowTraffic, statesExplanation := instanceVector.analyzeInstanceStates()
 	explanation.Append(statesExplanation)
@@ -92,9 +90,9 @@ func (instanceVector *InstanceVector) createInterfaceVectors() []InterfaceVector
 }
 
 func (instanceVector *InstanceVector) analyzeInstanceStates() (bool, Explanation) {
-	var explanation Explanation
-
-	explanation.AddLineFormat("%v analysis", ansi.Color("instance state", "default+b"))
+	explanation := newExplanation(
+		fmt.Sprintf("%v analysis", ansi.Color("instance state", "default+b")),
+	)
 
 	isSourceRunning, sourceExplanation := instanceVector.Source.analyzeState("source")
 	isDestinationRunning, destinationExplanation := instanceVector.Destination.analyzeState("destination")

@@ -10,6 +10,16 @@ type Explanation struct {
 	lines []ExplanationLine
 }
 
+func newExplanation(lines ...string) Explanation {
+	var explanation Explanation
+
+	for _, line := range lines {
+		explanation.AddLine(line)
+	}
+
+	return explanation
+}
+
 func (e *Explanation) AddLine(text string) {
 	e.AddLineWithIndents(0, text)
 }
