@@ -8,8 +8,10 @@ import (
 )
 
 const explainFlag = "explain"
+const portFlag = "port"
 
 var shouldExplain bool
+var port uint16
 
 var rootCmd = &cobra.Command{
 	Use:   "reach",
@@ -18,25 +20,32 @@ var rootCmd = &cobra.Command{
 See https://github.com/luhring/reach for documentation.`,
 	Args: cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		analyzer := reach.NewAnalyzer()
+		awsManager := reach.NewAWSManager()
 
-		vector, err := analyzer.CreateInstanceVector(args[0], args[1])
+		instanceVector, err := awsManager.CreateInstanceVector(args[0], args[1])
 		if err != nil {
 			exitWithError(err)
 		}
 
-		analyzer.Analyze(vector, shouldExplain)
-	},
-}
+		analysis := instanceVector.Analyze()
+		fmt.Print(analysis.Results())
 
-func init() {
-	rootCmd.Flags().BoolVar(&shouldExplain, explainFlag, false, "explain how the configuration was analyzed")
+		if shouldExplain {
+			fmt.Println("")
+			fmt.Print(analysis.Explanation())
+		}
+	},
 }
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		exitWithError(err)
 	}
+}
+
+func init() {
+	rootCmd.Flags().BoolVar(&shouldExplain, explainFlag, false, "explain how the configuration was analyzed")
+	rootCmd.Flags().Uint16Var(&port, portFlag, 0, "restrict analysis to a specified TCP port")
 }
 
 func exitWithError(err error) {

@@ -5,18 +5,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/luhring/reach/network"
-	"github.com/mgutz/ansi"
 	"strings"
 )
 
-type Analyzer struct {
+type AWSManager struct {
 	AWSSession     *session.Session
 	EC2Client      *ec2.EC2
 	SecurityGroups map[string]*SecurityGroup
 }
 
-func NewAnalyzer() *Analyzer {
+func NewAWSManager() *AWSManager {
 	awsSession := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
@@ -25,75 +23,14 @@ func NewAnalyzer() *Analyzer {
 
 	var securityGroups = make(map[string]*SecurityGroup)
 
-	return &Analyzer{
+	return &AWSManager{
 		AWSSession:     awsSession,
 		EC2Client:      ec2Client,
 		SecurityGroups: securityGroups,
 	}
 }
 
-func (a *Analyzer) Analyze(instanceVector *InstanceVector, shouldExplain bool) {
-	var analysisExplanation Explanation
-
-	analysisExplanation.AddLineFormat(
-		"source instance: %v",
-		ansi.Color(instanceVector.Source.LongName(), "default+b"),
-	)
-	analysisExplanation.AddLineFormat(
-		"destination instance: %v",
-		ansi.Color(instanceVector.Destination.LongName(), "default+b"),
-	)
-	analysisExplanation.AddBlankLine()
-
-	doStatesAllowTraffic, statesExplanation := instanceVector.analyzeInstanceStates()
-	analysisExplanation.Append(statesExplanation)
-
-	analysisExplanation.AddBlankLine()
-	analysisExplanation.AddLine("source and destination network interface pairings:")
-
-	interfaceVectors := a.createInterfaceVectors(instanceVector)
-	vectorCount := len(interfaceVectors)
-
-	if vectorCount < 1 {
-		fmt.Println("no network interface vectors to analyze.") // TODO: logger
-		return
-	}
-
-	var allowedTraffic []*network.TrafficAllowance
-
-	for _, v := range interfaceVectors {
-		var vectorExplanation Explanation
-
-		vectorExplanation.Append(v.explainSourceAndDestination())
-		vectorExplanation.AddBlankLine()
-
-		reachablePortsViaSecurityGroups, sgExplanation := v.analyzeSecurityGroups()
-
-		if len(reachablePortsViaSecurityGroups) >= 1 {
-			allowedTraffic = append(allowedTraffic, reachablePortsViaSecurityGroups...)
-		}
-
-		vectorExplanation.Append(sgExplanation)
-
-		analysisExplanation.Subsume(vectorExplanation)
-	}
-
-	allowedTraffic = network.ConsolidateTrafficAllowances(allowedTraffic)
-
-	if doStatesAllowTraffic == false {
-		allowedTraffic = []*network.TrafficAllowance{}
-	}
-
-	description := network.DescribeListOfTrafficAllowances(allowedTraffic)
-	fmt.Print(description)
-
-	if shouldExplain {
-		fmt.Println("")
-		fmt.Print(analysisExplanation.Render())
-	}
-}
-
-func (a *Analyzer) findSecurityGroup(id string) (*SecurityGroup, error) {
+func (a *AWSManager) findSecurityGroup(id string) (*SecurityGroup, error) {
 	// lookup from cache, return if found
 	if group := a.SecurityGroups[id]; group != nil {
 		return group, nil
@@ -128,24 +65,7 @@ func (a *Analyzer) findSecurityGroup(id string) (*SecurityGroup, error) {
 	return securityGroup, nil
 }
 
-func (a *Analyzer) createInterfaceVectors(instanceVector *InstanceVector) []InterfaceVector {
-	var interfaceVectors []InterfaceVector
-
-	for _, fromInterface := range instanceVector.Source.NetworkInterfaces {
-		for _, toInterface := range instanceVector.Destination.NetworkInterfaces {
-			newVector := InterfaceVector{
-				Source:      fromInterface,
-				Destination: toInterface,
-				PortRange:   instanceVector.PortRange,
-			}
-			interfaceVectors = append(interfaceVectors, newVector)
-		}
-	}
-
-	return interfaceVectors
-}
-
-func (a *Analyzer) CreateInstanceVector(fromIdentifier, toIdentifier string) (*InstanceVector, error) {
+func (a *AWSManager) CreateInstanceVector(fromIdentifier, toIdentifier string) (*InstanceVector, error) {
 	var vector InstanceVector
 
 	from, err := a.findEC2Instance(fromIdentifier)
@@ -165,7 +85,7 @@ func (a *Analyzer) CreateInstanceVector(fromIdentifier, toIdentifier string) (*I
 	return &vector, nil
 }
 
-func (a *Analyzer) findEC2Instance(identifier string) (*EC2Instance, error) {
+func (a *AWSManager) findEC2Instance(identifier string) (*EC2Instance, error) {
 	// identifier could be ID or name tag
 
 	allInstances, err := a.getAllEC2Instances()
@@ -181,7 +101,7 @@ func (a *Analyzer) findEC2Instance(identifier string) (*EC2Instance, error) {
 	return instance, nil
 }
 
-func (a *Analyzer) getAllEC2Instances() ([]*EC2Instance, error) {
+func (a *AWSManager) getAllEC2Instances() ([]*EC2Instance, error) {
 	describeInstancesOutput, err := a.EC2Client.DescribeInstances(nil)
 
 	if err != nil {
@@ -197,7 +117,7 @@ func (a *Analyzer) getAllEC2Instances() ([]*EC2Instance, error) {
 	return allEC2Instances, nil
 }
 
-func (a *Analyzer) getAllInstancesFromReservations(reservations []*ec2.Reservation) ([]*EC2Instance, error) {
+func (a *AWSManager) getAllInstancesFromReservations(reservations []*ec2.Reservation) ([]*EC2Instance, error) {
 	var ec2Instances []*EC2Instance
 
 	for _, r := range reservations {
