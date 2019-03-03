@@ -3,7 +3,6 @@ package reach
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sort"
 	"strconv"
 )
@@ -137,35 +136,6 @@ func getLowerOfTwoNumbers(firstNumber int64, secondNumber int64) int64 {
 	}
 
 	return secondNumber
-}
-
-func defragmentPortRanges(portRanges []*PortRange) []*PortRange {
-	if len(portRanges) == 1 {
-		return portRanges
-	}
-
-	sortPortRanges(portRanges)
-
-	for i := 0; i < len(portRanges); i++ {
-		if i > 0 {
-			if portRanges[i].doesIntersectWith(portRanges[i-1]) {
-				// merge with previous
-				mergeResult, err := portRanges[i-1].mergeWith(portRanges[i])
-				if err != nil {
-					log.Println("warning: attempted to merge unmergeable port ranges")
-					continue
-				}
-
-				portRanges[i-1] = mergeResult
-				portRanges = append(portRanges[:i], portRanges[i+1:]...)
-
-				// start from the top
-				i = 0
-			}
-		}
-	}
-
-	return portRanges
 }
 
 func (r *PortRange) describe() string {
