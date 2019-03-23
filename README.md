@@ -22,7 +22,7 @@ reach doesn't need to run on any EC2 instance, it just needs to run on a system 
 
 You can ask what ports are reachable on an EC2 instance from the perspective of another instance.
 
-```shell
+```ShellSession
 $ reach "client instance" "server instance"
 ✔ TCP 80
 ✔ TCP 443
@@ -30,7 +30,7 @@ $ reach "client instance" "server instance"
 
 You can ask about just one specific port.
 
-```shell
+```ShellSession
 $ reach "web-server" "db-server" --port 1433
 analysis scope: TCP 1433
 not reachable
@@ -38,7 +38,7 @@ not reachable
 
 You can ask reach to explain its logic for its evaluation:
 
-```shell
+```ShellSession
 $ reach "web-server" "db-server" --port 1433 --explain
 not reachable
 
