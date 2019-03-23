@@ -6,6 +6,8 @@ A tool for examining network reachability issues in AWS.
 [![Go Report Card](https://goreportcard.com/badge/github.com/luhring/reach)](https://goreportcard.com/report/github.com/luhring/reach)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/luhring/reach/blob/master/LICENSE)
 
+**IMPORTANT: THIS IS STILL IN DEVELOPMENT! USE AT YOUR OWN RISK!**
+
 ## Overview
 
 reach evaluates the potential for network connectivity between EC2 instances by querying the AWS API for network configuration data.
@@ -20,48 +22,28 @@ reach doesn't need to run on any EC2 instance, it just needs to run on a system 
 
 You can ask what ports are reachable on an EC2 instance from the perspective of another instance.
 
-```
+```shell
 $ reach "client instance" "server instance"
-"client instance" -> "server instance":
-TCP 80
-TCP 443
-$
+✔ TCP 80
+✔ TCP 443
 ```
 
-You can ask about connectivity to just one specific port.
+You can ask about just one specific port.
 
-```
+```shell
 $ reach "web-server" "db-server" --port 1433
-[not reachable]
-$
+analysis scope: TCP 1433
+not reachable
 ```
 
 You can ask reach to explain its logic for its evaluation:
-```
-$ reach "web-server" "db-server" --port 1433 --explain
-[not reachable]
 
-Explanation:
+```shell
+$ reach "web-server" "db-server" --port 1433 --explain
+not reachable
+
 - The instance "db-server" doesn't have any security groups with an inbound rule that allows access on port TCP 1433.
 - The subnet "database-private-subnet" in which the instance "db-server" resides doesn't have any network ACL rules that allow inbound traffic on port TCP 1433.
-$
-```
-
-You can ask about the outbound access a specific instance has to all other instances.
-
-```
-$ reach "first-instance" --outbound
-To which instances can "first-instance" connect?
-- "second-instance" (i-0028edd2bac34109d) on ports TCP 80, 443
-- "another-instance" (i-004cf8d8f0921234c) on ports TCP 80, 443, UDP 53
-```
-
-You can ask about inbound access to a specific instance from all other instances.
-
-```
-$ reach "lonely-instance" --inbound
-Which instances can connect to "lonely-instance"?
-No instances.
 ```
 
 ## CLI Syntax
@@ -70,17 +52,13 @@ No instances.
 
 ### Options
 
-`--port`, `-p` Filter the connectivity assessment down to a single port. Useful when you need to check only a single network service, such as HTTP (i.e. `--port 80`) or MySQL (i.e. `--port 3306`). Can only be used to specify **TCP** ports, for now.
+`--port`, `-p` Restrict analysis to a specified TCP port.
 
-`--inbound` (Can't be used if more than one instance is specified.) Evaluate network access **to** specified instance from all other instances.
+`--assert-reachable` Exit non-zero if no traffic is allowed from source to destination (within analysis scope, if specified).
 
-`--outbound` (Can't be used if more than one instance is specified.) Evaluate network access **from** specified instance to all other instances.
+`--assert-not-reachable` Exit non-zero if any traffic can reach destination from source (within analysis scope, if specified).
 
-`--error-if-none`, `-n` Return an error (exit code `2`) if the result set contains **no** items.
-
-`--error-if-any`, `-a` Return an error (exit code `2`) if the result set contains **any** items.
-
-`--explain`, `-e` Explain logic behind evaluation.
+`--explain` Explain how the configuration was analyzed.
 
 ### Specifying an instance
 
@@ -95,8 +73,23 @@ reach is able to handle various methods of specifying an EC2 instance.
 
 1. **Shortened strings:** To make CLI text entry less tedious, reach only requires enough of an instance specification string to be unique within the current AWS account and region. For example, let's say you have three EC2 instances in a particular region in your AWS account, and these instances are named "web-01", "web-02", and "db-master". You could refer to the "db-master" instance by typing just `"db"`, since no other instance begins with the same text. This would let you type the command `reach db --inbound`, and reach would understand that you were asking about inbound access to the "db-master" instance. However, it would not be sufficient to use the string `"web"`, since multiple instances have name tags that begin with the text "web". The rules for shortened strings apply to both name tags and instance IDs.
 
+## Benefits
+
+**Instant diagnosis.** Instantly pinpoint missing links in a network setup in AWS.
+
+**Learn about your network.** Gain better insight into currently allowed network flows, and learn how resource configuration affects larger picture.
+
+**Stay secure.** Tighten security without worrying about impacting any required network flows.
+
+**Better deployment pipelines.** Use in CI/CD pipelines alongside infrastructure as code (IaC) deployments to assert business expectations for your network, so you can confirm (or rule out) network-level problems before running end-to-end tests in your pipelines.
+
+**Better deployment pipelines.** Add into CI/CD pipelines alongside infrastructure as code (IaC) deployments to assert business expectations for your network, so you can confirm (or rule out) network-level problems before running integration or end-to-end tests.
+
 ## Road map
 
-- ~~Connectivity between EC2 instances within a single subnet~~
-- Connectivity between EC2 instances in separate subnets in a single VPC
-- Connectivity betweeen an EC2 instance and an IP address
+- ~~Analyze traffic allowed from one EC2 instance to another, within the same subnet~~
+- Analyze traffic allowed from an EC2 instance in one subnet to an EC2 instance in another subnet, within the same VPC **<-- MVP**
+- Analyze traffic allowed between an EC2 instance and a specified IP address (e.g. user's IP address, specified hostname, etc.)
+- Support for non-EC2 resources within AWS (e.g. ELB, Lambda, gateways, etc.)
+- Support for VPC peering
+- Other things! Your ideas are welcome!
