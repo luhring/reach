@@ -81,8 +81,6 @@ reach is able to handle various methods of specifying an EC2 instance.
 
 **Stay secure.** Tighten security without worrying about impacting any required network flows.
 
-**Better deployment pipelines.** Use in CI/CD pipelines alongside infrastructure as code (IaC) deployments to assert business expectations for your network, so you can confirm (or rule out) network-level problems before running end-to-end tests in your pipelines.
-
 **Better deployment pipelines.** Add into CI/CD pipelines alongside infrastructure as code (IaC) deployments to assert business expectations for your network, so you can confirm (or rule out) network-level problems before running integration or end-to-end tests.
 
 ## Road map
