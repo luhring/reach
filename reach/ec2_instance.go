@@ -64,7 +64,10 @@ func (i *EC2Instance) analyzeState(sourceOrDestination string) (bool, Explanatio
 	const running = "running"
 
 	state := strings.ToLower(i.State)
-	isRunning := state == running
+
+	// todo: allow for debug testing with instance state not considered... could be useful in general, maybe make it a config option?
+	// isRunning := state == running
+	isRunning := true
 
 	var c string
 	if isRunning {

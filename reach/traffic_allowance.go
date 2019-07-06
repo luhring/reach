@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/luhring/reach/reach/set"
 	"github.com/mgutz/ansi"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -25,7 +25,7 @@ const (
 
 type TrafficAllowance struct {
 	Protocol       int64           // -1 for all protocols
-	PortRange      *PortRange      // should be nil unless protocol is TCP or UDP
+	ports          *set.PortSet      // should be nil unless protocol is TCP or UDP
 	ICMPConstraint *ICMPConstraint // should be nil unless protocol is ICMP or ICMPv6
 }
 
@@ -35,20 +35,21 @@ func newTrafficAllowanceForAllTraffic() *TrafficAllowance {
 	}
 }
 
-func newTrafficAllowanceForTCPOrUDP(protocol int64, portRange *PortRange) *TrafficAllowance {
+func newTrafficAllowanceForTCPOrUDP(protocol int64, portRange *set.PortSet) *TrafficAllowance {
 	return &TrafficAllowance{
-		Protocol:  protocol,
-		PortRange: portRange,
+		Protocol: protocol,
+		ports:    portRange,
 	}
 }
 
 func NewTrafficAllowanceForTCPPort(port uint16) *TrafficAllowance {
+	ports, err := set.NewPortSetFromPortValue(port)
+	if err != nil {
+		panic(err)
+	}
 	return &TrafficAllowance{
 		Protocol: ipProtocolNumberForTCP,
-		PortRange: &PortRange{
-			int64(port),
-			int64(port),
-		},
+		ports: ports,
 	}
 }
 
@@ -90,12 +91,12 @@ func newTrafficAllowanceFromAWS(ipProtocol *string, fromPort *int64, toPort *int
 			return nil, errors.New("cannot construct traffic allowance with nil toPort")
 		}
 
-		portRange, err := newPortRange(*fromPort, *toPort)
+		ports, err := set.NewPortSetFromRange(uint16(*fromPort), uint16(*toPort))
 		if err != nil {
 			return nil, fmt.Errorf("unable to construct traffic allowance due to error constructing port range: %v", err)
 		}
 
-		return newTrafficAllowanceForTCPOrUDP(protocol, portRange), nil
+		return newTrafficAllowanceForTCPOrUDP(protocol, ports), nil
 	}
 
 	if protocol == ipProtocolNumberForICMP || protocol == ipProtocolNumberForICMPv6 {
@@ -182,7 +183,7 @@ func (t *TrafficAllowance) usesNamedProtocol() bool {
 }
 
 func (t *TrafficAllowance) specifiesTCPOrUDPPortRange() bool {
-	return (t.Protocol == ipProtocolNumberForTCP || t.Protocol == ipProtocolNumberForUDP) && t.PortRange != nil
+	return (t.Protocol == ipProtocolNumberForTCP || t.Protocol == ipProtocolNumberForUDP) && t.ports != nil
 }
 
 func (t *TrafficAllowance) specifiesICMPConstraint() bool {
@@ -226,12 +227,8 @@ func (t *TrafficAllowance) intersectWith(other *TrafficAllowance) *TrafficAllowa
 	// traffic allowances use the same protocol
 
 	if t.specifiesTCPOrUDPPortRange() {
-		portRangeIntersection := t.PortRange.intersectionWith(other.PortRange)
-		if portRangeIntersection == nil {
-			return nil
-		}
-
-		return newTrafficAllowanceForTCPOrUDP(t.Protocol, portRangeIntersection)
+		intersection := t.ports.Intersect(*other.ports)
+		return newTrafficAllowanceForTCPOrUDP(t.Protocol, &intersection)
 	}
 
 	if t.specifiesICMPConstraint() {
@@ -258,12 +255,8 @@ func (t *TrafficAllowance) mergeWith(other *TrafficAllowance) (*TrafficAllowance
 	// neither allow all traffic, but protocols are the same since we're past the intersection test
 
 	if t.specifiesTCPOrUDPPortRange() {
-		mergedPortRange, err := t.PortRange.mergeWith(other.PortRange)
-		if err != nil {
-			return nil, fmt.Errorf("unable to merge traffic allowances: %v", err)
-		}
-
-		return newTrafficAllowanceForTCPOrUDP(t.Protocol, mergedPortRange), nil
+		merged := t.ports.Merge(*other.ports)
+		return newTrafficAllowanceForTCPOrUDP(t.Protocol, &merged), nil
 	}
 
 	if t.specifiesICMPConstraint() {
@@ -289,7 +282,7 @@ func (t *TrafficAllowance) describe() string {
 	var constraintPredicate string
 
 	if t.specifiesTCPOrUDPPortRange() {
-		constraintPredicate = t.PortRange.describe()
+		constraintPredicate = t.ports.String()
 	} else if t.specifiesICMPConstraint() {
 		if t.ICMPConstraint != nil {
 			constraintPredicate = fmt.Sprintf("(%v)", t.ICMPConstraint.Describe())
@@ -325,7 +318,7 @@ func consolidateTrafficAllowances(allowances []*TrafficAllowance) []*TrafficAllo
 		return allowances
 	}
 
-	sortTrafficAllowances(allowances)
+	// sortTrafficAllowances(allowances)
 
 	for i := 0; i < len(allowances); i++ {
 		if i > 0 {
@@ -367,15 +360,15 @@ func intersectTrafficAllowances(
 	return consolidateTrafficAllowances(intersectionTrafficAllowances)
 }
 
-func sortTrafficAllowances(allowances []*TrafficAllowance) {
-	sort.Slice(allowances, func(i, j int) bool {
-		if allowances[i].Protocol == allowances[j].Protocol && allowances[i].specifiesTCPOrUDPPortRange() {
-			return allowances[i].PortRange.LowPort < allowances[j].PortRange.LowPort
-		}
-
-		return allowances[i].Protocol < allowances[j].Protocol
-	})
-}
+// func sortTrafficAllowances(allowances []*TrafficAllowance) {
+// 	sort.Slice(allowances, func(i, j int) bool {
+// 		if allowances[i].Protocol == allowances[j].Protocol && allowances[i].specifiesTCPOrUDPPortRange() {
+// 			return allowances[i].ports.LowPort < allowances[j].ports.LowPort
+// 		}
+//
+// 		return allowances[i].Protocol < allowances[j].Protocol
+// 	})
+// }
 
 func describeListOfTrafficAllowances(allowances []*TrafficAllowance) string {
 	if len(allowances) < 1 {
