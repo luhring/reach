@@ -117,6 +117,28 @@ func newSetFromRange(low, high uint16) set {
 	return newSetWithChunks(resultChunks)
 }
 
+func (s set) Iterate() <-chan uint {
+	c := make(chan uint)
+	go func() {
+		if !s.empty {
+			for chunkIdx := 0; chunkIdx < numberOfChunksInSet; chunkIdx++ {
+				for chunkSubIdx := 0; chunkSubIdx < chunkSize; chunkSubIdx++ {
+					// check if bit is set or of this is a complete set
+					if s.complete || ((1<<uint64(chunkSize-chunkSubIdx-1)) & s.chunks[chunkIdx] != 0) {
+						value, err := calculateValueAtPosition(chunkSize, chunkIdx, chunkSubIdx)
+						if err != nil {
+							panic(err)
+						}
+						c <- uint(value)
+					}
+				}
+			}
+		}
+		close(c)
+	}()
+	return c
+}
+
 func NewSetFromSingleValue(val uint16) set {
 	return newSetFromRange(val, val)
 }

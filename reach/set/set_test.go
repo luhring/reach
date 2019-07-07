@@ -1,9 +1,9 @@
 package set
 
 import (
-"fmt"
-"math"
-"testing"
+	"fmt"
+	"math"
+	"testing"
 )
 
 func TestNewEmptySet(t *testing.T) {
@@ -565,6 +565,68 @@ func TestInvert(t *testing.T) {
 
 			if actual.equals(tc.expected) == false {
 				t.Fail()
+			}
+		})
+	}
+}
+
+func makeRange(min, max int) []uint {
+	a := make([]uint, max-min+1)
+	for i := range a {
+		a[i] = uint(min + i)
+	}
+	return a
+}
+
+func TestIterate(t *testing.T) {
+	cases := []struct {
+		name     string
+		set      set
+		expected []uint
+	}{
+		{
+			"complete set",
+			newCompleteSet(),
+			makeRange(0,65535),
+		},
+		{
+			"empty set",
+			newEmptySet(),
+			[]uint{},
+		},
+		{
+			"small set",
+			newSetFromRange(0, 10),
+			makeRange(0,10),
+		},
+		{
+			"overlap chunks",
+			newSetFromRange(60, 70),
+			makeRange(60,70),
+		},
+		{
+			"single value",
+			NewSetFromSingleValue(64),
+			[]uint{64},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var actual []uint
+
+			for v := range tc.set.Iterate() {
+				actual = append(actual, v)
+			}
+
+			if len(tc.expected) != len(actual) {
+				t.Errorf("mismatched length (exp:%d act:%d)\nexpected: %+v\n     got: %+v\n", len(tc.expected), len(actual), tc.expected, actual)
+			}
+
+			for i := range tc.expected {
+				if tc.expected[i] != actual[i] {
+					t.Errorf("mismatched value at idx=%d (exp:%d act:%d)\nexpected: %+v\n     got: %+v\n", i, tc.expected[i], actual[i], tc.expected, actual)
+				}
 			}
 		})
 	}

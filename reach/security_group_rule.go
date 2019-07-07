@@ -83,6 +83,6 @@ func (rule *SecurityGroupRule) withinScopeOfFilter(filter *TrafficAllowance) boo
 		filter = newTrafficAllowanceForAllTraffic()
 	}
 
-	overlap := rule.TrafficAllowance.intersectWith(filter)
+	overlap := rule.TrafficAllowance.Intersect(filter)
 	return overlap != nil
 }

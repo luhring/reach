@@ -23,7 +23,7 @@ func (m *IPRuleMatch) explain(observedDescriptor string) Explanation {
 
 	explanation := newExplanation(fmt.Sprintf(
 		ansi.Color("- rule: allow %v", "green"),
-		ansi.Color(m.Rule.TrafficAllowance.describe(), "green+b"),
+		ansi.Color(m.Rule.TrafficAllowance.String(), "green+b"),
 	))
 
 	explanation.addLineFormatWithIndents(
