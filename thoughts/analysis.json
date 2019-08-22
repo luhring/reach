@@ -2,12 +2,16 @@
   "subjects": [
     {
       "kind": "ec2Instance",
-      "value": "i-0a93117c7575b6d54",
+      "properties": {
+        "id": "i-0a93117c7575b6d54"
+      },
       "role": "source"
     },
     {
       "kind": "ec2Instance",
-      "value": "i-0136d3233f0ef1924",
+      "properties": {
+        "id": "i-0136d3233f0ef1924"
+      },
       "role": "destination"
     }
   ],

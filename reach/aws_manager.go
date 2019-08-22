@@ -2,10 +2,11 @@ package reach
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"strings"
 )
 
 type AWSManager struct {
@@ -75,12 +76,24 @@ func (a *AWSManager) CreateInstanceVector(fromIdentifier, toIdentifier string) (
 
 	vector.Source = from
 
+	sourceSubject := newSubjectForEC2Instance(vector.Source.ID, roleSource)
+
 	to, err := a.findEC2Instance(toIdentifier)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create instance vector: %v", err)
 	}
 
 	vector.Destination = to
+
+	destinationSubject := newSubjectForEC2Instance(vector.Destination.ID, roleDestination)
+
+	subjects := []subject{
+		sourceSubject,
+		destinationSubject,
+	}
+
+	analysis := newAnalysis(subjects)
+	fmt.Println(analysis.toJSON())
 
 	return &vector, nil
 }
