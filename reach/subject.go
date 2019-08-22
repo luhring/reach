@@ -17,7 +17,7 @@ func newSubjectForEC2Instance(id, role string) subject {
 	}
 
 	return subject{
-		Kind:       "ec2InstanceSubject",
+		Kind:       "ec2Instance",
 		Properties: props,
 		Role:       role,
 	}
