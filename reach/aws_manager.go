@@ -2,6 +2,7 @@ package reach
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -76,7 +77,10 @@ func (a *AWSManager) CreateInstanceVector(fromIdentifier, toIdentifier string) (
 
 	vector.Source = from
 
-	sourceSubject := newSubjectForEC2Instance(vector.Source.ID, roleSource)
+	sourceSubject, err := newEC2InstanceSubject(vector.Source.ID, roleSource)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	to, err := a.findEC2Instance(toIdentifier)
 	if err != nil {
@@ -85,11 +89,14 @@ func (a *AWSManager) CreateInstanceVector(fromIdentifier, toIdentifier string) (
 
 	vector.Destination = to
 
-	destinationSubject := newSubjectForEC2Instance(vector.Destination.ID, roleDestination)
+	destinationSubject, err := newEC2InstanceSubject(vector.Destination.ID, roleDestination)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	subjects := []subject{
-		sourceSubject,
-		destinationSubject,
+		*sourceSubject,
+		*destinationSubject,
 	}
 
 	analysis := newAnalysis(subjects)
