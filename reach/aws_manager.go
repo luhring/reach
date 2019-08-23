@@ -77,7 +77,7 @@ func (a *AWSManager) CreateInstanceVector(fromIdentifier, toIdentifier string) (
 
 	vector.Source = from
 
-	sourceSubject, err := newEC2InstanceSubject(vector.Source.ID, roleSource)
+	sourceSubject, err := NewEC2InstanceSubject(vector.Source.ID, roleSource)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func (a *AWSManager) CreateInstanceVector(fromIdentifier, toIdentifier string) (
 
 	vector.Destination = to
 
-	destinationSubject, err := newEC2InstanceSubject(vector.Destination.ID, roleDestination)
+	destinationSubject, err := NewEC2InstanceSubject(vector.Destination.ID, roleDestination)
 	if err != nil {
 		log.Fatal(err)
 	}

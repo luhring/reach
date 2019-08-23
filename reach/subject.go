@@ -17,7 +17,7 @@ type subject struct {
 	Role       string      `json:"role"`
 }
 
-func newEC2InstanceSubject(id, role string) (*subject, error) {
+func NewEC2InstanceSubject(id, role string) (*subject, error) {
 	if role != roleSource && role != roleDestination {
 		return nil, newSubjectError(errSubjectRoleValidation)
 	}

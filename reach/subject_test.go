@@ -55,7 +55,7 @@ func TestNewEC2InstanceSubject(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			subject, err := newEC2InstanceSubject(tc.id, tc.role)
+			subject, err := NewEC2InstanceSubject(tc.id, tc.role)
 
 			var problems []string
 
