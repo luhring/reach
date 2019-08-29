@@ -3,8 +3,8 @@ package reach
 import "fmt"
 
 const (
-	roleSource               = "source"
-	roleDestination          = "destination"
+	RoleSource               = "source"
+	RoleDestination          = "destination"
 	ec2InstanceSubjectKind   = "ec2Instance"
 	errSubjectPrefix         = "subject creation error"
 	errSubjectRoleValidation = "subject role must be 'source' or 'destination'"
@@ -18,7 +18,7 @@ type subject struct {
 }
 
 func NewEC2InstanceSubject(id, role string) (*subject, error) {
-	if role != roleSource && role != roleDestination {
+	if role != RoleSource && role != RoleDestination {
 		return nil, newSubjectError(errSubjectRoleValidation)
 	}
 

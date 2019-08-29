@@ -3,6 +3,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log"
+
 	"github.com/luhring/reach/reach"
 	"github.com/spf13/cobra"
 )
@@ -35,6 +37,35 @@ See https://github.com/luhring/reach for documentation.`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		sourceID, err := reach.FindEC2InstanceID(args[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		source, err := reach.NewEC2InstanceSubject(sourceID, reach.RoleSource)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		destID, err := reach.FindEC2InstanceID(args[1])
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		dest, err := reach.NewEC2InstanceSubject(destID, reach.RoleDestination)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		analysis, err := reach.Analyze(source, dest)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(analysis.ToJSON()) // TODO: Remove; this is just for verifying result data
+
+		// ---------- OLD IMPLEMENTATION IS BELOW ----------
+
 		awsManager := reach.NewAWSManager()
 
 		instanceVector, err := awsManager.CreateInstanceVector(args[0], args[1])
@@ -50,16 +81,16 @@ See https://github.com/luhring/reach for documentation.`,
 			fmt.Printf("analysis scope: TCP %v\n", port)
 		}
 
-		analysis := instanceVector.Analyze(filter)
-		fmt.Print(analysis.Results())
+		oldAnalysis := instanceVector.Analyze(filter)
+		fmt.Print(oldAnalysis.Results())
 
 		if shouldExplain {
 			fmt.Println("")
-			fmt.Print(analysis.Explanation())
+			fmt.Print(oldAnalysis.Explanation())
 		}
 
 		if assertReachable {
-			if analysis.PassesAssertReachable() {
+			if oldAnalysis.PassesAssertReachable() {
 				exitWithSuccessfulAssertion("specified traffic flow is allowed")
 			} else {
 				exitWithFailedAssertion("specified traffic flow is not allowed")
@@ -67,7 +98,7 @@ See https://github.com/luhring/reach for documentation.`,
 		}
 
 		if assertNotReachable {
-			if analysis.PassesAssertNotReachable() {
+			if oldAnalysis.PassesAssertNotReachable() {
 				exitWithSuccessfulAssertion("none of specified traffic flow is allowed")
 			} else {
 				exitWithFailedAssertion("some or all of specified traffic flow is allowed")

@@ -9,13 +9,13 @@ type NewAnalysis struct {
 	Subjects []subject `json:"subjects"`
 }
 
-func newAnalysis(subjects []subject) NewAnalysis {
-	return NewAnalysis{
+func newAnalysis(subjects []subject) *NewAnalysis {
+	return &NewAnalysis{
 		Subjects: subjects,
 	}
 }
 
-func (a *NewAnalysis) toJSON() string {
+func (a *NewAnalysis) ToJSON() string {
 	b, err := json.MarshalIndent(a, "", "  ")
 	if err != nil {
 		log.Fatal(err)

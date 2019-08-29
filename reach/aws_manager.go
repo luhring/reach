@@ -2,7 +2,6 @@ package reach
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -77,30 +76,12 @@ func (a *AWSManager) CreateInstanceVector(fromIdentifier, toIdentifier string) (
 
 	vector.Source = from
 
-	sourceSubject, err := NewEC2InstanceSubject(vector.Source.ID, roleSource)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	to, err := a.findEC2Instance(toIdentifier)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create instance vector: %v", err)
 	}
 
 	vector.Destination = to
-
-	destinationSubject, err := NewEC2InstanceSubject(vector.Destination.ID, roleDestination)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	subjects := []subject{
-		*sourceSubject,
-		*destinationSubject,
-	}
-
-	analysis := newAnalysis(subjects)
-	fmt.Println(analysis.toJSON())
 
 	return &vector, nil
 }
