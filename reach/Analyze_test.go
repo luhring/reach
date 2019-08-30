@@ -4,10 +4,15 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	acc "github.com/luhring/reach/reach/acceptance"
 )
 
 func TestAnalyze(t *testing.T) {
-	checkAcceptance(t)
+	acc.Check(t)
+
+	destroy := acc.Deploy(t)
+	defer destroy()
 
 	// TODO: dynamically set up infrastructure and fetch object IDs
 

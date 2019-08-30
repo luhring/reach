@@ -1,4 +1,4 @@
-package reach
+package acceptance
 
 import (
 	"flag"
@@ -7,7 +7,7 @@ import (
 
 var acceptance = flag.Bool("acceptance", false, "perform full acceptance testing")
 
-func checkAcceptance(t *testing.T) {
+func Check(t *testing.T) {
 	t.Helper()
 
 	if !*acceptance {

@@ -3,10 +3,12 @@ package reach
 import (
 	"reflect"
 	"testing"
+
+	acc "github.com/luhring/reach/reach/acceptance"
 )
 
 func TestFindEC2InstanceID(t *testing.T) {
-	checkAcceptance(t)
+	acc.Check(t)
 
 	cases := []struct {
 		searchText    string
