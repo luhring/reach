@@ -6,15 +6,28 @@ import (
 	"testing"
 
 	acc "github.com/luhring/reach/reach/acceptance"
+	"github.com/luhring/reach/reach/acceptance/terraform"
 )
 
 func TestAnalyze(t *testing.T) {
 	acc.Check(t)
 
-	destroy := acc.Deploy(t)
-	defer destroy()
+	tf := terraform.New(t, true)
+	defer tf.CleanUp()
 
-	// TODO: dynamically set up infrastructure and fetch object IDs
+	data := []string{
+		"main.tf",
+		"ami_ubuntu.tf",
+		"ec2_instance_source_and_destination.tf",
+	}
+
+	files := acc.DataPaths(data...)
+
+	tf.Load(files...)
+	tf.Init()
+	tf.Plan()
+	tf.Apply()
+	defer tf.Destroy()
 
 	cases := []struct {
 		srcID            string

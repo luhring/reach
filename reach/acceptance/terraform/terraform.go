@@ -71,20 +71,29 @@ func (tf *terraform) CleanUp() {
 func (tf *terraform) Load(files ...string) {
 	tf.t.Helper()
 
-	for _, filePath := range files {
-		data, err := ioutil.ReadFile(filePath)
+	if tf.logging {
+		cwd, err := os.Getwd()
 		if err != nil {
-			tf.t.Fatalf("unable to read file '%s': %v", filePath, err)
+			tf.t.Logf("unable to determine current working dir")
+		} else {
+			tf.t.Logf("about to look for files... (working dir is: %s)", cwd)
+		}
+	}
+
+	for _, file := range files {
+		if tf.logging {
+			tf.t.Logf("loading '%s'...", file)
+		}
+		data, err := ioutil.ReadFile(file)
+		if err != nil {
+			tf.t.Fatalf("unable to read file '%s': %v", file, err)
 		}
 
-		_, filename := path.Split(filePath)
+		_, filename := path.Split(file)
 		destFile := path.Join(tf.tempDir, filename)
 		err = ioutil.WriteFile(destFile, data, 0644)
 		if err != nil {
 			tf.t.Fatalf("unable to write file '%s': %v", destFile, err)
-		}
-		if tf.logging {
-			tf.t.Logf("copied '%s' to '%s'", filePath, destFile)
 		}
 	}
 }
@@ -115,6 +124,20 @@ func (tf *terraform) Destroy() {
 	tf.t.Helper()
 
 	tf.action("unable to destroy", "destroy", "-auto-approve")
+}
+
+func (tf *terraform) Output(name string) string {
+	tf.t.Helper()
+
+	pop := tf.changeToTempDir()
+	defer pop()
+
+	output, err := tf.execForOutput("output", "-no-color", name)
+	if err != nil {
+		tf.t.Fatalf("unable to retrieve output '%s': %v", name, err)
+	}
+
+	return output
 }
 
 // Version retrieves the current Terraform version by calling 'terraform version'.
@@ -154,17 +177,10 @@ func (tf *terraform) changeToTempDir() func() {
 		tf.t.Fatalf("unable to change directory to '%s': %v", tf.tempDir, err)
 	}
 
-	if tf.logging {
-		tf.t.Logf("changed directory from '%s' to '%s'", originalWorkDir, tf.tempDir)
-	}
-
 	changeToOriginalDir := func() {
 		err = os.Chdir(originalWorkDir)
 		if err != nil {
 			tf.t.Fatalf("unable to change directory to '%s': %v", originalWorkDir, err)
-		}
-		if tf.logging {
-			tf.t.Logf("changed directory back to '%s'", originalWorkDir)
 		}
 	}
 
@@ -210,15 +226,42 @@ func (tf *terraform) exec(args ...string) error {
 	return nil
 }
 
-func (tf *terraform) execForOutput(args ...string) ([]byte, error) {
+func (tf *terraform) execForOutput(args ...string) (string, error) {
 	tf.t.Helper()
 
 	cmd := exec.Command(tf.execPath, args...)
 
-	b, err := cmd.Output()
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return "", fmt.Errorf("unable to connect to stdout: %v", err)
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return "", fmt.Errorf("unable to connect to stderr: %v", err)
 	}
 
-	return b, nil
+	err = cmd.Start()
+	if err != nil {
+		return "", fmt.Errorf("unable to start command: %v", err)
+	}
+
+	fromStdout := bufio.NewScanner(stdout)
+	fromStderr := bufio.NewScanner(stderr)
+
+	var output string
+	for fromStdout.Scan() {
+		output += fmt.Sprintf("%s\n", fromStdout.Text())
+	}
+
+	var errText string
+	for fromStderr.Scan() {
+		errText += fmt.Sprintf("%s\n", fromStderr.Text())
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		return "", fmt.Errorf("command exited non-zero: %v\n\n%s\n", err, errText)
+	}
+
+	return output, nil
 }
