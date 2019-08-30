@@ -20,6 +20,9 @@ func Deploy(t *testing.T) func() {
 
 	tf.Load(files...)
 	tf.Init()
+	tf.Plan()
+	tf.Apply()
+	defer tf.Destroy()
 
 	// return callback to tear down infrastructure
 	return func() {
