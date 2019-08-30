@@ -37,12 +37,12 @@ See https://github.com/luhring/reach for documentation.`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		sourceID, err := reach.FindEC2InstanceID(args[0])
+		srcID, err := reach.FindEC2InstanceID(args[0])
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		source, err := reach.NewEC2InstanceSubject(sourceID, reach.RoleSource)
+		src, err := reach.NewEC2InstanceSubject(srcID, reach.RoleSource)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -57,7 +57,7 @@ See https://github.com/luhring/reach for documentation.`,
 			log.Fatal(err)
 		}
 
-		analysis, err := reach.Analyze(source, dest)
+		analysis, err := reach.Analyze(src, dest)
 		if err != nil {
 			log.Fatal(err)
 		}
