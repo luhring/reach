@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strings"
 	"testing"
 )
 
@@ -135,6 +136,7 @@ func (tf *terraform) Destroy() {
 	tf.action("unable to destroy", "destroy", "-auto-approve")
 }
 
+// Output calls 'terraform output' to retrieve a predefined output value from available resources.
 func (tf *terraform) Output(name string) string {
 	tf.t.Helper()
 
@@ -146,7 +148,7 @@ func (tf *terraform) Output(name string) string {
 		tf.t.Fatalf("unable to retrieve output '%s': %v", name, err)
 	}
 
-	return output
+	return strings.TrimSpace(output)
 }
 
 // Version retrieves the current Terraform version by calling 'terraform version'.
