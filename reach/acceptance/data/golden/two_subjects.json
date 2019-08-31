@@ -1,0 +1,18 @@
+{
+  "subjects": [
+    {
+      "kind": "ec2Instance",
+      "properties": {
+        "id": "{{.SourceID}}"
+      },
+      "role": "source"
+    },
+    {
+      "kind": "ec2Instance",
+      "properties": {
+        "id": "{{.DestinationID}}"
+      },
+      "role": "destination"
+    }
+  ]
+}

@@ -17,7 +17,7 @@ func Check(t *testing.T) {
 }
 
 func DataPath(filename string) string {
-	dataDir := path.Join("acceptance", "data")
+	dataDir := path.Join("acceptance", "data", "tf")
 	return path.Join(dataDir, filename)
 }
 
