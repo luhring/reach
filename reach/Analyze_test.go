@@ -24,9 +24,7 @@ func TestAnalyze(t *testing.T) {
 	files := acc.DataPaths(data...)
 
 	tf.Load(files...)
-	tf.Init()
-	tf.Plan()
-	tf.Apply()
+	tf.ThoroughApply()
 	defer tf.Destroy()
 
 	cases := []struct {
