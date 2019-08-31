@@ -1,7 +1,6 @@
 package reach
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -27,43 +26,47 @@ func TestAnalyze(t *testing.T) {
 	tf.ThoroughApply()
 	defer tf.Destroy()
 
-	cases := []struct {
-		srcID            string
-		destID           string
-		expectedAnalysis *NewAnalysis
-		expectedError    error
-	}{
-		{
-			"i-0a93117c7575b6d54",
-			"i-0136d3233f0ef1924",
-			nil,
-			nil,
-		},
-	}
+	t.Run("subjects only", func(t *testing.T) {
+		sourceID := tf.Output("source_id")
+		destinationID := tf.Output("destination_id")
+		data := &acc.TwoSubjects{
+			SourceID:      sourceID,
+			DestinationID: destinationID,
+		}
 
-	for _, tc := range cases {
-		t.Run(fmt.Sprintf("src %s dest %s", tc.srcID, tc.destID), func(t *testing.T) {
-			const setupFailure = "unable to setup Analyze test"
+		templateName := "two_subjects.json"
+		expectedJSON, err := acc.RenderTemplate(t, templateName, data)
+		if err != nil {
+			t.Errorf("couldn't complete render of template '%s': %v", templateName, err)
+		}
 
-			src, err := NewEC2InstanceSubject(tc.srcID, RoleSource)
-			if err != nil {
-				t.Fatalf("%s: %v", setupFailure, err)
-			}
+		t.Logf("expected JSON:\n\n%s\n\n", expectedJSON) // TODO: Remove this line
 
-			dest, err := NewEC2InstanceSubject(tc.destID, RoleDestination)
-			if err != nil {
-				t.Fatalf("%s: %v", setupFailure, err)
-			}
+		var expectedError error // (nil)
 
-			analysis, err := Analyze(src, dest)
+		const setupFailure = "unable to setup Analyze test"
 
-			if !reflect.DeepEqual(tc.expectedAnalysis, analysis) {
-				diffErrorf(t, "analysis", tc.expectedAnalysis, analysis)
-			}
+		src, err := NewEC2InstanceSubject(sourceID, RoleSource)
+		if err != nil {
+			t.Fatalf("%s: %v", setupFailure, err)
+		}
 
-			if !reflect.DeepEqual(tc.expectedError, err) {
-				diffErrorf(t, "err", tc.expectedError, err)
-			}
-		})
-	}
+		dest, err := NewEC2InstanceSubject(destinationID, RoleDestination)
+		if err != nil {
+			t.Fatalf("%s: %v", setupFailure, err)
+		}
+
+		analysis, err := Analyze(src, dest)
+		if !reflect.DeepEqual(expectedError, err) {
+			diffErrorf(t, "err", expectedError, err)
+		}
+
+		analysisJSON := analysis.ToJSON()
+
+		t.Logf("analysis JSON:\n\n%s\n\n", analysisJSON) // TODO: Remove this line
+
+		if expectedJSON != analysis.ToJSON() {
+			diffErrorf(t, "analysis", expectedJSON, analysisJSON)
+		}
+	})
 }
