@@ -11,8 +11,14 @@ import (
 func TestAnalyze(t *testing.T) {
 	acc.Check(t)
 
-	tf := terraform.New(t)
-	defer tf.CleanUp()
+	tf, err := terraform.New(t)
+	acc.FailNowIfError(t, err)
+	defer func() {
+		err := tf.CleanUp()
+		if err != nil {
+			t.Fatalf("error during cleanup: %v", err)
+		}
+	}()
 
 	files := []string{
 		"main.tf",
@@ -22,25 +28,37 @@ func TestAnalyze(t *testing.T) {
 
 	filePaths := acc.GetPaths(files...)
 
-	tf.Load(filePaths...)
-	tf.ThoroughApply()
-	defer tf.Destroy()
+	err = tf.Load(filePaths...)
+	acc.FailNowIfError(t, err)
+
+	err = tf.Init()
+	acc.FailNowIfError(t, err)
+
+	err = tf.PlanAndApply()
+	acc.FailNowIfError(t, err)
+
+	defer func() {
+		err := tf.Destroy()
+		acc.FailNowIfError(t, err)
+	}()
 
 	t.Run("subjects only", func(t *testing.T) {
-		sourceID := tf.Output("source_id")
-		destinationID := tf.Output("destination_id")
+		sourceID, err := tf.Output("source_id")
+		acc.FailNowIfError(t, err)
+
+		destinationID, err := tf.Output("destination_id")
+		acc.FailNowIfError(t, err)
+
 		data := &acc.TwoSubjects{
 			SourceID:      sourceID,
 			DestinationID: destinationID,
 		}
 
 		templateName := "two_subjects.json"
-		expectedJSON, err := acc.RenderTemplate(t, templateName, data)
+		expectedAnalysisJSON, err := acc.RenderTemplate(t, templateName, data)
 		if err != nil {
 			t.Errorf("couldn't complete render of template '%s': %v", templateName, err)
 		}
-
-		t.Logf("expected JSON:\n\n%s\n\n", expectedJSON) // TODO: Remove this line
 
 		var expectedError error // (nil)
 
@@ -63,10 +81,8 @@ func TestAnalyze(t *testing.T) {
 
 		analysisJSON := analysis.ToJSON()
 
-		t.Logf("analysis JSON:\n\n%s\n\n", analysisJSON) // TODO: Remove this line
-
-		if expectedJSON != analysis.ToJSON() {
-			diffErrorf(t, "analysis", expectedJSON, analysisJSON)
+		if expectedAnalysisJSON != analysis.ToJSON() {
+			diffErrorf(t, "analysis", expectedAnalysisJSON, analysisJSON)
 		}
 	})
 }

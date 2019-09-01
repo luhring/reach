@@ -2,6 +2,7 @@ package acceptance
 
 import (
 	"flag"
+	"fmt"
 	"path"
 	"testing"
 )
@@ -29,4 +30,13 @@ func GetPaths(filenames ...string) []string {
 	}
 
 	return filePaths
+}
+
+func FailNowIfError(t *testing.T, err error) {
+	t.Helper()
+
+	if err != nil {
+		fmt.Println("\n\nFAILING NOW!\n\nWriting error to test log...\n\n")
+		t.Fatal(err)
+	}
 }
