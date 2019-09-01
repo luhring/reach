@@ -28,6 +28,7 @@ jobs:
       - run: go test -cover ./... -acceptance -log-tf -test.v
 
 workflows:
+  version: 2
   commit:
     jobs:
       - build
