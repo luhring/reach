@@ -32,7 +32,7 @@ workflows:
   commit:
     jobs:
       - build
-      - test
+      - unit_tests
   nightly:
     triggers:
       - schedule:
