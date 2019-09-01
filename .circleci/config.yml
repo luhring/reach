@@ -34,11 +34,12 @@ workflows:
       - build
       - test
   nightly:
-    - schedule:
-        cron: "20 * * * *"
-        filters:
-          branches:
-            only:
-              - same-subnet-int-tests # TODO: Replace with master
-        jobs:
-          - coverag
+    triggers:
+      - schedule:
+          cron: "20 * * * *"
+          filters:
+            branches:
+              only:
+                - same-subnet-int-tests # TODO: Replace with master
+    jobs:
+      - acceptance_tests
