@@ -9,12 +9,12 @@ import (
 	"testing"
 )
 
-type TwoSubjects struct {
-	SourceID      string
-	DestinationID string
+type SubjectPairForTwoEC2Instances struct {
+	SourceEC2InstanceID      string
+	DestinationEC2InstanceID string
 }
 
-func RenderTemplate(t *testing.T, name string, data interface{}) (string, error) {
+func ProcessTemplate(t *testing.T, name string, data interface{}) (string, error) {
 	t.Helper()
 
 	tmpl, err := template.New(name).ParseFiles(path.Join("acceptance", "data", "golden", name))
@@ -30,4 +30,13 @@ func RenderTemplate(t *testing.T, name string, data interface{}) (string, error)
 	}
 
 	return strings.TrimSpace(b.String()), nil
+}
+
+func ProcessTemplateForSubjectPairForTwoEC2Instances(t *testing.T, name, sourceID, destinationID string) (string, error) {
+	t.Helper()
+
+	return ProcessTemplate(t, name, &SubjectPairForTwoEC2Instances{
+		SourceEC2InstanceID:      sourceID,
+		DestinationEC2InstanceID: destinationID,
+	})
 }

@@ -3,7 +3,6 @@ package acceptance
 import (
 	"flag"
 	"fmt"
-	"path"
 	"testing"
 )
 
@@ -17,22 +16,7 @@ func Check(t *testing.T) {
 	}
 }
 
-func GetPath(filename string) string {
-	dataDir := path.Join("acceptance", "data", "tf")
-	return path.Join(dataDir, filename)
-}
-
-func GetPaths(filenames ...string) []string {
-	filePaths := make([]string, len(filenames))
-
-	for i, f := range filenames {
-		filePaths[i] = GetPath(f)
-	}
-
-	return filePaths
-}
-
-func FailNowIfError(t *testing.T, err error) {
+func IfErrorFailNow(t *testing.T, err error) {
 	t.Helper()
 
 	if err != nil {

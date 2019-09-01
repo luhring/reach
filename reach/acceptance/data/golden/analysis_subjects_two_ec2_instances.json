@@ -3,14 +3,14 @@
     {
       "kind": "ec2Instance",
       "properties": {
-        "id": "{{.SourceID}}"
+        "id": "{{.SourceEC2InstanceID}}"
       },
       "role": "source"
     },
     {
       "kind": "ec2Instance",
       "properties": {
-        "id": "{{.DestinationID}}"
+        "id": "{{.DestinationEC2InstanceID}}"
       },
       "role": "destination"
     }

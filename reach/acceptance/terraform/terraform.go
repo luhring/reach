@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"bufio"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -56,6 +55,10 @@ func New(t *testing.T) (*terraform, error) {
 func (tf *terraform) CleanUp() error {
 	tf.t.Helper()
 
+	if tf.logging {
+		log.Println("cleaning up...")
+	}
+
 	err := os.RemoveAll(tf.tempDir)
 	if err != nil {
 		return fmt.Errorf("unable to clean up temp dir '%s': %v", tf.tempDir, err)
@@ -68,37 +71,37 @@ func (tf *terraform) CleanUp() error {
 	return nil
 }
 
-// Load copies files for Terraform to use into the temporary working directory.
-// It is recommended that callers pass in absolute file paths, since the terraform object occasionally needs to change the working directory.
-func (tf *terraform) Load(files ...string) error {
+// LoadFilesFromDir calls LoadFile for all specified files within the specified directory.
+func (tf *terraform) LoadFilesFromDir(dir string, files []string) error {
+	for _, file := range files {
+		fullPath := path.Join(dir, file)
+		err := tf.LoadFile(fullPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// LoadFile copies a file for Terraform to use into the temporary working directory.
+func (tf *terraform) LoadFile(file string) error {
 	tf.t.Helper()
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		return errors.New("unable to determine current working dir")
-	}
-
 	if tf.logging {
-		log.Printf("working dir is: %s", cwd)
-		log.Println("about to load files...")
+		log.Printf("loading '%s'...", file)
 	}
 
-	for _, file := range files {
-		if tf.logging {
-			log.Printf("loading '%s'...", file)
-		}
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return fmt.Errorf("unable to read file '%s': %v", file, err)
+	}
 
-		data, err := ioutil.ReadFile(file)
-		if err != nil {
-			return fmt.Errorf("unable to read file '%s': %v", file, err)
-		}
-
-		_, filename := path.Split(file)
-		destFile := path.Join(tf.tempDir, filename)
-		err = ioutil.WriteFile(destFile, data, 0644)
-		if err != nil {
-			return fmt.Errorf("unable to write file '%s': %v", destFile, err)
-		}
+	_, filename := path.Split(file)
+	destFile := path.Join(tf.tempDir, filename)
+	err = ioutil.WriteFile(destFile, data, 0644)
+	if err != nil {
+		return fmt.Errorf("unable to write file '%s': %v", destFile, err)
 	}
 
 	return nil
