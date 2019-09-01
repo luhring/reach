@@ -9,7 +9,7 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - run: go test -v -cover ./...
+      - run: CGO_ENABLED=0 go build -a -o "./build/reach"
 
   unit_tests:
     docker:
@@ -17,7 +17,7 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - run: go test -v -cover ./...
+      - run: go test -cover ./reach
 
   acceptance_tests:
     docker:
