@@ -166,7 +166,7 @@ func (tf *terraform) Version() string {
 		log.Printf("unable to get version: %v", err)
 	}
 
-	return string(b)
+	return b
 }
 
 func (tf *terraform) action(errMessage string, args ...string) {
@@ -242,7 +242,7 @@ func (tf *terraform) exec(args ...string) error {
 
 	err = cmd.Wait()
 	if err != nil {
-		return fmt.Errorf("command exited non-zero: %v\n\n%s\n", err)
+		return fmt.Errorf("command exited non-zero: %v\n", err)
 	}
 
 	return nil
