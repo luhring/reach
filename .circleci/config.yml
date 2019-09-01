@@ -6,11 +6,38 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.11
-
     working_directory: ~/repo
-
     steps:
       - checkout
-
-      - run: go build -a -o "./build/reach"
       - run: go test -v -cover ./...
+
+  unit_tests:
+    docker:
+      - image: circleci/golang:1.11
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run: go test -v -cover ./...
+
+  acceptance_tests:
+    docker:
+      - image: circleci/golang:1.11
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run: go test -cover ./... -acceptance -log-tf -test.v
+
+workflows:
+  commit:
+    jobs:
+      - build
+      - test
+  nightly:
+    - schedule:
+        cron: "20 * * * *"
+        filters:
+          branches:
+            only:
+              - same-subnet-int-tests # TODO: Replace with master
+        jobs:
+          - coverag
