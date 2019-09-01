@@ -8,6 +8,7 @@ import (
 
 var acceptance = flag.Bool("acceptance", false, "perform full acceptance testing")
 
+// Check to see if the acceptance flag was set, and if not, skip the current test.
 func Check(t *testing.T) {
 	t.Helper()
 
@@ -16,6 +17,7 @@ func Check(t *testing.T) {
 	}
 }
 
+// IfErrorFailNow determines if the err value contains an error, and if so, calls t.Fatal(err).
 func IfErrorFailNow(t *testing.T, err error) {
 	t.Helper()
 
