@@ -11,18 +11,18 @@ import (
 func TestAnalyze(t *testing.T) {
 	acc.Check(t)
 
-	tf := terraform.New(t, true)
+	tf := terraform.New(t)
 	defer tf.CleanUp()
 
-	data := []string{
+	files := []string{
 		"main.tf",
 		"ami_ubuntu.tf",
 		"ec2_instance_source_and_destination.tf",
 	}
 
-	files := acc.DataPaths(data...)
+	filePaths := acc.GetPaths(files...)
 
-	tf.Load(files...)
+	tf.Load(filePaths...)
 	tf.ThoroughApply()
 	defer tf.Destroy()
 

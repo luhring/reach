@@ -16,16 +16,16 @@ func Check(t *testing.T) {
 	}
 }
 
-func DataPath(filename string) string {
+func GetPath(filename string) string {
 	dataDir := path.Join("acceptance", "data", "tf")
 	return path.Join(dataDir, filename)
 }
 
-func DataPaths(filenames ...string) []string {
+func GetPaths(filenames ...string) []string {
 	filePaths := make([]string, len(filenames))
 
 	for i, f := range filenames {
-		filePaths[i] = DataPath(f)
+		filePaths[i] = GetPath(f)
 	}
 
 	return filePaths

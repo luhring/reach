@@ -2,15 +2,19 @@ package terraform
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 	"testing"
 )
+
+var logTF = flag.Bool("log-tf", false, "log output of Terraform helper")
 
 const terraformPlan = "terraform.plan"
 
@@ -23,8 +27,10 @@ type terraform struct {
 
 // New creates a new instance of a terraform struct that can perform the operations of a basic Terraform workflow.
 // Callers should call CleanUp when done with the object to ensure there are no lingering side effects.
-func New(t *testing.T, logging bool) *terraform {
+func New(t *testing.T) *terraform {
 	t.Helper()
+
+	logging := *logTF
 
 	const execName = "terraform"
 
@@ -34,7 +40,7 @@ func New(t *testing.T, logging bool) *terraform {
 		t.Fatalf("unable to find %s: %v", execName, err)
 	}
 	if logging {
-		t.Logf("found %s at: %s", execName, execPath)
+		log.Printf("found %s at: %s", execName, execPath)
 	}
 
 	// create temporary working directory for all Terraform operations
@@ -43,7 +49,7 @@ func New(t *testing.T, logging bool) *terraform {
 		t.Fatalf("unable to create temp dir: %v", err)
 	}
 	if logging {
-		t.Logf("created temporary working directory for terraform files: %s", tempDir)
+		log.Printf("created temporary working directory for terraform files: %s", tempDir)
 	}
 
 	return &terraform{
@@ -60,9 +66,9 @@ func (tf *terraform) CleanUp() {
 	err := os.RemoveAll(tf.tempDir)
 	if tf.logging {
 		if err != nil {
-			tf.t.Logf("unable to clean up temp dir '%s': %v", tf.tempDir, err)
+			log.Printf("unable to clean up temp dir '%s': %v", tf.tempDir, err)
 		} else {
-			tf.t.Logf("temp dir was successfully removed ('%s')", tf.tempDir)
+			log.Printf("temp dir was successfully removed ('%s')", tf.tempDir)
 		}
 	}
 }
@@ -75,15 +81,15 @@ func (tf *terraform) Load(files ...string) {
 	if tf.logging {
 		cwd, err := os.Getwd()
 		if err != nil {
-			tf.t.Logf("unable to determine current working dir")
+			log.Printf("unable to determine current working dir")
 		} else {
-			tf.t.Logf("about to look for files... (working dir is: %s)", cwd)
+			log.Printf("about to look for files... (working dir is: %s)", cwd)
 		}
 	}
 
 	for _, file := range files {
 		if tf.logging {
-			tf.t.Logf("loading '%s'...", file)
+			log.Printf("loading '%s'...", file)
 		}
 		data, err := ioutil.ReadFile(file)
 		if err != nil {
@@ -157,7 +163,7 @@ func (tf *terraform) Version() string {
 
 	b, err := tf.execForOutput("version")
 	if err != nil && tf.logging {
-		tf.t.Logf("unable to get version: %v", err)
+		log.Printf("unable to get version: %v", err)
 	}
 
 	return string(b)
@@ -232,6 +238,11 @@ func (tf *terraform) exec(args ...string) error {
 		if err := in.Err(); err != nil {
 			fmt.Printf("error: %s", err)
 		}
+	}
+
+	err = cmd.Wait()
+	if err != nil {
+		return fmt.Errorf("command exited non-zero: %v\n\n%s\n", err)
 	}
 
 	return nil
