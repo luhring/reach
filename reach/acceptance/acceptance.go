@@ -20,7 +20,7 @@ func IfErrorFailNow(t *testing.T, err error) {
 	t.Helper()
 
 	if err != nil {
-		fmt.Println("\n\nFAILING NOW!\n\nWriting error to test log...\n\n")
+		fmt.Print("\n\nFAILING NOW!\n\nWriting error to test log...\n\n")
 		t.Fatal(err)
 	}
 }
