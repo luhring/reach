@@ -14,6 +14,7 @@ type SubjectPairForTwoEC2Instances struct {
 	DestinationEC2InstanceID string
 }
 
+// ProcessTemplate handles injecting data into specified template file.
 func ProcessTemplate(t *testing.T, name string, data interface{}) (string, error) {
 	t.Helper()
 
@@ -32,6 +33,7 @@ func ProcessTemplate(t *testing.T, name string, data interface{}) (string, error
 	return strings.TrimSpace(b.String()), nil
 }
 
+// ProcessTemplateForSubjectPairForTwoEC2Instances calls ProcessTemplate using the SubjectPairForTwoEC2Instances data type.
 func ProcessTemplateForSubjectPairForTwoEC2Instances(t *testing.T, name, sourceID, destinationID string) (string, error) {
 	t.Helper()
 
