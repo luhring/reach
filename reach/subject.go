@@ -14,10 +14,9 @@ const (
 )
 
 type Subject struct {
-	Kind         string      `json:"kind"`
-	Properties   interface{} `json:"properties"`
-	Role         string      `json:"role"`
-	GetResources func() []Resource
+	Kind       string      `json:"kind"`
+	Properties interface{} `json:"properties"`
+	Role       string      `json:"role"`
 }
 
 func (s *Subject) SetRoleToSource() {

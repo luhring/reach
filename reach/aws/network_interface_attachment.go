@@ -3,5 +3,5 @@ package aws
 type NetworkInterfaceAttachment struct {
 	ID                        string `json:"id"`
 	ElasticNetworkInterfaceID string `json:"elasticNetworkInterfaceID"`
-	DeviceName                string `json:"deviceName"` // e.g. "eth0"
+	DeviceIndex               int64  `json:"deviceIndex"` // e.g. 0
 }

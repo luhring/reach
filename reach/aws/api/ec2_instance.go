@@ -59,7 +59,7 @@ func newEC2InstanceFromAPI(instance *ec2.Instance) reachAWS.EC2Instance {
 	return reachAWS.EC2Instance{
 		ID:                          aws.StringValue(instance.InstanceId),
 		NameTag:                     getNameTag(instance.Tags),
-		State:                       instance.State.String(),
+		State:                       aws.StringValue(instance.State.Name),
 		NetworkInterfaceAttachments: getNetworkInterfaceAttachments(instance),
 	}
 }
@@ -93,6 +93,6 @@ func newNetworkInterfaceAttachmentFromAPI(networkInterface *ec2.InstanceNetworkI
 	return reachAWS.NetworkInterfaceAttachment{
 		ID:                        aws.StringValue(networkInterface.Attachment.AttachmentId),
 		ElasticNetworkInterfaceID: aws.StringValue(networkInterface.NetworkInterfaceId),
-		DeviceName:                aws.StringValue(networkInterface.Description),
+		DeviceIndex:               aws.Int64Value(networkInterface.Attachment.DeviceIndex),
 	}
 }

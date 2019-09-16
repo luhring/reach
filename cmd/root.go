@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/analyzer"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/aws/api"
 )
@@ -57,7 +57,8 @@ See https://github.com/luhring/reach for documentation.`,
 		}
 		destination.SetRoleToDestination()
 
-		analysis, err := reach.Analyze(source, destination)
+		a := analyzer.New()
+		analysis, err := a.Analyze(source, destination)
 		if err != nil {
 			log.Fatal(err)
 		}
