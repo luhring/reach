@@ -4,8 +4,16 @@ type Helper interface {
 	GetResourcesForSubject(subject Subject) ([]Resource, error)
 }
 
-func Analyze(subjects ...Subject) (*Analysis, error) {
+func Analyze(subjects ...*Subject) (*Analysis, error) {
 	// for each subject, determine needed types —- use correct resource getter to add resource tree to resource store (which is maybe type agnostic?)
+
+	var resources []Resource
+
+	for _, subject := range subjects {
+		if subject.Role != SubjectRoleNone {
+			resources = append(resources, subject.GetResources()...)
+		}
+	}
 
 	// calculate factors for reachability between subject(s) and destination(s)
 
@@ -13,20 +21,6 @@ func Analyze(subjects ...Subject) (*Analysis, error) {
 
 	// return full Analysis struct
 
-	// if subjects == nil || len(subjects) < 2 {
-	// 	return nil, errors.New("not enough subjects to analyze") // TODO: test for not enough of each role, etc.
-	// }
-	//
-	// for _, subject := range subjects {
-	// 	if subject.Kind == SubjectKindEC2Instance {
-	// 		ec2Properties := subject.Properties.(aws.EC2InstanceSubjectProperties)
-	// 		_ = ec2Properties.ID
-	// 		// TODO: load graph!
-	// 	} else {
-	// 		return nil, fmt.Errorf("unrecognized subject kind '%s'", subject.Kind)
-	// 	}
-	// }
-
-	analysis := newAnalysis(subjects, nil)
+	analysis := newAnalysis(subjects, resources)
 	return analysis, nil
 }

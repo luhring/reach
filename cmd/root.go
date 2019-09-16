@@ -9,6 +9,7 @@ import (
 
 	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/aws/api"
 )
 
 const explainFlag = "explain"
@@ -42,20 +43,21 @@ See https://github.com/luhring/reach for documentation.`,
 		sourceIdentifier := args[0]
 		destinationIdentifier := args[1]
 
-		sources, err := aws.NewSubjectsAsSources(sourceIdentifier)
+		var resourceGetter aws.ResourceGetter = api.NewResourceGetter()
+
+		source, err := aws.NewSubject(sourceIdentifier, resourceGetter)
 		if err != nil {
 			log.Fatal(err)
 		}
+		source.SetRoleToSource()
 
-		destinations, err := aws.NewSubjectsAsDestinations(destinationIdentifier)
+		destination, err := aws.NewSubject(destinationIdentifier, resourceGetter)
 		if err != nil {
 			log.Fatal(err)
 		}
+		destination.SetRoleToDestination()
 
-		subjects := make([]reach.Subject, 0, len(sources)+len(destinations)) // TODO: this is ugly — improve interface
-		subjects = append(append(subjects, sources...), destinations...)
-
-		analysis, err := reach.Analyze(subjects...)
+		analysis, err := reach.Analyze(source, destination)
 		if err != nil {
 			log.Fatal(err)
 		}

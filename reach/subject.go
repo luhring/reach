@@ -14,12 +14,21 @@ const (
 )
 
 type Subject struct {
-	Kind       string      `json:"kind"`
-	Properties interface{} `json:"properties"`
-	Role       string      `json:"role"`
+	Kind         string      `json:"kind"`
+	Properties   interface{} `json:"properties"`
+	Role         string      `json:"role"`
+	GetResources func() []Resource
 }
 
-func (s Subject) SetRole(role string) {
+func (s *Subject) SetRoleToSource() {
+	s.SetRole(SubjectRoleSource)
+}
+
+func (s *Subject) SetRoleToDestination() {
+	s.SetRole(SubjectRoleDestination)
+}
+
+func (s *Subject) SetRole(role string) {
 	if ValidSubjectRole(role) {
 		s.Role = role
 	}

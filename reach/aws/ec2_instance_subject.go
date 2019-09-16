@@ -21,9 +21,14 @@ func NewEC2InstanceSubject(id, role string) (*reach.Subject, error) {
 		ID: id,
 	}
 
+	getResources := func() []reach.Resource {
+		return nil
+	}
+
 	return &reach.Subject{
-		Kind:       SubjectKindEC2Instance,
-		Properties: props,
-		Role:       role,
+		Kind:         SubjectKindEC2Instance,
+		Properties:   props,
+		Role:         role,
+		GetResources: getResources,
 	}, nil
 }
