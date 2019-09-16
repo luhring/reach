@@ -1,6 +1,6 @@
 package aws
 
-type ResourceGetter interface {
+type ResourceProvider interface {
 	GetAllEC2Instances() ([]EC2Instance, error)
 	GetEC2Instance(id string) (*EC2Instance, error)
 	GetElasticNetworkInterface(id string) (*ElasticNetworkInterface, error)

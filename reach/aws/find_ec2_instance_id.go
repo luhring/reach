@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-func FindEC2InstanceID(searchText string, resourceGetter ResourceGetter) (string, error) {
-	instances, err := resourceGetter.GetAllEC2Instances()
+func FindEC2InstanceID(searchText string, provider ResourceProvider) (string, error) {
+	instances, err := provider.GetAllEC2Instances()
 	if err != nil {
 		return "", err
 	}

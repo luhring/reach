@@ -9,13 +9,13 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-func (getter *ResourceGetter) GetEC2Instance(id string) (*reachAWS.EC2Instance, error) {
+func (provider *ResourceProvider) GetEC2Instance(id string) (*reachAWS.EC2Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := getter.ec2.DescribeInstances(input)
+	result, err := provider.ec2.DescribeInstances(input)
 	if err != nil {
 		return nil, err
 	}
@@ -37,10 +37,10 @@ func (getter *ResourceGetter) GetEC2Instance(id string) (*reachAWS.EC2Instance, 
 	return &instance, nil
 }
 
-func (getter *ResourceGetter) GetAllEC2Instances() ([]reachAWS.EC2Instance, error) {
+func (provider *ResourceProvider) GetAllEC2Instances() ([]reachAWS.EC2Instance, error) {
 	const errFormat = "unable to get all EC2 instances: %v"
 
-	describeInstancesOutput, err := getter.ec2.DescribeInstances(nil)
+	describeInstancesOutput, err := provider.ec2.DescribeInstances(nil)
 
 	if err != nil {
 		return nil, fmt.Errorf(errFormat, err)

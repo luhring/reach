@@ -43,15 +43,15 @@ See https://github.com/luhring/reach for documentation.`,
 		sourceIdentifier := args[0]
 		destinationIdentifier := args[1]
 
-		var resourceGetter aws.ResourceGetter = api.NewResourceGetter()
+		var provider aws.ResourceProvider = api.NewResourceProvider()
 
-		source, err := aws.NewSubject(sourceIdentifier, resourceGetter)
+		source, err := aws.NewSubject(sourceIdentifier, provider)
 		if err != nil {
 			log.Fatal(err)
 		}
 		source.SetRoleToSource()
 
-		destination, err := aws.NewSubject(destinationIdentifier, resourceGetter)
+		destination, err := aws.NewSubject(destinationIdentifier, provider)
 		if err != nil {
 			log.Fatal(err)
 		}

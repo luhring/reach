@@ -11,13 +11,13 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-func (getter *ResourceGetter) GetNetworkACL(id string) (*reachAWS.NetworkACL, error) {
+func (provider *ResourceProvider) GetNetworkACL(id string) (*reachAWS.NetworkACL, error) {
 	input := &ec2.DescribeNetworkAclsInput{
 		NetworkAclIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := getter.ec2.DescribeNetworkAcls(input)
+	result, err := provider.ec2.DescribeNetworkAcls(input)
 	if err != nil {
 		return nil, err
 	}

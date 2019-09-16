@@ -9,19 +9,19 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 )
 
-type ResourceGetter struct {
+type ResourceProvider struct {
 	session *session.Session
 	ec2     *ec2.EC2
 }
 
-func NewResourceGetter() *ResourceGetter {
+func NewResourceProvider() *ResourceProvider {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	})) // TODO: Don't call session.Must —- return error, and don't panic, this is a lib after all!
 
 	ec2Client := ec2.New(sess)
 
-	return &ResourceGetter{
+	return &ResourceProvider{
 		session: sess,
 		ec2:     ec2Client,
 	}

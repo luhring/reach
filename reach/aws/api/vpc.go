@@ -9,13 +9,13 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-func (getter *ResourceGetter) GetVPC(id string) (*reachAWS.VPC, error) {
+func (provider *ResourceProvider) GetVPC(id string) (*reachAWS.VPC, error) {
 	input := &ec2.DescribeVpcsInput{
 		VpcIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := getter.ec2.DescribeVpcs(input)
+	result, err := provider.ec2.DescribeVpcs(input)
 	if err != nil {
 		return nil, err
 	}

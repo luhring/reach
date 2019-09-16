@@ -17,7 +17,7 @@ func New() *Analyzer {
 
 func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
 	// Eventually, this dependency wiring should depend on a passed in config.
-	provider := api.NewResourceGetter()
+	provider := api.NewResourceProvider()
 
 	var resources []reach.Resource // TODO: Make this a generic store
 

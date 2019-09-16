@@ -11,13 +11,13 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-func (getter *ResourceGetter) GetSecurityGroup(id string) (*reachAWS.SecurityGroup, error) {
+func (provider *ResourceProvider) GetSecurityGroup(id string) (*reachAWS.SecurityGroup, error) {
 	input := &ec2.DescribeSecurityGroupsInput{
 		GroupIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := getter.ec2.DescribeSecurityGroups(input)
+	result, err := provider.ec2.DescribeSecurityGroups(input)
 	if err != nil {
 		return nil, err
 	}

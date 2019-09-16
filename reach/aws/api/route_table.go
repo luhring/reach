@@ -7,13 +7,13 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-func (getter *ResourceGetter) GetRouteTable(id string) (*reachAWS.RouteTable, error) {
+func (provider *ResourceProvider) GetRouteTable(id string) (*reachAWS.RouteTable, error) {
 	input := &ec2.DescribeRouteTablesInput{
 		RouteTableIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := getter.ec2.DescribeRouteTables(input)
+	result, err := provider.ec2.DescribeRouteTables(input)
 	if err != nil {
 		return nil, err
 	}

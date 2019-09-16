@@ -7,13 +7,13 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-func (getter *ResourceGetter) GetSubnet(id string) (*reachAWS.Subnet, error) {
+func (provider *ResourceProvider) GetSubnet(id string) (*reachAWS.Subnet, error) {
 	input := &ec2.DescribeSubnetsInput{
 		SubnetIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := getter.ec2.DescribeSubnets(input)
+	result, err := provider.ec2.DescribeSubnets(input)
 	if err != nil {
 		return nil, err
 	}

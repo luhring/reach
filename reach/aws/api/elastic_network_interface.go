@@ -9,13 +9,13 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-func (getter *ResourceGetter) GetElasticNetworkInterface(id string) (*reachAWS.ElasticNetworkInterface, error) {
+func (provider *ResourceProvider) GetElasticNetworkInterface(id string) (*reachAWS.ElasticNetworkInterface, error) {
 	input := &ec2.DescribeNetworkInterfacesInput{
 		NetworkInterfaceIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := getter.ec2.DescribeNetworkInterfaces(input)
+	result, err := provider.ec2.DescribeNetworkInterfaces(input)
 	if err != nil {
 		return nil, err
 	}
