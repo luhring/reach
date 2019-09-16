@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/luhring/reach/reach"
 	"github.com/spf13/cobra"
+
+	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/aws"
 )
 
 const explainFlag = "explain"
@@ -37,73 +39,28 @@ See https://github.com/luhring/reach for documentation.`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		srcID, err := reach.FindEC2InstanceID(args[0])
+		sourceIdentifier := args[0]
+		destinationIdentifier := args[1]
+
+		sources, err := aws.NewSubjectsAsSources(sourceIdentifier)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		src, err := reach.NewEC2InstanceSubject(srcID, reach.RoleSource)
+		destinations, err := aws.NewSubjectsAsDestinations(destinationIdentifier)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		destID, err := reach.FindEC2InstanceID(args[1])
+		subjects := make([]reach.Subject, 0, len(sources)+len(destinations)) // TODO: this is ugly — improve interface
+		subjects = append(append(subjects, sources...), destinations...)
+
+		analysis, err := reach.Analyze(subjects...)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		dest, err := reach.NewEC2InstanceSubject(destID, reach.RoleDestination)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		analysis, err := reach.Analyze(src, dest)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Println(analysis.ToJSON()) // TODO: Remove; this is just for verifying result data
-
-		// ---------- OLD IMPLEMENTATION IS BELOW ----------
-
-		awsManager := reach.NewAWSManager()
-
-		instanceVector, err := awsManager.CreateInstanceVector(args[0], args[1])
-		if err != nil {
-			exitWithError(err)
-		}
-
-		var filter *reach.TrafficAllowance
-		if port == 0 {
-			filter = nil
-		} else {
-			filter = reach.NewTrafficAllowanceForTCPPort(port)
-			fmt.Printf("analysis scope: TCP %v\n", port)
-		}
-
-		oldAnalysis := instanceVector.Analyze(filter)
-		fmt.Print(oldAnalysis.Results())
-
-		if shouldExplain {
-			fmt.Println("")
-			fmt.Print(oldAnalysis.Explanation())
-		}
-
-		if assertReachable {
-			if oldAnalysis.PassesAssertReachable() {
-				exitWithSuccessfulAssertion("specified traffic flow is allowed")
-			} else {
-				exitWithFailedAssertion("specified traffic flow is not allowed")
-			}
-		}
-
-		if assertNotReachable {
-			if oldAnalysis.PassesAssertNotReachable() {
-				exitWithSuccessfulAssertion("none of specified traffic flow is allowed")
-			} else {
-				exitWithFailedAssertion("some or all of specified traffic flow is allowed")
-			}
-		}
+		fmt.Println(analysis.ToJSON())
 	},
 }
 

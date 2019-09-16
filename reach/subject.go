@@ -1,42 +1,34 @@
 package reach
 
-import "fmt"
-
-const (
-	RoleSource               = "source"
-	RoleDestination          = "destination"
-	ec2InstanceSubjectKind   = "ec2Instance"
-	errSubjectPrefix         = "subject creation error"
-	errSubjectRoleValidation = "subject role must be 'source' or 'destination'"
-	errSubjectIDValidation   = "id must be a non-empty string"
+import (
+	"fmt"
 )
 
-type subject struct {
+const (
+	SubjectRoleNone          = "none"
+	SubjectRoleSource        = "source"
+	SubjectRoleDestination   = "destination"
+	ErrSubjectPrefix         = "subject creation error"
+	ErrSubjectRoleValidation = "subject role must be 'source' or 'destination'"
+	ErrSubjectIDValidation   = "id must be a non-empty string"
+)
+
+type Subject struct {
 	Kind       string      `json:"kind"`
 	Properties interface{} `json:"properties"`
 	Role       string      `json:"role"`
 }
 
-func NewEC2InstanceSubject(id, role string) (*subject, error) {
-	if role != RoleSource && role != RoleDestination {
-		return nil, newSubjectError(errSubjectRoleValidation)
+func (s Subject) SetRole(role string) {
+	if ValidSubjectRole(role) {
+		s.Role = role
 	}
-
-	if len(id) < 1 {
-		return nil, newSubjectError(errSubjectIDValidation)
-	}
-
-	props := ec2InstanceSubjectProperties{
-		ID: id,
-	}
-
-	return &subject{
-		Kind:       ec2InstanceSubjectKind,
-		Properties: props,
-		Role:       role,
-	}, nil
 }
 
-func newSubjectError(details string) error {
-	return fmt.Errorf("%s: %s", errSubjectPrefix, details)
+func ValidSubjectRole(role string) bool {
+	return role == SubjectRoleNone || role == SubjectRoleSource || role == SubjectRoleDestination
+}
+
+func NewSubjectError(details string) error {
+	return fmt.Errorf("%s: %s", ErrSubjectPrefix, details)
 }

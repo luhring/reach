@@ -1,9 +1,10 @@
-package reach
+package aws
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/luhring/reach/reach"
 	acc "github.com/luhring/reach/reach/acceptance"
 )
 
@@ -37,11 +38,11 @@ func TestFindEC2InstanceID(t *testing.T) {
 			id, err := FindEC2InstanceID(tc.searchText)
 
 			if tc.expectedID != id {
-				diffErrorf(t, "id", tc.expectedID, id)
+				reach.diffErrorf(t, "id", tc.expectedID, id)
 			}
 
 			if !reflect.DeepEqual(tc.expectedError, err) {
-				diffErrorf(t, "err", tc.expectedError, err)
+				reach.diffErrorf(t, "err", tc.expectedError, err)
 			}
 		})
 	}

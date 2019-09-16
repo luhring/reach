@@ -7,6 +7,7 @@ import (
 
 	"github.com/luhring/reach/reach/acceptance"
 	"github.com/luhring/reach/reach/acceptance/terraform"
+	"github.com/luhring/reach/reach/aws"
 )
 
 func TestAnalyze(t *testing.T) {
@@ -56,26 +57,30 @@ func TestAnalyze(t *testing.T) {
 
 				// Arrange
 
-				src, err := NewEC2InstanceSubject(sourceEC2InstanceID, RoleSource)
+				src, err := NewEC2InstanceSubject(sourceEC2InstanceID, SubjectRoleSource)
 				acceptance.IfErrorFailNow(t, err)
 
-				dest, err := NewEC2InstanceSubject(destinationEC2InstanceID, RoleDestination)
+				dest, err := NewEC2InstanceSubject(destinationEC2InstanceID, SubjectRoleDestination)
 				acceptance.IfErrorFailNow(t, err)
 
 				// Act
 
-				analysis, err := Analyze(src, dest)
+				subjects := []Subject{
+					*src,
+					*dest,
+				}
+				analysis, err := Analyze(subjects, aws.NewResourceStore())
 
 				// Assert
 
 				if !reflect.DeepEqual(tc.expectedError, err) {
-					diffErrorf(t, "err", tc.expectedError, err)
+					DiffErrorf(t, "err", tc.expectedError, err)
 				}
 
 				analysisJSON := analysis.ToJSON()
 
 				if expectedAnalysisJSON != analysis.ToJSON() {
-					diffErrorf(t, "analysis", expectedAnalysisJSON, analysisJSON)
+					DiffErrorf(t, "analysis", expectedAnalysisJSON, analysisJSON)
 				}
 			})
 		}

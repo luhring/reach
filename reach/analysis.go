@@ -1,29 +1,26 @@
 package reach
 
+import (
+	"encoding/json"
+	"log"
+)
+
 type Analysis struct {
-	trafficAllowances []*TrafficAllowance
-	explanation       Explanation
+	Subjects  []Subject  `json:"subjects"`
+	Resources []Resource `json:"resources"`
 }
 
-func newAnalysisWithNoTrafficAllowances(explanation Explanation) Analysis {
-	return Analysis{
-		[]*TrafficAllowance{},
-		explanation,
+func newAnalysis(subjects []Subject, resources []Resource) *Analysis {
+	return &Analysis{
+		Subjects:  subjects,
+		Resources: resources,
 	}
 }
 
-func (a *Analysis) Results() string {
-	return describeListOfTrafficAllowances(a.trafficAllowances)
-}
-
-func (a *Analysis) Explanation() string {
-	return a.explanation.render()
-}
-
-func (a *Analysis) PassesAssertReachable() bool {
-	return a.trafficAllowances != nil && len(a.trafficAllowances) >= 1
-}
-
-func (a *Analysis) PassesAssertNotReachable() bool {
-	return false == (a.trafficAllowances != nil && len(a.trafficAllowances) >= 1)
+func (a *Analysis) ToJSON() string {
+	b, err := json.MarshalIndent(a, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(b)
 }

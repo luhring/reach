@@ -1,14 +1,14 @@
 {
   "subjects": [
     {
-      "kind": "ec2Instance",
+      "kind": "ec2InstanceSubject",
       "properties": {
         "id": "i-0a93117c7575b6d54"
       },
       "role": "source"
     },
     {
-      "kind": "ec2Instance",
+      "kind": "ec2InstanceSubject",
       "properties": {
         "id": "i-0136d3233f0ef1924"
       },
@@ -18,22 +18,23 @@
   "resources": [
     {
       "kind": "ec2Instance",
-      "id": "i-0a93117c7575b6d54",
       "properties": {
+        "id": "i-0a93117c7575b6d54",
         "name": "abc-instance",
         "state": "running",
-        "networkInterfaces": [
+        "networkInterfaceAttachments": [
           {
-            "name": "eth0",
-            "id": "eni-082b267adf0bd1cdd"
+            "id": "attach-203409283402948",
+            "elasticNetworkInterfaceID": "eni-082b267adf0bd1cdd",
+            "deviceName": "eth0"
           }
         ]
       }
     },
     {
       "kind": "elasticNetworkInterface",
-      "id": "eni-082b267adf0bd1cdd",
       "properties": {
+        "id": "eni-082b267adf0bd1cdd",
         "attachmentID": "eni-attach-06bb378b2ee2ec435",
         "subnetID": "subnet-672b7100",
         "vpcID": "vpc-d32e58a9",
@@ -122,6 +123,16 @@
               "source": {
                 "kind": "securityGroupReference",
                 "value": "sg-2f280072"
+              },
+              "effect": {
+                "kind": "ports",
+                "properties": {
+                  "ports": [
+                    "80",
+                    "443",
+                    "1000-1024"
+                  ]
+                }
               }
             }
           ],
@@ -131,6 +142,9 @@
               "destination": {
                 "kind": "ipAddressRange",
                 "value": "0.0.0.0/0"
+              },
+              "effect": {
+                "kind": "all"
               }
             }
           ]
