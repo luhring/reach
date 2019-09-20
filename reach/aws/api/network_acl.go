@@ -22,7 +22,7 @@ func (provider *ResourceProvider) GetNetworkACL(id string) (*reachAWS.NetworkACL
 		return nil, err
 	}
 
-	if err = ensureSingleResult(result.NetworkAcls, "network ACL", id); err != nil {
+	if err = ensureSingleResult(len(result.NetworkAcls), "network ACL", id); err != nil {
 		return nil, err
 	}
 

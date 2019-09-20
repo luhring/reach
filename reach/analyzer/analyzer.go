@@ -27,15 +27,20 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 			case aws.SubjectKindEC2Instance:
 				ec2Props := subject.Properties.(aws.EC2InstanceSubject)
 				id := ec2Props.ID
+
 				ec2Instance, err := provider.GetEC2Instance(id)
 				if err != nil {
 					log.Fatalf("couldn't get resource: %v", err)
 				}
-				resource := reach.Resource{
-					Kind:       aws.ResourceKindEC2Instance,
-					Properties: ec2Instance,
+
+				resources = append(resources, ec2Instance.ToResource())
+
+				dependencies, err := ec2Instance.GetDependencies(provider)
+				if err != nil {
+					return nil, err
 				}
-				resources = append(resources, resource)
+
+				resources = append(resources, dependencies...)
 			default:
 				log.Fatal("unsupported subject kind")
 			}

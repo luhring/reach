@@ -18,7 +18,7 @@ func (provider *ResourceProvider) GetRouteTable(id string) (*reachAWS.RouteTable
 		return nil, err
 	}
 
-	if err = ensureSingleResult(result.RouteTables, "security group", id); err != nil {
+	if err = ensureSingleResult(len(result.RouteTables), "security group", id); err != nil {
 		return nil, err
 	}
 

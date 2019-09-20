@@ -20,7 +20,7 @@ func (provider *ResourceProvider) GetElasticNetworkInterface(id string) (*reachA
 		return nil, err
 	}
 
-	if err = ensureSingleResult(result.NetworkInterfaces, "elastic network interface", id); err != nil {
+	if err = ensureSingleResult(len(result.NetworkInterfaces), "elastic network interface", id); err != nil {
 		return nil, err
 	}
 

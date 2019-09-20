@@ -20,7 +20,7 @@ func (provider *ResourceProvider) GetVPC(id string) (*reachAWS.VPC, error) {
 		return nil, err
 	}
 
-	if err = ensureSingleResult(result.Vpcs, "VPC", id); err != nil {
+	if err = ensureSingleResult(len(result.Vpcs), "VPC", id); err != nil {
 		return nil, err
 	}
 

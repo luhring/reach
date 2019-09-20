@@ -7,6 +7,7 @@ type ResourceProvider interface {
 	GetNetworkACL(id string) (*NetworkACL, error)
 	GetRouteTable(id string) (*RouteTable, error)
 	GetSecurityGroup(id string) (*SecurityGroup, error)
+	GetSecurityGroupReference(id, accountID string) (*SecurityGroupReference, error)
 	GetSubnet(id string) (*Subnet, error)
 	GetVPC(id string) (*VPC, error)
 }

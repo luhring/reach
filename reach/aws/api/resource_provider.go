@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -39,18 +38,12 @@ func getNameTag(tags []*ec2.Tag) string {
 	return ""
 }
 
-func ensureSingleResult(resultSet interface{}, entity, id string) error {
-	if kind := reflect.ValueOf(resultSet).Kind(); kind != reflect.Slice {
-		return fmt.Errorf("error: resultSet was a '%s', not a slice", kind.String())
-	}
-
-	set := resultSet.([]interface{})
-
-	if len(set) == 0 {
+func ensureSingleResult(resultSetLength int, entity, id string) error {
+	if resultSetLength == 0 {
 		return fmt.Errorf("AWS API did not return a %s for ID '%s'", entity, id)
 	}
 
-	if len(set) > 1 {
+	if resultSetLength > 1 {
 		return fmt.Errorf("AWS API returned more than one %s for ID '%s'", entity, id)
 	}
 

@@ -18,7 +18,7 @@ func (provider *ResourceProvider) GetSubnet(id string) (*reachAWS.Subnet, error)
 		return nil, err
 	}
 
-	if err = ensureSingleResult(result.Subnets, "subnet", id); err != nil {
+	if err = ensureSingleResult(len(result.Subnets), "subnet", id); err != nil {
 		return nil, err
 	}
 

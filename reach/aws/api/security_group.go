@@ -22,7 +22,7 @@ func (provider *ResourceProvider) GetSecurityGroup(id string) (*reachAWS.Securit
 		return nil, err
 	}
 
-	if err = ensureSingleResult(result.SecurityGroups, "security group", id); err != nil {
+	if err = ensureSingleResult(len(result.SecurityGroups), "security group", id); err != nil {
 		return nil, err
 	}
 

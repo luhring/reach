@@ -6,8 +6,6 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
-const ResourceKindVPC = "VPC"
-
 type ResourceStore struct {
 	resources                []reach.Resource
 	ec2Instances             []EC2Instance
