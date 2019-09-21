@@ -17,14 +17,15 @@ func (rt RouteTable) ToResource() reach.Resource {
 	}
 }
 
-func (rt RouteTable) GetDependencies(provider ResourceProvider) ([]reach.Resource, error) {
-	var resources []reach.Resource = nil
+func (rt RouteTable) GetDependencies(provider ResourceProvider) (map[string]map[string]map[string]reach.Resource, error) {
+	resources := make(map[string]map[string]map[string]reach.Resource)
 
 	vpc, err := provider.GetVPC(rt.VPCID)
 	if err != nil {
 		return nil, err
 	}
-	resources = append(resources, vpc.ToResource())
+	resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindVPC)
+	resources[ResourceDomainAWS][ResourceKindVPC][vpc.ID] = vpc.ToResource()
 
 	// TODO: Figure out dependencies from RouteTableRoute (i.e. route targets)
 

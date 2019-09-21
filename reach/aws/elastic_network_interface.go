@@ -26,33 +26,36 @@ func (eni ElasticNetworkInterface) ToResource() reach.Resource {
 	}
 }
 
-func (eni ElasticNetworkInterface) GetDependencies(provider ResourceProvider) ([]reach.Resource, error) {
-	var resources []reach.Resource = nil
+func (eni ElasticNetworkInterface) GetDependencies(provider ResourceProvider) (map[string]map[string]map[string]reach.Resource, error) {
+	resources := make(map[string]map[string]map[string]reach.Resource)
 
 	subnet, err := provider.GetSubnet(eni.SubnetID)
 	if err != nil {
 		return nil, err
 	}
-	resources = append(resources, subnet.ToResource())
+	resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindSubnet)
+	resources[ResourceDomainAWS][ResourceKindSubnet][subnet.ID] = subnet.ToResource()
 
 	vpc, err := provider.GetVPC(eni.VPCID)
 	if err != nil {
 		return nil, err
 	}
-	resources = append(resources, vpc.ToResource())
+	resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindVPC)
+	resources[ResourceDomainAWS][ResourceKindVPC][vpc.ID] = vpc.ToResource()
 
 	for _, sgID := range eni.SecurityGroupIDs {
 		sg, err := provider.GetSecurityGroup(sgID)
 		if err != nil {
 			return nil, err
 		}
-		resources = append(resources, sg.ToResource())
+		resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindSecurityGroup)
+		resources[ResourceDomainAWS][ResourceKindSecurityGroup][sg.ID] = sg.ToResource()
 
 		sgDependencies, err := sg.GetDependencies(provider)
 		if err != nil {
 			return nil, err
 		}
-		resources = append(resources, sgDependencies...)
+		resources = reach.MergeResources(resources, sgDependencies)
 	}
 
 	return resources, nil

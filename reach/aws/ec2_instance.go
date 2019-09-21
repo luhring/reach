@@ -18,34 +18,39 @@ func (i EC2Instance) ToResource() reach.Resource {
 	}
 }
 
-func (i EC2Instance) GetDependencies(provider ResourceProvider) ([]reach.Resource, error) {
-	var resources []reach.Resource = nil
+func (i EC2Instance) getUniqueID() string {
+	return i.ID
+}
+
+func (i EC2Instance) GetDependencies(provider ResourceProvider) (map[string]map[string]map[string]reach.Resource, error) {
+	resources := make(map[string]map[string]map[string]reach.Resource)
 
 	for _, attachment := range i.NetworkInterfaceAttachments {
 		attachmentDependencies, err := getDependenciesForNetworkInterfaceAttachment(attachment, provider)
 		if err != nil {
 			return nil, err
 		}
-		resources = append(resources, attachmentDependencies...)
+		resources = reach.MergeResources(resources, attachmentDependencies)
 	}
 
 	return resources, nil
 }
 
-func getDependenciesForNetworkInterfaceAttachment(attachment NetworkInterfaceAttachment, provider ResourceProvider) ([]reach.Resource, error) {
-	var resources []reach.Resource = nil
+func getDependenciesForNetworkInterfaceAttachment(attachment NetworkInterfaceAttachment, provider ResourceProvider) (map[string]map[string]map[string]reach.Resource, error) {
+	resources := make(map[string]map[string]map[string]reach.Resource)
 
 	eni, err := provider.GetElasticNetworkInterface(attachment.ElasticNetworkInterfaceID)
 	if err != nil {
 		return nil, err
 	}
-	resources = append(resources, eni.ToResource())
+	resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindElasticNetworkInterface)
+	resources[ResourceDomainAWS][ResourceKindElasticNetworkInterface][eni.ID] = eni.ToResource()
 
 	eniDependencies, err := eni.GetDependencies(provider)
 	if err != nil {
 		return nil, err
 	}
-	resources = append(resources, eniDependencies...)
+	resources = reach.MergeResources(resources, eniDependencies)
 
 	return resources, nil
 }

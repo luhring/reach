@@ -16,13 +16,15 @@ func (s Subnet) ToResource() reach.Resource {
 	}
 }
 
-func (s Subnet) GetDependencies(provider ResourceProvider) ([]reach.Resource, error) {
+func (s Subnet) GetDependencies(provider ResourceProvider) (map[string]map[string]map[string]reach.Resource, error) {
+	resources := make(map[string]map[string]map[string]reach.Resource)
+
 	vpc, err := provider.GetVPC(s.VPCID)
 	if err != nil {
 		return nil, err
 	}
+	resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindVPC)
+	resources[ResourceDomainAWS][ResourceKindVPC][vpc.ID] = vpc.ToResource()
 
-	return []reach.Resource{
-		vpc.ToResource(),
-	}, nil
+	return resources, nil
 }

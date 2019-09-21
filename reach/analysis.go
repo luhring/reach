@@ -6,11 +6,11 @@ import (
 )
 
 type Analysis struct {
-	Subjects  []*Subject `json:"subjects"`
-	Resources []Resource `json:"resources"`
+	Subjects  []*Subject                                `json:"subjects"`
+	Resources map[string]map[string]map[string]Resource `json:"resources"`
 }
 
-func newAnalysis(subjects []*Subject, resources []Resource) *Analysis {
+func newAnalysis(subjects []*Subject, resources map[string]map[string]map[string]Resource) *Analysis {
 	return &Analysis{
 		Subjects:  subjects,
 		Resources: resources,

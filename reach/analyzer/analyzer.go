@@ -19,28 +19,27 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 	// Eventually, this dependency wiring should depend on a passed in config.
 	provider := api.NewResourceProvider()
 
-	var resources []reach.Resource // TODO: Make this a generic store
+	resources := make(map[string]map[string]map[string]reach.Resource)
 
 	for _, subject := range subjects {
 		if subject.Role != reach.SubjectRoleNone {
 			switch subject.Kind {
 			case aws.SubjectKindEC2Instance:
-				ec2Props := subject.Properties.(aws.EC2InstanceSubject)
-				id := ec2Props.ID
+				ec2InstanceSubject := subject.Properties.(aws.EC2InstanceSubject)
+				id := ec2InstanceSubject.ID
 
 				ec2Instance, err := provider.GetEC2Instance(id)
 				if err != nil {
 					log.Fatalf("couldn't get resource: %v", err)
 				}
-
-				resources = append(resources, ec2Instance.ToResource())
+				resources = reach.EnsureResourcePathExists(resources, aws.ResourceDomainAWS, aws.ResourceKindEC2Instance)
+				resources[aws.ResourceDomainAWS][aws.ResourceKindEC2Instance][ec2Instance.ID] = ec2Instance.ToResource()
 
 				dependencies, err := ec2Instance.GetDependencies(provider)
 				if err != nil {
 					return nil, err
 				}
-
-				resources = append(resources, dependencies...)
+				resources = reach.MergeResources(resources, dependencies)
 			default:
 				log.Fatal("unsupported subject kind")
 			}
