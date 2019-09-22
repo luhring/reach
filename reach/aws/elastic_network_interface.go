@@ -26,6 +26,14 @@ func (eni ElasticNetworkInterface) ToResource() reach.Resource {
 	}
 }
 
+func (eni ElasticNetworkInterface) ToResourceReference() reach.ResourceReference {
+	return reach.ResourceReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindElasticNetworkInterface,
+		ID:     eni.ID,
+	}
+}
+
 func (eni ElasticNetworkInterface) GetDependencies(provider ResourceProvider) (map[string]map[string]map[string]reach.Resource, error) {
 	resources := make(map[string]map[string]map[string]reach.Resource)
 
@@ -59,4 +67,40 @@ func (eni ElasticNetworkInterface) GetDependencies(provider ResourceProvider) (m
 	}
 
 	return resources, nil
+}
+
+func (eni ElasticNetworkInterface) GetNetworkPoints(parent reach.ResourceReference) []reach.NetworkPoint {
+	var networkPoints []reach.NetworkPoint
+
+	lineage := []reach.ResourceReference{
+		eni.ToResourceReference(),
+		parent,
+	}
+
+	for _, privateIPv4Address := range eni.PrivateIPv4Addresses {
+		point := reach.NetworkPoint{
+			IPAddress: privateIPv4Address,
+			Lineage:   lineage,
+		}
+
+		networkPoints = append(networkPoints, point)
+	}
+
+	if !eni.PublicIPv4Address.Equal(nil) {
+		networkPoints = append(networkPoints, reach.NetworkPoint{
+			IPAddress: eni.PublicIPv4Address,
+			Lineage:   lineage,
+		})
+	}
+
+	for _, ipv6Address := range eni.IPv6Addresses {
+		point := reach.NetworkPoint{
+			IPAddress: ipv6Address,
+			Lineage:   lineage,
+		}
+
+		networkPoints = append(networkPoints, point)
+	}
+
+	return networkPoints
 }

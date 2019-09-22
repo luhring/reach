@@ -18,8 +18,22 @@ func (i EC2Instance) ToResource() reach.Resource {
 	}
 }
 
-func (i EC2Instance) getUniqueID() string {
-	return i.ID
+func (i EC2Instance) ToResourceReference() reach.ResourceReference {
+	return reach.ResourceReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindEC2Instance,
+		ID:     i.ID,
+	}
+}
+
+func (i EC2Instance) getElasticNetworkInterfaceIDs() []string {
+	var ids []string
+
+	for _, attachment := range i.NetworkInterfaceAttachments {
+		ids = append(ids, attachment.ElasticNetworkInterfaceID)
+	}
+
+	return ids
 }
 
 func (i EC2Instance) GetDependencies(provider ResourceProvider) (map[string]map[string]map[string]reach.Resource, error) {
@@ -53,4 +67,16 @@ func getDependenciesForNetworkInterfaceAttachment(attachment NetworkInterfaceAtt
 	resources = reach.MergeResources(resources, eniDependencies)
 
 	return resources, nil
+}
+
+func (i EC2Instance) GetNetworkPoints(resources map[string]map[string]map[string]reach.Resource) []reach.NetworkPoint {
+	var points []reach.NetworkPoint
+
+	for _, id := range i.getElasticNetworkInterfaceIDs() {
+		eni := resources[ResourceDomainAWS][ResourceKindElasticNetworkInterface][id].Properties.(ElasticNetworkInterface)
+		eniNetworkPoints := eni.GetNetworkPoints(i.ToResourceReference())
+		points = append(points, eniNetworkPoints...)
+	}
+
+	return points
 }

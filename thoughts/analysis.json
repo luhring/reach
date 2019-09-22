@@ -154,14 +154,40 @@
     {
       "id": "3ac60ec5-af1e-4cc7-88b4-e4bde90acd49",
       "source": {
-        "domain": "aws",
-        "kind": "ElasticNetworkInterface",
-        "id": "eni-0f47c416a3438e5ea"
+        "ipAddress": {
+          "IP": "172.31.0.8",
+          "Mask": "//8AAA=="
+        },
+        "lineage": [
+          {
+            "domain": "aws",
+            "kind": "ElasticNetworkInterface",
+            "id": "eni-0f47c416a3438e5ea"
+          },
+          {
+            "domain": "aws",
+            "kind": "EC2Instance",
+            "id": "i-0a93117c7575b6d54"
+          }
+        ]
       },
       "destination": {
-        "domain": "aws",
-        "kind": "ElasticNetworkInterface",
-        "id": "eni-082b267adf0bd1cdd"
+        "ipAddress": {
+          "IP": "172.31.0.122",
+          "Mask": "//8AAA=="
+        },
+        "lineage": [
+          {
+            "domain": "aws",
+            "kind": "ElasticNetworkInterface",
+            "id": "eni-082b267adf0bd1cdd"
+          },
+          {
+            "domain": "aws",
+            "kind": "EC2Instance",
+            "id": "i-0136d3233f0ef1924"
+          }
+        ]
       },
       "factors": [
         {
@@ -226,18 +252,23 @@
       ]
     }
   ],
-  "result": {
-    "tcp": [
-      80,
-      443
-    ],
-    "udp": [
-      53
-    ],
-    "customProtocols": [
-      50,
-      100
-    ]
-  }
+  "results": [
+    {
+      "networkVectorID": "3ac60ec5-af1e-4cc7-88b4-e4bde90acd49",
+      "trafficContent": {
+        "tcp": [
+          "80",
+          "443"
+        ],
+        "udp": [
+          "53"
+        ],
+        "customProtocols": [
+          "50",
+          "100"
+        ]
+      }
+    }
+  ]
 }
 

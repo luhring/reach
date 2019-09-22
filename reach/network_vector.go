@@ -1,34 +1,24 @@
 package reach
 
+import "github.com/nu7hatch/gouuid"
+
 type NetworkVector struct {
-	ID          string
-	Source      NetworkPoint
-	Destination NetworkPoint
-	Factors     []Factor
+	ID          string       `json:"id"`
+	Source      NetworkPoint `json:"source"`
+	Destination NetworkPoint `json:"destination"`
+	Factors     []Factor     `json:"factors"`
 }
 
-type NetworkPoint struct {
-	Domain string
-	Kind   string
-	ID     string
-}
+func NewNetworkVector(source, destination NetworkPoint) (NetworkVector, error) {
+	u, err := uuid.NewV4()
+	if err != nil {
+		return NetworkVector{}, err
+	}
 
-type Factor struct {
-	Kind              string
-	AssociatedRole    string
-	Resource          ResourceReference
-	TrafficContentSet []TrafficContent
-	Properties        interface{}
-}
-
-type ResourceReference struct {
-	Domain string
-	Kind   string
-	ID     string
-}
-
-type SecurityGroupRuleFactor struct { // (to AWS package)
-	RuleIndex  int
-	MatchBasis string // named type?
-	MatchValue string // IP address, SG Ref ID, Prefix list name?
+	return NetworkVector{
+		ID:          u.String(),
+		Source:      source,
+		Destination: destination,
+		Factors:     nil,
+	}, nil
 }
