@@ -6,7 +6,6 @@ type NetworkVector struct {
 	ID          string       `json:"id"`
 	Source      NetworkPoint `json:"source"`
 	Destination NetworkPoint `json:"destination"`
-	Factors     []Factor     `json:"factors"`
 }
 
 func NewNetworkVector(source, destination NetworkPoint) (NetworkVector, error) {
@@ -19,6 +18,5 @@ func NewNetworkVector(source, destination NetworkPoint) (NetworkVector, error) {
 		ID:          u.String(),
 		Source:      source,
 		Destination: destination,
-		Factors:     nil,
 	}, nil
 }

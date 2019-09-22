@@ -26,6 +26,10 @@ func (i EC2Instance) ToResourceReference() reach.ResourceReference {
 	}
 }
 
+func (i EC2Instance) isRunning() bool {
+	return i.State == "running"
+}
+
 func (i EC2Instance) getElasticNetworkInterfaceIDs() []string {
 	var ids []string
 

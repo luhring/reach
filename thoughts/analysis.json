@@ -169,6 +169,42 @@
             "kind": "EC2Instance",
             "id": "i-0a93117c7575b6d54"
           }
+        ],
+        "factors": [
+          {
+            "kind": "InstanceState",
+            "resource": {
+              "domain": "aws",
+              "kind": "EC2Instance",
+              "id": "i-0a93117c7575b6d54"
+            },
+            "trafficContentSet": [
+              {
+                "protocol": -1
+              }
+            ]
+          },
+          {
+            "kind": "SecurityGroupRule",
+            "resource": {
+              "domain": "aws",
+              "kind": "SecurityGroup",
+              "id": "sg-2f280072"
+            },
+            "trafficContentSet": [
+              {
+                "protocol": 6,
+                "ports": [
+                  "80",
+                  "1024-2000"
+                ]
+              }
+            ],
+            "properties": {
+              "ruleIndex": 0,
+              "matchBasis": "IPAddress"
+            }
+          }
         ]
       },
       "destination": {
@@ -187,69 +223,30 @@
             "kind": "EC2Instance",
             "id": "i-0136d3233f0ef1924"
           }
-        ]
-      },
-      "factors": [
-        {
-          "kind": "InstanceState",
-          "associatedRole": "source",
-          "resource": {
-            "domain": "aws",
-            "kind": "EC2Instance",
-            "id": "i-0a93117c7575b6d54"
+        ],
+        "factors": [
+          {
+            "kind": "InstanceState",
+            "resource": {
+              "domain": "aws",
+              "kind": "EC2Instance",
+              "id": "i-0136d3233f0ef1924"
+            },
+            "trafficContentSet": [
+            ]
           },
-          "trafficContentSet": [
-            {
-              "protocol": -1
-            }
-          ]
-        },
-        {
-          "kind": "InstanceState",
-          "associatedRole": "destination",
-          "resource": {
-            "domain": "aws",
-            "kind": "EC2Instance",
-            "id": "i-0136d3233f0ef1924"
-          },
-          "trafficContentSet": [
-          ]
-        },
-        {
-          "kind": "SecurityGroupRule",
-          "associatedRole": "source",
-          "resource": {
-            "domain": "aws",
-            "kind": "SecurityGroup",
-            "id": "sg-2f280072"
-          },
-          "trafficContentSet": [
-            {
-              "protocol": 6,
-              "ports": [
-                "80",
-                "1024-2000"
-              ]
-            }
-          ],
-          "properties": {
-            "ruleIndex": 0,
-            "matchBasis": "IPAddress",
-            "matchValue": "172.31.1.5"
+          {
+            "kind": "SecurityGroupRuleAbsence",
+            "resource": {
+              "domain": "aws",
+              "kind": "SecurityGroup",
+              "id": "sg-2f28ff83"
+            },
+            "trafficContentSet": [
+            ]
           }
-        },
-        {
-          "kind": "SecurityGroupRuleAbsence",
-          "associatedRole": "destination",
-          "resource": {
-            "domain": "aws",
-            "kind": "SecurityGroup",
-            "id": "sg-2f28ff83"
-          },
-          "trafficContentSet": [
-          ]
-        }
-      ]
+        ]
+      }
     }
   ],
   "results": [

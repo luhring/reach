@@ -24,24 +24,29 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 
 	for _, subject := range subjects {
 		if subject.Role != reach.SubjectRoleNone {
-			switch subject.Kind {
-			case aws.SubjectKindEC2Instance:
-				id := subject.ID
+			switch subject.Domain {
+			case aws.ResourceDomainAWS:
+				switch subject.Kind {
+				case aws.SubjectKindEC2Instance:
+					id := subject.ID
 
-				ec2Instance, err := provider.GetEC2Instance(id)
-				if err != nil {
-					log.Fatalf("couldn't get resource: %v", err)
-				}
-				resources = reach.EnsureResourcePathExists(resources, aws.ResourceDomainAWS, aws.ResourceKindEC2Instance)
-				resources[aws.ResourceDomainAWS][aws.ResourceKindEC2Instance][ec2Instance.ID] = ec2Instance.ToResource()
+					ec2Instance, err := provider.GetEC2Instance(id)
+					if err != nil {
+						log.Fatalf("couldn't get resource: %v", err)
+					}
+					resources = reach.EnsureResourcePathExists(resources, aws.ResourceDomainAWS, aws.ResourceKindEC2Instance)
+					resources[aws.ResourceDomainAWS][aws.ResourceKindEC2Instance][ec2Instance.ID] = ec2Instance.ToResource()
 
-				dependencies, err := ec2Instance.GetDependencies(provider)
-				if err != nil {
-					return nil, err
+					dependencies, err := ec2Instance.GetDependencies(provider)
+					if err != nil {
+						return nil, err
+					}
+					resources = reach.MergeResources(resources, dependencies)
+				default:
+					return nil, fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
 				}
-				resources = reach.MergeResources(resources, dependencies)
 			default:
-				return nil, fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
+				return nil, fmt.Errorf("unsupported subject domain: '%s'", subject.Domain)
 			}
 		}
 	}
@@ -51,16 +56,22 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 
 	for _, subject := range subjects {
 		if subject.Role == reach.SubjectRoleSource {
-			switch subject.Kind {
-			case aws.SubjectKindEC2Instance:
-				ec2Instance := resources[aws.ResourceDomainAWS][aws.ResourceKindEC2Instance][subject.ID].Properties.(aws.EC2Instance)
-				sourceNetworkPoints = append(sourceNetworkPoints, ec2Instance.GetNetworkPoints(resources)...)
+			switch subject.Domain {
+			case aws.ResourceDomainAWS:
+				switch subject.Kind {
+				case aws.SubjectKindEC2Instance:
+					ec2Instance := resources[aws.ResourceDomainAWS][aws.ResourceKindEC2Instance][subject.ID].Properties.(aws.EC2Instance)
+					sourceNetworkPoints = append(sourceNetworkPoints, ec2Instance.GetNetworkPoints(resources)...)
+				}
 			}
 		} else if subject.Role == reach.SubjectRoleDestination {
-			switch subject.Kind {
-			case aws.SubjectKindEC2Instance:
-				ec2Instance := resources[aws.ResourceDomainAWS][aws.ResourceKindEC2Instance][subject.ID].Properties.(aws.EC2Instance)
-				destinationNetworkPoints = append(destinationNetworkPoints, ec2Instance.GetNetworkPoints(resources)...)
+			switch subject.Domain {
+			case aws.ResourceDomainAWS:
+				switch subject.Kind {
+				case aws.SubjectKindEC2Instance:
+					ec2Instance := resources[aws.ResourceDomainAWS][aws.ResourceKindEC2Instance][subject.ID].Properties.(aws.EC2Instance)
+					destinationNetworkPoints = append(destinationNetworkPoints, ec2Instance.GetNetworkPoints(resources)...)
+				}
 			}
 		}
 	}
@@ -78,15 +89,32 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 		}
 	}
 
-	// From subjects, generate network points.
-
-	// From all network points, generate network vectors.
-
-	// For each network vector, identify analysis type (e.g. ENI-to-ENI), and generate factors.
+	for i, vector := range networkVectors {
+		vector = processFactors(vector, resources)
+		networkVectors[i] = vector
+	}
 
 	return &reach.Analysis{
 		Subjects:       subjects,
 		Resources:      resources,
 		NetworkVectors: networkVectors,
 	}, nil
+}
+
+func processFactors(vector reach.NetworkVector, resources map[string]map[string]map[string]reach.Resource) reach.NetworkVector {
+	for _, ref := range vector.Source.Lineage {
+		if ref.Domain == aws.ResourceDomainAWS && ref.Kind == aws.SubjectKindEC2Instance {
+			ec2Instance := resources[ref.Domain][ref.Kind][ref.ID].Properties.(aws.EC2Instance)
+			vector.Source.Factors = append(vector.Source.Factors, ec2Instance.NewInstanceStateFactor())
+		}
+	}
+
+	for _, ref := range vector.Destination.Lineage {
+		if ref.Domain == aws.ResourceDomainAWS && ref.Kind == aws.SubjectKindEC2Instance {
+			ec2Instance := resources[ref.Domain][ref.Kind][ref.ID].Properties.(aws.EC2Instance)
+			vector.Destination.Factors = append(vector.Destination.Factors, ec2Instance.NewInstanceStateFactor())
+		}
+	}
+
+	return vector
 }
