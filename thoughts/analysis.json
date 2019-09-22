@@ -1,17 +1,15 @@
 {
   "subjects": [
     {
-      "kind": "ec2InstanceSubject",
-      "properties": {
-        "id": "i-0a93117c7575b6d54"
-      },
+      "domain": "aws",
+      "kind": "EC2Instance",
+      "id": "i-0a93117c7575b6d54",
       "role": "source"
     },
     {
-      "kind": "ec2InstanceSubject",
-      "properties": {
-        "id": "i-0136d3233f0ef1924"
-      },
+      "domain": "aws",
+      "kind": "EC2Instance",
+      "id": "i-0136d3233f0ef1924",
       "role": "destination"
     }
   ],
@@ -152,40 +150,80 @@
       }
     }
   ],
-  "factors": [
+  "networkVectors": [
     {
-      "kind": "instanceStateFactor",
-      "properties": {
-        "effectOrigin": {
-          "associatedSubjectRole": "source",
-          "ec2InstanceID": "i-0a93117c7575b6d54"
-        }
-      }
-    },
-    {
-      "kind": "instanceStateFactor",
-      "properties": {
-        "effectOrigin": {
-          "associatedSubjectRole": "destination",
-          "ec2InstanceID": "i-0a93117c7575b6d54"
-        }
-      }
-    },
-    {
-      "kind": "securityGroupRuleFactor",
-      "properties": {
-        "effectOrigin": {
-          "associatedSubjectRole": "source",
-          "elasticNetworkInterfaceID": "eni-082b267adf0bd1cdd",
-          "securityGroupID": "id-123123123",
-          "ruleIndex": 0
+      "id": "3ac60ec5-af1e-4cc7-88b4-e4bde90acd49",
+      "source": {
+        "domain": "aws",
+        "kind": "ElasticNetworkInterface",
+        "id": "eni-0f47c416a3438e5ea"
+      },
+      "destination": {
+        "domain": "aws",
+        "kind": "ElasticNetworkInterface",
+        "id": "eni-082b267adf0bd1cdd"
+      },
+      "factors": [
+        {
+          "kind": "InstanceState",
+          "associatedRole": "source",
+          "resource": {
+            "domain": "aws",
+            "kind": "EC2Instance",
+            "id": "i-0a93117c7575b6d54"
+          },
+          "trafficContentSet": [
+            {
+              "protocol": -1
+            }
+          ]
         },
-        "effectTarget": {
-          "associatedSubjectRole": "destination",
-          "kind": "elasticNetworkInterface",
-          "value": "eni-adf0bd1cdd082b267",
+        {
+          "kind": "InstanceState",
+          "associatedRole": "destination",
+          "resource": {
+            "domain": "aws",
+            "kind": "EC2Instance",
+            "id": "i-0136d3233f0ef1924"
+          },
+          "trafficContentSet": [
+          ]
+        },
+        {
+          "kind": "SecurityGroupRule",
+          "associatedRole": "source",
+          "resource": {
+            "domain": "aws",
+            "kind": "SecurityGroup",
+            "id": "sg-2f280072"
+          },
+          "trafficContentSet": [
+            {
+              "protocol": 6,
+              "ports": [
+                "80",
+                "1024-2000"
+              ]
+            }
+          ],
+          "properties": {
+            "ruleIndex": 0,
+            "matchBasis": "IPAddress",
+            "matchValue": "172.31.1.5"
+          }
+        },
+        {
+          "kind": "SecurityGroupRuleAbsence",
+          "associatedRole": "destination",
+          "resource": {
+            "domain": "aws",
+            "kind": "SecurityGroup",
+            "id": "sg-2f28ff83"
+          },
+          "trafficContentSet": [
+          ]
         }
-      }
+      ]
     }
   ],
   "result": {
