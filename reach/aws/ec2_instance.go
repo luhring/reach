@@ -40,44 +40,51 @@ func (i EC2Instance) getElasticNetworkInterfaceIDs() []string {
 	return ids
 }
 
-func (i EC2Instance) GetDependencies(provider ResourceProvider) (map[string]map[string]map[string]reach.Resource, error) {
-	resources := make(map[string]map[string]map[string]reach.Resource)
+func (i EC2Instance) GetDependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+	rc := reach.NewResourceCollection()
 
 	for _, attachment := range i.NetworkInterfaceAttachments {
 		attachmentDependencies, err := getDependenciesForNetworkInterfaceAttachment(attachment, provider)
 		if err != nil {
 			return nil, err
 		}
-		resources = reach.MergeResources(resources, attachmentDependencies)
+		rc.Merge(attachmentDependencies)
 	}
 
-	return resources, nil
+	return rc, nil
 }
 
-func getDependenciesForNetworkInterfaceAttachment(attachment NetworkInterfaceAttachment, provider ResourceProvider) (map[string]map[string]map[string]reach.Resource, error) {
-	resources := make(map[string]map[string]map[string]reach.Resource)
+func getDependenciesForNetworkInterfaceAttachment(attachment NetworkInterfaceAttachment, provider ResourceProvider) (*reach.ResourceCollection, error) {
+	rc := reach.NewResourceCollection()
 
 	eni, err := provider.GetElasticNetworkInterface(attachment.ElasticNetworkInterfaceID)
 	if err != nil {
 		return nil, err
 	}
-	resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindElasticNetworkInterface)
-	resources[ResourceDomainAWS][ResourceKindElasticNetworkInterface][eni.ID] = eni.ToResource()
+	rc.Put(reach.ResourceReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindElasticNetworkInterface,
+		ID:     eni.ID,
+	}, eni.ToResource())
 
 	eniDependencies, err := eni.GetDependencies(provider)
 	if err != nil {
 		return nil, err
 	}
-	resources = reach.MergeResources(resources, eniDependencies)
+	rc.Merge(eniDependencies)
 
-	return resources, nil
+	return rc, nil
 }
 
-func (i EC2Instance) GetNetworkPoints(resources map[string]map[string]map[string]reach.Resource) []reach.NetworkPoint {
+func (i EC2Instance) GetNetworkPoints(rc *reach.ResourceCollection) []reach.NetworkPoint {
 	var points []reach.NetworkPoint
 
 	for _, id := range i.getElasticNetworkInterfaceIDs() {
-		eni := resources[ResourceDomainAWS][ResourceKindElasticNetworkInterface][id].Properties.(ElasticNetworkInterface)
+		eni := rc.Get(reach.ResourceReference{
+			Domain: ResourceDomainAWS,
+			Kind:   ResourceKindElasticNetworkInterface,
+			ID:     id,
+		}).Properties.(ElasticNetworkInterface)
 		eniNetworkPoints := eni.GetNetworkPoints(i.ToResourceReference())
 		points = append(points, eniNetworkPoints...)
 	}

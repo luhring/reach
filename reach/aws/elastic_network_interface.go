@@ -34,39 +34,48 @@ func (eni ElasticNetworkInterface) ToResourceReference() reach.ResourceReference
 	}
 }
 
-func (eni ElasticNetworkInterface) GetDependencies(provider ResourceProvider) (map[string]map[string]map[string]reach.Resource, error) {
-	resources := make(map[string]map[string]map[string]reach.Resource)
+func (eni ElasticNetworkInterface) GetDependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+	rc := reach.NewResourceCollection()
 
 	subnet, err := provider.GetSubnet(eni.SubnetID)
 	if err != nil {
 		return nil, err
 	}
-	resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindSubnet)
-	resources[ResourceDomainAWS][ResourceKindSubnet][subnet.ID] = subnet.ToResource()
+	rc.Put(reach.ResourceReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindSubnet,
+		ID:     subnet.ID,
+	}, subnet.ToResource())
 
 	vpc, err := provider.GetVPC(eni.VPCID)
 	if err != nil {
 		return nil, err
 	}
-	resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindVPC)
-	resources[ResourceDomainAWS][ResourceKindVPC][vpc.ID] = vpc.ToResource()
+	rc.Put(reach.ResourceReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindVPC,
+		ID:     vpc.ID,
+	}, vpc.ToResource())
 
 	for _, sgID := range eni.SecurityGroupIDs {
 		sg, err := provider.GetSecurityGroup(sgID)
 		if err != nil {
 			return nil, err
 		}
-		resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindSecurityGroup)
-		resources[ResourceDomainAWS][ResourceKindSecurityGroup][sg.ID] = sg.ToResource()
+		rc.Put(reach.ResourceReference{
+			Domain: ResourceDomainAWS,
+			Kind:   ResourceKindSecurityGroup,
+			ID:     sg.ID,
+		}, sg.ToResource())
 
 		sgDependencies, err := sg.GetDependencies(provider)
 		if err != nil {
 			return nil, err
 		}
-		resources = reach.MergeResources(resources, sgDependencies)
+		rc.Merge(sgDependencies)
 	}
 
-	return resources, nil
+	return rc, nil
 }
 
 func (eni ElasticNetworkInterface) GetNetworkPoints(parent reach.ResourceReference) []reach.NetworkPoint {

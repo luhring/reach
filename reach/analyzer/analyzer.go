@@ -20,7 +20,7 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 	// TODO: Eventually, this dependency wiring should depend on a passed in config.
 	provider := api.NewResourceProvider()
 
-	resources := make(map[string]map[string]map[string]reach.Resource)
+	rc := reach.NewResourceCollection()
 
 	for _, subject := range subjects {
 		if subject.Role != reach.SubjectRoleNone {
@@ -34,14 +34,17 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 					if err != nil {
 						log.Fatalf("couldn't get resource: %v", err)
 					}
-					resources = reach.EnsureResourcePathExists(resources, aws.ResourceDomainAWS, aws.ResourceKindEC2Instance)
-					resources[aws.ResourceDomainAWS][aws.ResourceKindEC2Instance][ec2Instance.ID] = ec2Instance.ToResource()
+					rc.Put(reach.ResourceReference{
+						Domain: aws.ResourceDomainAWS,
+						Kind:   aws.ResourceKindEC2Instance,
+						ID:     ec2Instance.ID,
+					}, ec2Instance.ToResource())
 
 					dependencies, err := ec2Instance.GetDependencies(provider)
 					if err != nil {
 						return nil, err
 					}
-					resources = reach.MergeResources(resources, dependencies)
+					rc.Merge(dependencies)
 				default:
 					return nil, fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
 				}
@@ -60,8 +63,13 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 			case aws.ResourceDomainAWS:
 				switch subject.Kind {
 				case aws.SubjectKindEC2Instance:
-					ec2Instance := resources[aws.ResourceDomainAWS][aws.ResourceKindEC2Instance][subject.ID].Properties.(aws.EC2Instance)
-					sourceNetworkPoints = append(sourceNetworkPoints, ec2Instance.GetNetworkPoints(resources)...)
+					ec2Instance := rc.Get(reach.ResourceReference{
+						Domain: aws.ResourceDomainAWS,
+						Kind:   aws.ResourceKindEC2Instance,
+						ID:     subject.ID,
+					}).Properties.(aws.EC2Instance)
+
+					sourceNetworkPoints = append(sourceNetworkPoints, ec2Instance.GetNetworkPoints(rc)...)
 				}
 			}
 		} else if subject.Role == reach.SubjectRoleDestination {
@@ -69,8 +77,13 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 			case aws.ResourceDomainAWS:
 				switch subject.Kind {
 				case aws.SubjectKindEC2Instance:
-					ec2Instance := resources[aws.ResourceDomainAWS][aws.ResourceKindEC2Instance][subject.ID].Properties.(aws.EC2Instance)
-					destinationNetworkPoints = append(destinationNetworkPoints, ec2Instance.GetNetworkPoints(resources)...)
+					ec2Instance := rc.Get(reach.ResourceReference{
+						Domain: aws.ResourceDomainAWS,
+						Kind:   aws.ResourceKindEC2Instance,
+						ID:     subject.ID,
+					}).Properties.(aws.EC2Instance)
+
+					destinationNetworkPoints = append(destinationNetworkPoints, ec2Instance.GetNetworkPoints(rc)...)
 				}
 			}
 		}
@@ -90,28 +103,28 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 	}
 
 	for i, vector := range networkVectors {
-		vector = processFactors(vector, resources)
+		vector = processFactors(vector, rc)
 		networkVectors[i] = vector
 	}
 
 	return &reach.Analysis{
 		Subjects:       subjects,
-		Resources:      resources,
+		Resources:      rc,
 		NetworkVectors: networkVectors,
 	}, nil
 }
 
-func processFactors(vector reach.NetworkVector, resources map[string]map[string]map[string]reach.Resource) reach.NetworkVector {
+func processFactors(vector reach.NetworkVector, rc *reach.ResourceCollection) reach.NetworkVector {
 	for _, ref := range vector.Source.Lineage {
 		if ref.Domain == aws.ResourceDomainAWS && ref.Kind == aws.SubjectKindEC2Instance {
-			ec2Instance := resources[ref.Domain][ref.Kind][ref.ID].Properties.(aws.EC2Instance)
+			ec2Instance := rc.Get(ref).Properties.(aws.EC2Instance)
 			vector.Source.Factors = append(vector.Source.Factors, ec2Instance.NewInstanceStateFactor())
 		}
 	}
 
 	for _, ref := range vector.Destination.Lineage {
 		if ref.Domain == aws.ResourceDomainAWS && ref.Kind == aws.SubjectKindEC2Instance {
-			ec2Instance := resources[ref.Domain][ref.Kind][ref.ID].Properties.(aws.EC2Instance)
+			ec2Instance := rc.Get(ref).Properties.(aws.EC2Instance)
 			vector.Destination.Factors = append(vector.Destination.Factors, ec2Instance.NewInstanceStateFactor())
 		}
 	}

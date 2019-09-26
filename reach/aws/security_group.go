@@ -20,15 +20,18 @@ func (sg SecurityGroup) ToResource() reach.Resource {
 	}
 }
 
-func (sg SecurityGroup) GetDependencies(provider ResourceProvider) (map[string]map[string]map[string]reach.Resource, error) {
-	resources := make(map[string]map[string]map[string]reach.Resource)
+func (sg SecurityGroup) GetDependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+	rc := reach.NewResourceCollection()
 
 	vpc, err := provider.GetVPC(sg.VPCID)
 	if err != nil {
 		return nil, err
 	}
-	resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindVPC)
-	resources[ResourceDomainAWS][ResourceKindVPC][vpc.ID] = vpc.ToResource()
+	rc.Put(reach.ResourceReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindVPC,
+		ID:     vpc.ID,
+	}, vpc.ToResource())
 
 	allRules := append(sg.InboundRules, sg.OutboundRules...)
 
@@ -40,10 +43,13 @@ func (sg SecurityGroup) GetDependencies(provider ResourceProvider) (map[string]m
 			if err != nil {
 				return nil, err
 			}
-			resources = reach.EnsureResourcePathExists(resources, ResourceDomainAWS, ResourceKindSecurityGroupReference)
-			resources[ResourceDomainAWS][ResourceKindSecurityGroupReference][sgRef.ID] = sgRef.ToResource()
+			rc.Put(reach.ResourceReference{
+				Domain: ResourceDomainAWS,
+				Kind:   ResourceKindSecurityGroupReference,
+				ID:     sgRef.ID,
+			}, sgRef.ToResource())
 		}
 	}
 
-	return resources, nil
+	return rc, nil
 }
