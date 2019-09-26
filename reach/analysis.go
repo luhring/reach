@@ -11,7 +11,7 @@ type Analysis struct {
 	NetworkVectors []NetworkVector     `json:"networkVectors"`
 }
 
-func newAnalysis(subjects []*Subject, resources *ResourceCollection, networkVectors []NetworkVector) *Analysis {
+func NewAnalysis(subjects []*Subject, resources *ResourceCollection, networkVectors []NetworkVector) *Analysis {
 	return &Analysis{
 		Subjects:       subjects,
 		Resources:      resources,

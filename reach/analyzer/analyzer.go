@@ -10,18 +10,17 @@ import (
 )
 
 type Analyzer struct {
+	collection *reach.ResourceCollection
 }
 
 func New() *Analyzer {
-	return &Analyzer{}
+	rc := reach.NewResourceCollection()
+	return &Analyzer{
+		collection: rc,
+	}
 }
 
-func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
-	// TODO: Eventually, this dependency wiring should depend on a passed in config.
-	provider := api.NewResourceProvider()
-
-	rc := reach.NewResourceCollection()
-
+func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider aws.ResourceProvider) error { // TODO: Allow passing any number of providers of various domains
 	for _, subject := range subjects {
 		if subject.Role != reach.SubjectRoleNone {
 			switch subject.Domain {
@@ -34,7 +33,7 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 					if err != nil {
 						log.Fatalf("couldn't get resource: %v", err)
 					}
-					rc.Put(reach.ResourceReference{
+					a.collection.Put(reach.ResourceReference{
 						Domain: aws.ResourceDomainAWS,
 						Kind:   aws.ResourceKindEC2Instance,
 						ID:     ec2Instance.ID,
@@ -42,18 +41,22 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 
 					dependencies, err := ec2Instance.GetDependencies(provider)
 					if err != nil {
-						return nil, err
+						return err
 					}
-					rc.Merge(dependencies)
+					a.collection.Merge(dependencies)
 				default:
-					return nil, fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
+					return fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
 				}
 			default:
-				return nil, fmt.Errorf("unsupported subject domain: '%s'", subject.Domain)
+				return fmt.Errorf("unsupported subject domain: '%s'", subject.Domain)
 			}
 		}
 	}
 
+	return nil
+}
+
+func (a *Analyzer) identifyNetworkVectors(subjects []*reach.Subject) ([]reach.NetworkVector, error) {
 	var sourceNetworkPoints []reach.NetworkPoint
 	var destinationNetworkPoints []reach.NetworkPoint
 
@@ -63,13 +66,13 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 			case aws.ResourceDomainAWS:
 				switch subject.Kind {
 				case aws.SubjectKindEC2Instance:
-					ec2Instance := rc.Get(reach.ResourceReference{
+					ec2Instance := a.collection.Get(reach.ResourceReference{
 						Domain: aws.ResourceDomainAWS,
 						Kind:   aws.ResourceKindEC2Instance,
 						ID:     subject.ID,
 					}).Properties.(aws.EC2Instance)
 
-					sourceNetworkPoints = append(sourceNetworkPoints, ec2Instance.GetNetworkPoints(rc)...)
+					sourceNetworkPoints = append(sourceNetworkPoints, ec2Instance.GetNetworkPoints(a.collection)...)
 				}
 			}
 		} else if subject.Role == reach.SubjectRoleDestination {
@@ -77,13 +80,13 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 			case aws.ResourceDomainAWS:
 				switch subject.Kind {
 				case aws.SubjectKindEC2Instance:
-					ec2Instance := rc.Get(reach.ResourceReference{
+					ec2Instance := a.collection.Get(reach.ResourceReference{
 						Domain: aws.ResourceDomainAWS,
 						Kind:   aws.ResourceKindEC2Instance,
 						ID:     subject.ID,
 					}).Properties.(aws.EC2Instance)
 
-					destinationNetworkPoints = append(destinationNetworkPoints, ec2Instance.GetNetworkPoints(rc)...)
+					destinationNetworkPoints = append(destinationNetworkPoints, ec2Instance.GetNetworkPoints(a.collection)...)
 				}
 			}
 		}
@@ -103,15 +106,28 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 	}
 
 	for i, vector := range networkVectors {
-		vector = processFactors(vector, rc)
+		vector = processFactors(vector, a.collection)
 		networkVectors[i] = vector
 	}
 
-	return &reach.Analysis{
-		Subjects:       subjects,
-		Resources:      rc,
-		NetworkVectors: networkVectors,
-	}, nil
+	return networkVectors, nil
+}
+
+func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
+	// TODO: Eventually, this dependency wiring should depend on a passed in config.
+	var provider aws.ResourceProvider = api.NewResourceProvider()
+
+	err := a.buildResourceCollection(subjects, provider)
+	if err != nil {
+		return nil, err
+	}
+
+	networkVectors, err := a.identifyNetworkVectors(subjects)
+	if err != nil {
+		return nil, err
+	}
+
+	return reach.NewAnalysis(subjects, a.collection, networkVectors), nil
 }
 
 func processFactors(vector reach.NetworkVector, rc *reach.ResourceCollection) reach.NetworkVector {
