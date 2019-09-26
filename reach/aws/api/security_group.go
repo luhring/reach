@@ -66,7 +66,7 @@ func getSecurityGroupRule(rule *ec2.IpPermission) reachAWS.SecurityGroupRule { /
 		return reachAWS.SecurityGroupRule{}
 	}
 
-	protocolContent, err := newProtocolContentFromAWSIPPermission(rule)
+	tc, err := newTrafficContentFromAWSIPPermission(rule)
 	if err != nil {
 		panic(err) // TODO: Better error handling
 	}
@@ -87,7 +87,7 @@ func getSecurityGroupRule(rule *ec2.IpPermission) reachAWS.SecurityGroupRule { /
 	targetIPNetworks := getIPNetworksFromSecurityGroupRule(rule.IpRanges, rule.Ipv6Ranges)
 
 	return reachAWS.SecurityGroupRule{
-		ProtocolContent:                       protocolContent,
+		TrafficContent:                        tc,
 		TargetSecurityGroupReferenceID:        targetSecurityGroupReferenceID,
 		TargetSecurityGroupReferenceAccountID: targetSecurityGroupReferenceAccountID,
 		TargetIPNetworks:                      targetIPNetworks,
@@ -156,33 +156,37 @@ func getIPNetworksFromSecurityGroupRule(ipv4Ranges []*ec2.IpRange, ipv6Ranges []
 	return networks
 }
 
-func newProtocolContentFromAWSIPPermission(permission *ec2.IpPermission) (reach.ProtocolContent, error) {
-	const errCreation = "unable to create protocol content: %v"
+func newTrafficContentFromAWSIPPermission(permission *ec2.IpPermission) (reach.TrafficContent, error) {
+	const errCreation = "unable to create content: %v"
 
 	protocol, err := convertAWSIPProtocolStringToProtocol(permission.IpProtocol)
 	if err != nil {
-		return reach.ProtocolContent{}, fmt.Errorf(errCreation, err)
+		return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
 	}
 
-	if protocol == reach.ProtocolTCP || protocol == reach.ProtocolUDP {
+	if protocol == reach.ProtocolAll {
+		return reach.NewTrafficContentForAllTraffic(), nil
+	}
+
+	if protocol.UsesPorts() {
 		portSet, err := newPortSetFromAWSIPPermission(permission)
 		if err != nil {
-			return reach.ProtocolContent{}, fmt.Errorf(errCreation, err)
+			return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
 		}
 
-		return reach.NewProtocolContentWithPorts(protocol, portSet), nil
+		return reach.NewTrafficContentForPorts(protocol, *portSet), nil
 	}
 
 	if protocol == reach.ProtocolICMPv4 || protocol == reach.ProtocolICMPv6 {
 		icmpSet, err := newICMPSetFromAWSIPPermission(permission)
 		if err != nil {
-			return reach.ProtocolContent{}, fmt.Errorf(errCreation, err)
+			return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
 		}
 
-		return reach.NewProtocolContentWithICMP(protocol, icmpSet), nil
+		return reach.NewTrafficContentForICMP(protocol, *icmpSet), nil
 	}
 
-	return reach.NewProtocolContentForCustomProtocol(protocol), nil
+	return reach.NewTrafficContentForCustomProtocol(protocol, true), nil
 }
 
 func newICMPSetFromAWSICMPTypeCode(icmpTypeCode *ec2.IcmpTypeCode) (*set.ICMPSet, error) {

@@ -14,8 +14,8 @@ const (
 )
 
 type NetworkACLRule struct {
-	Number          int64                 `json:"number"`
-	ProtocolContent reach.ProtocolContent `json:"protocolContent"`
-	TargetIPNetwork *net.IPNet            `json:"targetIPNetwork"`
-	Action          NetworkACLRuleAction  `json:"action"`
+	Number          int64                `json:"number"`
+	TrafficContent  reach.TrafficContent `json:"trafficContent"`
+	TargetIPNetwork *net.IPNet           `json:"targetIPNetwork"`
+	Action          NetworkACLRuleAction `json:"action"`
 }

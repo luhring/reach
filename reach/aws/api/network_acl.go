@@ -85,7 +85,7 @@ func getNetworkACLRule(entry *ec2.NetworkAclEntry) reachAWS.NetworkACLRule { // 
 		action = reachAWS.NetworkACLRuleActionDeny
 	}
 
-	protocolContent, err := newProtocolContentFromAWSNACLEntry(entry)
+	tc, err := newTrafficContentFromAWSNACLEntry(entry)
 
 	if err != nil {
 		panic(err) // TODO: Better error handling
@@ -93,41 +93,41 @@ func getNetworkACLRule(entry *ec2.NetworkAclEntry) reachAWS.NetworkACLRule { // 
 
 	return reachAWS.NetworkACLRule{
 		Number:          aws.Int64Value(entry.RuleNumber),
-		ProtocolContent: protocolContent,
+		TrafficContent:  tc,
 		TargetIPNetwork: targetIPNetwork,
 		Action:          action,
 	}
 }
 
-func newProtocolContentFromAWSNACLEntry(entry *ec2.NetworkAclEntry) (reach.ProtocolContent, error) {
-	const errCreation = "unable to create protocol content: %v"
+func newTrafficContentFromAWSNACLEntry(entry *ec2.NetworkAclEntry) (reach.TrafficContent, error) { // TODO: BUG! This needs to consider what rules preempt this rule, and handle set subtractions accordingly
+	const errCreation = "unable to create content: %v"
 
 	protocol, err := convertAWSIPProtocolStringToProtocol(entry.Protocol)
 	if err != nil {
-		return reach.ProtocolContent{}, fmt.Errorf(errCreation, err)
+		return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
 	}
 
 	if protocol == reach.ProtocolAll {
-		return reach.NewProtocolContentForAllTraffic(), nil
+		return reach.NewTrafficContentForAllTraffic(), nil
 	}
 
-	if protocol == reach.ProtocolTCP || protocol == reach.ProtocolUDP {
-		set, err := newPortSetFromAWSPortRange(entry.PortRange)
+	if protocol.UsesPorts() {
+		portSet, err := newPortSetFromAWSPortRange(entry.PortRange)
 		if err != nil {
-			return reach.ProtocolContent{}, fmt.Errorf(errCreation, err)
+			return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
 		}
 
-		return reach.NewProtocolContentWithPorts(protocol, set), nil
+		return reach.NewTrafficContentForPorts(protocol, *portSet), nil
 	}
 
 	if protocol == reach.ProtocolICMPv4 || protocol == reach.ProtocolICMPv6 {
-		set, err := newICMPSetFromAWSICMPTypeCode(entry.IcmpTypeCode)
+		icmpSet, err := newICMPSetFromAWSICMPTypeCode(entry.IcmpTypeCode)
 		if err != nil {
-			return reach.ProtocolContent{}, fmt.Errorf(errCreation, err)
+			return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
 		}
 
-		return reach.NewProtocolContentWithICMP(protocol, set), nil
+		return reach.NewTrafficContentForICMP(protocol, *icmpSet), nil
 	}
 
-	return reach.NewProtocolContentForCustomProtocol(protocol), nil
+	return reach.NewTrafficContentForCustomProtocol(protocol, true), nil
 }
