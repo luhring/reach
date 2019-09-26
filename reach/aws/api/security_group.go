@@ -138,7 +138,7 @@ func getIPNetworksFromSecurityGroupRule(ipv4Ranges []*ec2.IpRange, ipv6Ranges []
 	for i, block := range ipv4Ranges {
 		if block != nil {
 			_, network, err := net.ParseCIDR(aws.StringValue(block.CidrIp))
-			if err != nil {
+			if err == nil {
 				networks[i] = network
 			}
 		}
