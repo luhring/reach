@@ -5,15 +5,17 @@ import "github.com/luhring/reach/reach"
 const FactorKindInstanceState = "InstanceState"
 
 func (i EC2Instance) NewInstanceStateFactor() reach.Factor {
-	var set []reach.TrafficContent
+	var tc reach.TrafficContent
 
 	if i.isRunning() {
-		// TODO: make universal set
+		tc = reach.NewTrafficContentForAllTraffic()
+	} else {
+		tc = reach.NewTrafficContentForNoTraffic()
 	}
 
 	return reach.Factor{
-		Kind:              FactorKindInstanceState,
-		Resource:          i.ToResourceReference(),
-		TrafficContentSet: set,
+		Kind:     FactorKindInstanceState,
+		Resource: i.ToResourceReference(),
+		Traffic:  tc,
 	}
 }
