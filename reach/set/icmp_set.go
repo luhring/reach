@@ -69,8 +69,6 @@ var icmpv6TypeNames = map[uint]string{
 	140: "ICMP node information response",
 }
 
-// TODO: Implement marshal / string method
-
 type ICMPSet struct {
 	set Set
 }
@@ -120,6 +118,8 @@ func NewICMPSetFromICMPTypeCode(icmpType, icmpCode uint8) (*ICMPSet, error) {
 }
 
 func (s ICMPSet) Types() []string {
+	// TODO: Finish implementing (for specific types)
+
 	if s.set.isComplete() {
 		return []string{"[all ICMP types and codes]"}
 	}
