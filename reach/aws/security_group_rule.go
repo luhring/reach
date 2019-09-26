@@ -7,8 +7,8 @@ import (
 )
 
 type SecurityGroupRule struct {
-	TrafficContent                        reach.TrafficContent `json:"trafficContent"`
-	TargetSecurityGroupReferenceID        string               `json:"targetSecurityGroupReferenceID"`
-	TargetSecurityGroupReferenceAccountID string               `json:"targetSecurityGroupReferenceAccountID"`
-	TargetIPNetworks                      []*net.IPNet         `json:"targetIPNetworks"`
+	ProtocolContent                       reach.ProtocolContent `json:"protocolContent"`
+	TargetSecurityGroupReferenceID        string                `json:"targetSecurityGroupReferenceID"`
+	TargetSecurityGroupReferenceAccountID string                `json:"targetSecurityGroupReferenceAccountID"`
+	TargetIPNetworks                      []*net.IPNet          `json:"targetIPNetworks"`
 }

@@ -1,14 +1,15 @@
 package api
 
 import (
+	"fmt"
 	"net"
-	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/luhring/reach/reach"
 	reachAWS "github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/set"
 )
 
 func (provider *ResourceProvider) GetSecurityGroup(id string) (*reachAWS.SecurityGroup, error) {
@@ -65,7 +66,10 @@ func getSecurityGroupRule(rule *ec2.IpPermission) reachAWS.SecurityGroupRule { /
 		return reachAWS.SecurityGroupRule{}
 	}
 
-	trafficContent := getTrafficContentFromSecurityGroupRule(rule)
+	protocolContent, err := newProtocolContentFromAWSIPPermission(rule)
+	if err != nil {
+		panic(err) // TODO: Better error handling
+	}
 
 	// TODO: see if we really need to handle multiple pairs -- the docs don't mention this capability -- https://docs.aws.amazon.com/vpc/latest/userguide/VPC_SecurityGroups.html#SecurityGroupRules
 
@@ -83,35 +87,33 @@ func getSecurityGroupRule(rule *ec2.IpPermission) reachAWS.SecurityGroupRule { /
 	targetIPNetworks := getIPNetworksFromSecurityGroupRule(rule.IpRanges, rule.Ipv6Ranges)
 
 	return reachAWS.SecurityGroupRule{
-		TrafficContent:                        trafficContent,
+		ProtocolContent:                       protocolContent,
 		TargetSecurityGroupReferenceID:        targetSecurityGroupReferenceID,
 		TargetSecurityGroupReferenceAccountID: targetSecurityGroupReferenceAccountID,
 		TargetIPNetworks:                      targetIPNetworks,
 	}
 }
 
-func getTrafficContentFromSecurityGroupRule(rule *ec2.IpPermission) reach.TrafficContent {
-	ipProtocolString := aws.StringValue(rule.IpProtocol)
-	if ipProtocolString == "" {
-		return reach.TrafficContent{}
+func newPortSetFromAWSPortRange(portRange *ec2.PortRange) (*set.PortSet, error) {
+	if portRange == nil {
+		return nil, fmt.Errorf("input portRange was nil")
 	}
 
-	ipProtocol, err := strconv.Atoi(ipProtocolString)
-	if err != nil {
-		return reach.TrafficContent{}
+	from := aws.Int64Value(portRange.From)
+	to := aws.Int64Value(portRange.To)
+
+	return set.NewPortSetFromRange(uint16(from), uint16(to))
+}
+
+func newPortSetFromAWSIPPermission(permission *ec2.IpPermission) (*set.PortSet, error) {
+	if permission == nil {
+		return nil, fmt.Errorf("input IpPermission was nil")
 	}
 
-	if ipProtocol == reach.ProtocolAll {
-		return reach.NewTrafficContentForAllTraffic()
-	}
+	from := aws.Int64Value(permission.FromPort)
+	to := aws.Int64Value(permission.ToPort)
 
-	// TODO: once new sets are added, finish logic for extracting traffic content
-
-	return reach.TrafficContent{ // and then remove this
-		IPProtocol: 0,
-		PortSet:    nil,
-		ICMPSet:    nil,
-	}
+	return set.NewPortSetFromRange(uint16(from), uint16(to))
 }
 
 func getSecurityGroupReferenceID(pair *ec2.UserIdGroupPair) string {
@@ -152,4 +154,81 @@ func getIPNetworksFromSecurityGroupRule(ipv4Ranges []*ec2.IpRange, ipv6Ranges []
 	}
 
 	return networks
+}
+
+func newProtocolContentFromAWSIPPermission(permission *ec2.IpPermission) (reach.ProtocolContent, error) {
+	const errCreation = "unable to create protocol content: %v"
+
+	protocol, err := convertAWSIPProtocolStringToProtocol(permission.IpProtocol)
+	if err != nil {
+		return reach.ProtocolContent{}, fmt.Errorf(errCreation, err)
+	}
+
+	if protocol == reach.ProtocolTCP || protocol == reach.ProtocolUDP {
+		portSet, err := newPortSetFromAWSIPPermission(permission)
+		if err != nil {
+			return reach.ProtocolContent{}, fmt.Errorf(errCreation, err)
+		}
+
+		return reach.NewProtocolContentWithPorts(protocol, portSet), nil
+	}
+
+	if protocol == reach.ProtocolICMPv4 || protocol == reach.ProtocolICMPv6 {
+		icmpSet, err := newICMPSetFromAWSIPPermission(permission)
+		if err != nil {
+			return reach.ProtocolContent{}, fmt.Errorf(errCreation, err)
+		}
+
+		return reach.NewProtocolContentWithICMP(protocol, icmpSet), nil
+	}
+
+	return reach.NewProtocolContentForCustomProtocol(protocol), nil
+}
+
+func newICMPSetFromAWSICMPTypeCode(icmpTypeCode *ec2.IcmpTypeCode) (*set.ICMPSet, error) {
+	if icmpTypeCode == nil {
+		return nil, fmt.Errorf("input icmpTypeCode was nil")
+	}
+
+	icmpType := aws.Int64Value(icmpTypeCode.Type)
+
+	if icmpType == set.AllICMPTypes {
+		return set.NewFullICMPSet(), nil
+	}
+
+	icmpTypeValue := uint8(icmpType) // i.e. equivalent to ICMP header value
+
+	icmpCode := aws.Int64Value(icmpTypeCode.Code)
+
+	if icmpCode == set.AllICMPCodes {
+		return set.NewICMPSetFromICMPType(icmpTypeValue)
+	}
+
+	icmpCodeValue := uint8(icmpCode) // i.e. equivalent to ICMP header value
+
+	return set.NewICMPSetFromICMPTypeCode(icmpTypeValue, icmpCodeValue)
+}
+
+func newICMPSetFromAWSIPPermission(permission *ec2.IpPermission) (*set.ICMPSet, error) {
+	if permission == nil {
+		return nil, fmt.Errorf("input IpPermission was nil")
+	}
+
+	icmpType := aws.Int64Value(permission.FromPort)
+
+	if icmpType == set.AllICMPTypes {
+		return set.NewFullICMPSet(), nil
+	}
+
+	icmpTypeValue := uint8(icmpType) // i.e. equivalent to ICMP header value
+
+	icmpCode := aws.Int64Value(permission.ToPort)
+
+	if icmpCode == set.AllICMPCodes {
+		return set.NewICMPSetFromICMPType(icmpTypeValue)
+	}
+
+	icmpCodeValue := uint8(icmpCode) // i.e. equivalent to ICMP header value
+
+	return set.NewICMPSetFromICMPTypeCode(icmpTypeValue, icmpCodeValue)
 }

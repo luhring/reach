@@ -1,11 +1,16 @@
 package api
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
+
+	"github.com/luhring/reach/reach"
 )
 
 type ResourceProvider struct {
@@ -48,4 +53,34 @@ func ensureSingleResult(resultSetLength int, entity, id string) error {
 	}
 
 	return nil
+}
+
+func convertAWSIPProtocolStringToProtocol(ipProtocol *string) (reach.Protocol, error) {
+	if ipProtocol == nil {
+		return 0, errors.New("unexpected nil ipProtocol")
+	}
+
+	protocolString := strings.ToLower(aws.StringValue(ipProtocol))
+
+	if p, err := strconv.ParseInt(protocolString, 10, 64); err == nil {
+		var protocol = reach.Protocol(p)
+		return protocol, nil
+	}
+
+	var protocolNumber reach.Protocol
+
+	switch protocolString {
+	case strings.ToLower(reach.ProtocolNameTCP):
+		protocolNumber = reach.ProtocolTCP
+	case strings.ToLower(reach.ProtocolNameUDP):
+		protocolNumber = reach.ProtocolUDP
+	case strings.ToLower(reach.ProtocolNameICMP):
+		protocolNumber = reach.ProtocolICMPv4
+	case strings.ToLower(reach.ProtocolNameICMPv6):
+		protocolNumber = reach.ProtocolICMPv6
+	default:
+		return 0, errors.New("unrecognized ipProtocol value")
+	}
+
+	return protocolNumber, nil
 }
