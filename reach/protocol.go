@@ -1,5 +1,9 @@
 package reach
 
+import (
+	"fmt"
+)
+
 type Protocol int
 
 const (
@@ -25,4 +29,19 @@ func (p Protocol) UsesICMPTypeCodes() bool {
 
 func (p Protocol) IsCustomProtocol() bool {
 	return p != ProtocolICMPv4 && p != ProtocolTCP && p != ProtocolUDP && p != ProtocolICMPv6
+}
+
+func ProtocolName(protocol Protocol) string {
+	switch protocol {
+	case ProtocolICMPv4:
+		return ProtocolNameICMP
+	case ProtocolTCP:
+		return ProtocolNameTCP
+	case ProtocolUDP:
+		return ProtocolNameUDP
+	case ProtocolICMPv6:
+		return ProtocolNameICMPv6
+	default:
+		return fmt.Sprintf("[IP Protocol %d]", protocol)
+	}
 }

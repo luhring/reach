@@ -1,6 +1,7 @@
 package set
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"strconv"
@@ -131,17 +132,18 @@ func (s Set) isEmpty() bool {
 	return s.empty
 }
 
-func (s Set) String() string {
-	var result string
+func (s Set) rangeStrings() []string {
+	var result []string
 	var curRangeStart int
 	var chunk uint64
 	var err error
 	midRange := false
 
 	if s.complete {
-		return fmt.Sprintf("0-%d", chunkSize*numberOfChunksInSet-1)
+		result = append(result, fmt.Sprintf("0-%d", chunkSize*numberOfChunksInSet-1))
+		return result
 	} else if s.empty {
-		return "<empty>"
+		return nil
 	}
 
 	for chunkIdx := 0; chunkIdx < numberOfChunksInSet; chunkIdx++ {
@@ -167,7 +169,7 @@ func (s Set) String() string {
 				if err != nil {
 					panic(err)
 				}
-				result += rangeString(curRangeStart, curRangeEnd-1) + ", "
+				result = append(result, rangeString(curRangeStart, curRangeEnd-1))
 				midRange = false
 			}
 			continue
@@ -183,7 +185,7 @@ func (s Set) String() string {
 				if err != nil {
 					panic(err)
 				}
-				result += rangeString(curRangeStart, curRangeEnd-1) + ", "
+				result = append(result, rangeString(curRangeStart, curRangeEnd-1))
 				midRange = false
 			}
 
@@ -204,10 +206,18 @@ func (s Set) String() string {
 		if err != nil {
 			panic(err)
 		}
-		result += rangeString(curRangeStart, curRangeEnd)
+		result = append(result, rangeString(curRangeStart, curRangeEnd))
 	}
 
-	return strings.TrimSuffix(result, ", ")
+	return result
+}
+
+func (s Set) String() string {
+	return strings.Join(s.rangeStrings(), ", ")
+}
+
+func (s Set) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.rangeStrings())
 }
 
 func rangeString(start, end int) string {

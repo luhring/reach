@@ -44,10 +44,6 @@ func NewPortSetFromRange(lowPort, highPort uint16) (*PortSet, error) {
 	}, nil
 }
 
-func (s PortSet) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.String())
-}
-
 func (s PortSet) Intersect(other PortSet) PortSet {
 	return PortSet{
 		set: s.set.intersect(other.set),
@@ -67,8 +63,16 @@ func (s PortSet) Subtract(other PortSet) PortSet {
 	}
 }
 
+func (s PortSet) RangeStrings() []string {
+	return s.set.rangeStrings()
+}
+
 func (s PortSet) String() string {
 	return s.set.String()
+}
+
+func (s PortSet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s)
 }
 
 func validatePort(port uint16) error {

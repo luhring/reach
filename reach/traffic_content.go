@@ -1,6 +1,10 @@
 package reach
 
-import "github.com/luhring/reach/reach/set"
+import (
+	"encoding/json"
+
+	"github.com/luhring/reach/reach/set"
+)
 
 const (
 	trafficContentIndicatorUnset trafficContentIndicator = iota
@@ -77,6 +81,34 @@ func NewTrafficContentForCustomProtocol(protocol Protocol, hasContent bool) Traf
 	return TrafficContent{
 		indicator: trafficContentIndicatorUnset,
 		protocols: protocols,
+	}
+}
+
+func (tc TrafficContent) MarshalJSON() ([]byte, error) {
+	switch tc.indicator {
+	case trafficContentIndicatorNone:
+		return json.Marshal("[no traffic]")
+	case trafficContentIndicatorAll:
+		return json.Marshal("[all traffic]")
+	default:
+		result := make(map[string][]string)
+
+		for protocol, content := range tc.protocols {
+			key := ProtocolName(protocol)
+			if protocol.UsesPorts() {
+				result[key] = content.Ports.RangeStrings()
+			} else if protocol.UsesICMPTypeCodes() {
+				result[key] = content.ICMP.Types()
+			} else {
+				if content.CustomProtocolHasContent != nil && *content.CustomProtocolHasContent {
+					result[key] = []string{"[all traffic for this protocol]"}
+				} else {
+					result[key] = []string{"[no traffic for this protocol]"}
+				}
+			}
+		}
+
+		return json.Marshal(result)
 	}
 }
 
