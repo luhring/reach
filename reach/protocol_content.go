@@ -9,8 +9,8 @@ import (
 
 type ProtocolContent struct {
 	Protocol Protocol
-	Ports    *set.PortSet
-	ICMP     *set.ICMPSet
+	Ports    *set.PortSet `json:"Ports,omitempty"`
+	ICMP     *set.ICMPSet `json:"ICMP,omitempty"`
 }
 
 func NewProtocolContent(protocol Protocol, ports *set.PortSet, icmp *set.ICMPSet) ProtocolContent {
@@ -41,101 +41,101 @@ func NewProtocolContentForNoContent() ProtocolContent {
 	return NewProtocolContent(ProtocolNone, nil, nil)
 }
 
-func (p ProtocolContent) allProtocols() bool {
-	return p.Protocol == ProtocolAll
+func (pc ProtocolContent) allProtocols() bool {
+	return pc.Protocol == ProtocolAll
 }
 
-func (p ProtocolContent) noContent() bool {
-	return p.Protocol == ProtocolNone
+func (pc ProtocolContent) noContent() bool {
+	return pc.Protocol == ProtocolNone
 }
 
-func (p ProtocolContent) isTCPOrUDP() bool {
-	return p.Protocol == ProtocolTCP || p.Protocol == ProtocolUDP
+func (pc ProtocolContent) isTCPOrUDP() bool {
+	return pc.Protocol == ProtocolTCP || pc.Protocol == ProtocolUDP
 }
 
-func (p ProtocolContent) isICMPv4OrICMPv6() bool {
-	return p.Protocol == ProtocolICMPv4 || p.Protocol == ProtocolICMPv6
+func (pc ProtocolContent) isICMPv4OrICMPv6() bool {
+	return pc.Protocol == ProtocolICMPv4 || pc.Protocol == ProtocolICMPv6
 }
 
-func (p ProtocolContent) intersect(other ProtocolContent) (ProtocolContent, error) {
-	if p.noContent() || other.noContent() {
+func (pc ProtocolContent) intersect(other ProtocolContent) (ProtocolContent, error) {
+	if pc.noContent() || other.noContent() {
 		return NewProtocolContentForNoContent(), nil
 	}
 
-	if p.allProtocols() {
+	if pc.allProtocols() {
 		return other, nil
 	}
 
 	if other.allProtocols() {
-		return p, nil
+		return pc, nil
 	}
 
-	if p.sameProtocolAs(other) == false {
+	if pc.sameProtocolAs(other) == false {
 		return ProtocolContent{}, fmt.Errorf(
 			"cannot intersect with different protocols (IP protocols %v and %v)",
-			p.Protocol,
+			pc.Protocol,
 			other.Protocol,
 		)
 	}
 
 	// same protocols
 
-	if p.isTCPOrUDP() {
-		portSet := p.Ports.Intersect(*other.Ports)
-		return NewProtocolContentWithPorts(p.Protocol, &portSet), nil
+	if pc.isTCPOrUDP() {
+		portSet := pc.Ports.Intersect(*other.Ports)
+		return NewProtocolContentWithPorts(pc.Protocol, &portSet), nil
 	}
 
-	if p.isICMPv4OrICMPv6() {
-		icmpSet := p.ICMP.Intersect(*other.ICMP)
-		return NewProtocolContentWithICMP(p.Protocol, &icmpSet), nil
+	if pc.isICMPv4OrICMPv6() {
+		icmpSet := pc.ICMP.Intersect(*other.ICMP)
+		return NewProtocolContentWithICMP(pc.Protocol, &icmpSet), nil
 	}
 
 	// custom Protocol
 
-	return NewProtocolContentForCustomProtocol(p.Protocol), nil
+	return NewProtocolContentForCustomProtocol(pc.Protocol), nil
 }
 
-func (p ProtocolContent) merge(other ProtocolContent) (ProtocolContent, error) {
+func (pc ProtocolContent) merge(other ProtocolContent) (ProtocolContent, error) {
 	if other.noContent() {
-		return p, nil
+		return pc, nil
 	}
 
-	if p.allProtocols() || other.allProtocols() {
+	if pc.allProtocols() || other.allProtocols() {
 		return NewProtocolContentForAllTraffic(), nil
 	}
 
-	if p.sameProtocolAs(other) == false {
+	if pc.sameProtocolAs(other) == false {
 		return ProtocolContent{}, fmt.Errorf(
 			"cannot merge with different protocols (IP protocols %v and %v)",
-			p.Protocol,
+			pc.Protocol,
 			other.Protocol,
 		)
 	}
 
 	// same protocols
 
-	if p.isTCPOrUDP() {
-		portSet := p.Ports.Merge(*other.Ports)
-		return NewProtocolContentWithPorts(p.Protocol, &portSet), nil
+	if pc.isTCPOrUDP() {
+		portSet := pc.Ports.Merge(*other.Ports)
+		return NewProtocolContentWithPorts(pc.Protocol, &portSet), nil
 	}
 
-	if p.isICMPv4OrICMPv6() {
-		icmpSet := p.ICMP.Merge(*other.ICMP)
-		return NewProtocolContentWithICMP(p.Protocol, &icmpSet), nil
+	if pc.isICMPv4OrICMPv6() {
+		icmpSet := pc.ICMP.Merge(*other.ICMP)
+		return NewProtocolContentWithICMP(pc.Protocol, &icmpSet), nil
 	}
 
 	// custom Protocol
 
-	return NewProtocolContentForCustomProtocol(p.Protocol), nil
+	return NewProtocolContentForCustomProtocol(pc.Protocol), nil
 }
 
-func (p ProtocolContent) subtract(other ProtocolContent) (ProtocolContent, error) {
-	if p.noContent() {
-		return p, nil
+func (pc ProtocolContent) subtract(other ProtocolContent) (ProtocolContent, error) {
+	if pc.noContent() {
+		return pc, nil
 	}
 
 	if other.noContent() {
-		return p, nil
+		return pc, nil
 	}
 
 	if other.allProtocols() {
@@ -144,24 +144,24 @@ func (p ProtocolContent) subtract(other ProtocolContent) (ProtocolContent, error
 
 	// TODO: Handle subtracting one protocol from "all protocols"
 
-	if p.sameProtocolAs(other) == false {
+	if pc.sameProtocolAs(other) == false {
 		return ProtocolContent{}, fmt.Errorf(
 			"cannot subtract with different protocols (IP protocols %v and %v)",
-			p.Protocol,
+			pc.Protocol,
 			other.Protocol,
 		)
 	}
 
 	// same protocols
 
-	if p.isTCPOrUDP() {
-		portSet := p.Ports.Subtract(*other.Ports)
-		return NewProtocolContentWithPorts(p.Protocol, &portSet), nil
+	if pc.isTCPOrUDP() {
+		portSet := pc.Ports.Subtract(*other.Ports)
+		return NewProtocolContentWithPorts(pc.Protocol, &portSet), nil
 	}
 
-	if p.isICMPv4OrICMPv6() {
-		icmpSet := p.ICMP.Subtract(*other.ICMP)
-		return NewProtocolContentWithICMP(p.Protocol, &icmpSet), nil
+	if pc.isICMPv4OrICMPv6() {
+		icmpSet := pc.ICMP.Subtract(*other.ICMP)
+		return NewProtocolContentWithICMP(pc.Protocol, &icmpSet), nil
 	}
 
 	// custom Protocol
@@ -169,12 +169,12 @@ func (p ProtocolContent) subtract(other ProtocolContent) (ProtocolContent, error
 	return NewProtocolContentForNoContent(), nil
 }
 
-func (p ProtocolContent) sameProtocolAs(other ProtocolContent) bool {
-	return p.Protocol == other.Protocol
+func (pc ProtocolContent) sameProtocolAs(other ProtocolContent) bool {
+	return pc.Protocol == other.Protocol
 }
 
-func (p ProtocolContent) getProtocolName() string {
-	switch p.Protocol {
+func (pc ProtocolContent) getProtocolName() string {
+	switch pc.Protocol {
 	case ProtocolAll:
 		return ProtocolNameAll
 	case ProtocolICMPv4:
@@ -186,12 +186,12 @@ func (p ProtocolContent) getProtocolName() string {
 	case ProtocolICMPv6:
 		return ProtocolNameICMPv6
 	default:
-		return string(p.Protocol)
+		return string(pc.Protocol)
 	}
 }
 
-func (p ProtocolContent) usesNamedProtocol() bool {
-	name := p.getProtocolName()
+func (pc ProtocolContent) usesNamedProtocol() bool {
+	name := pc.getProtocolName()
 	return strings.EqualFold(name, ProtocolNameTCP) ||
 		strings.EqualFold(name, ProtocolNameUDP) ||
 		strings.EqualFold(name, ProtocolNameICMP) ||

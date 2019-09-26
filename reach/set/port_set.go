@@ -1,6 +1,7 @@
 package set
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -41,6 +42,10 @@ func NewPortSetFromRange(lowPort, highPort uint16) (*PortSet, error) {
 	return &PortSet{
 		set: newSetFromRange(lowPort, highPort),
 	}, nil
+}
+
+func (s PortSet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
 }
 
 func (s PortSet) Intersect(other PortSet) PortSet {
