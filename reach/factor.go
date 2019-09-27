@@ -4,5 +4,5 @@ type Factor struct {
 	Kind       string
 	Resource   ResourceReference
 	Traffic    TrafficContent
-	Properties interface{}
+	Properties interface{} `json:"Properties,omitempty"`
 }

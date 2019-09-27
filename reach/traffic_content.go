@@ -19,8 +19,8 @@ type TrafficContent struct {
 	protocols map[Protocol]*ProtocolContent
 }
 
-func NewTrafficContent() TrafficContent {
-	return TrafficContent{
+func NewTrafficContent() *TrafficContent {
+	return &TrafficContent{
 		indicator: trafficContentIndicatorUnset,
 		protocols: nil,
 	}
@@ -48,14 +48,6 @@ func NewTrafficContentForPorts(protocol Protocol, ports set.PortSet) TrafficCont
 	}
 }
 
-func NewTrafficContentForTCP(ports set.PortSet) TrafficContent {
-	return NewTrafficContentForPorts(ProtocolTCP, ports)
-}
-
-func NewTrafficContentForUDP(ports set.PortSet) TrafficContent {
-	return NewTrafficContentForPorts(ProtocolUDP, ports)
-}
-
 func NewTrafficContentForICMP(protocol Protocol, icmp set.ICMPSet) TrafficContent {
 	protocols := make(map[Protocol]*ProtocolContent)
 	protocols[protocol] = NewProtocolContentWithICMP(protocol, &icmp)
@@ -64,14 +56,6 @@ func NewTrafficContentForICMP(protocol Protocol, icmp set.ICMPSet) TrafficConten
 		indicator: trafficContentIndicatorUnset,
 		protocols: protocols,
 	}
-}
-
-func NewTrafficContentForICMPv4(icmp set.ICMPSet) TrafficContent {
-	return NewTrafficContentForICMP(ProtocolICMPv4, icmp)
-}
-
-func NewTrafficContentForICMPv6(icmp set.ICMPSet) TrafficContent {
-	return NewTrafficContentForICMP(ProtocolICMPv6, icmp)
 }
 
 func NewTrafficContentForCustomProtocol(protocol Protocol, hasContent bool) TrafficContent {
@@ -84,32 +68,73 @@ func NewTrafficContentForCustomProtocol(protocol Protocol, hasContent bool) Traf
 	}
 }
 
-func (tc TrafficContent) MarshalJSON() ([]byte, error) {
-	switch tc.indicator {
-	case trafficContentIndicatorNone:
-		return json.Marshal("[no traffic]")
-	case trafficContentIndicatorAll:
-		return json.Marshal("[all traffic]")
-	default:
-		result := make(map[string][]string)
+func NewTrafficContentFromMany(many []TrafficContent) (*TrafficContent, error) {
+	result := NewTrafficContent()
 
-		for protocol, content := range tc.protocols {
-			key := ProtocolName(protocol)
-			if protocol.UsesPorts() {
-				result[key] = content.Ports.RangeStrings()
-			} else if protocol.UsesICMPTypeCodes() {
-				result[key] = content.ICMP.Types()
-			} else {
-				if content.CustomProtocolHasContent != nil && *content.CustomProtocolHasContent {
-					result[key] = []string{"[all traffic for this protocol]"}
-				} else {
-					result[key] = []string{"[no traffic for this protocol]"}
-				}
-			}
+	for _, tc := range many {
+		if result.All() {
+			return result, nil
 		}
 
-		return json.Marshal(result)
+		err := result.Merge(tc)
+		if err != nil {
+			return nil, err
+		}
 	}
+
+	return result, nil
+}
+
+func (tc *TrafficContent) Merge(other TrafficContent) error {
+	if tc.All() || other.All() {
+		tc.SetAll()
+		return nil
+	}
+
+	if tc.None() && other.None() {
+		tc.SetNone()
+		return nil
+	}
+
+	for protocol, content := range other.protocols {
+		mergedProtocolContent, err := tc.Protocol(protocol).merge(*content)
+		if err != nil {
+			return err
+		}
+
+		tc.SetProtocolContent(protocol, mergedProtocolContent)
+	}
+
+	return nil
+}
+
+func (tc TrafficContent) MarshalJSON() ([]byte, error) {
+	if tc.None() {
+		return json.Marshal("[no traffic]")
+	}
+
+	if tc.All() {
+		return json.Marshal("[all traffic]")
+	}
+
+	result := make(map[string][]string)
+
+	for protocol, content := range tc.protocols {
+		key := ProtocolName(protocol)
+		if protocol.UsesPorts() {
+			result[key] = content.Ports.RangeStrings()
+		} else if protocol.UsesICMPTypeCodes() {
+			result[key] = content.ICMP.Types()
+		} else {
+			if content.CustomProtocolHasContent != nil && *content.CustomProtocolHasContent {
+				result[key] = []string{"[all traffic for this protocol]"}
+			} else {
+				result[key] = []string{"[no traffic for this protocol]"}
+			}
+		}
+	}
+
+	return json.Marshal(result)
 }
 
 func (tc TrafficContent) All() bool {
@@ -117,10 +142,30 @@ func (tc TrafficContent) All() bool {
 }
 
 func (tc TrafficContent) None() bool {
-	return tc.indicator == trafficContentIndicatorNone
+	return tc.indicator == trafficContentIndicatorNone || (tc.indicator == trafficContentIndicatorUnset && len(tc.protocols) == 0)
 }
 
-func (tc TrafficContent) ForProtocol(p Protocol) *ProtocolContent {
+func (tc *TrafficContent) SetAll() {
+	tc.indicator = trafficContentIndicatorAll
+	tc.protocols = nil
+}
+
+func (tc *TrafficContent) SetNone() {
+	tc.indicator = trafficContentIndicatorNone
+	tc.protocols = nil
+}
+
+func (tc *TrafficContent) SetProtocolContent(p Protocol, content *ProtocolContent) {
+	tc.indicator = trafficContentIndicatorUnset
+
+	if tc.protocols == nil {
+		tc.protocols = make(map[Protocol]*ProtocolContent)
+	}
+
+	tc.protocols[p] = content
+}
+
+func (tc TrafficContent) Protocol(p Protocol) *ProtocolContent {
 	content := tc.protocols[p]
 
 	if content == nil {
@@ -141,17 +186,17 @@ func (tc TrafficContent) ForProtocol(p Protocol) *ProtocolContent {
 }
 
 func (tc TrafficContent) TCP() *ProtocolContent {
-	return tc.ForProtocol(ProtocolTCP)
+	return tc.Protocol(ProtocolTCP)
 }
 
 func (tc TrafficContent) UDP() *ProtocolContent {
-	return tc.ForProtocol(ProtocolUDP)
+	return tc.Protocol(ProtocolUDP)
 }
 
 func (tc TrafficContent) ICMPv4() *ProtocolContent {
-	return tc.ForProtocol(ProtocolICMPv4)
+	return tc.Protocol(ProtocolICMPv4)
 }
 
 func (tc TrafficContent) ICMPv6() *ProtocolContent {
-	return tc.ForProtocol(ProtocolICMPv6)
+	return tc.Protocol(ProtocolICMPv6)
 }

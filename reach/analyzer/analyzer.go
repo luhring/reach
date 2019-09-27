@@ -105,12 +105,95 @@ func (a *Analyzer) identifyNetworkVectors(subjects []*reach.Subject) ([]reach.Ne
 		}
 	}
 
-	for i, vector := range networkVectors {
-		vector = processFactors(vector, a.collection)
-		networkVectors[i] = vector
+	return networkVectors, nil
+}
+
+func (a *Analyzer) computeFactorsForSingleVector(vector reach.NetworkVector) (reach.NetworkVector, error) {
+	for _, ref := range vector.Source.Lineage {
+		if ref.Domain == aws.ResourceDomainAWS {
+			if ref.Kind == aws.ResourceKindEC2Instance {
+				ec2Instance := a.collection.Get(ref).Properties.(aws.EC2Instance)
+
+				vector.Source.Factors = append(vector.Source.Factors, ec2Instance.NewInstanceStateFactor())
+			}
+
+			if ref.Kind == aws.ResourceKindElasticNetworkInterface {
+				eni := a.collection.Get(ref).Properties.(aws.ElasticNetworkInterface)
+
+				var targetENI aws.ElasticNetworkInterface
+
+				for _, ancestor := range vector.Destination.Lineage {
+					if ancestor.Domain == aws.ResourceDomainAWS && ancestor.Kind == aws.ResourceKindElasticNetworkInterface {
+						targetENI = a.collection.Get(ancestor).Properties.(aws.ElasticNetworkInterface)
+					}
+				}
+
+				securityGroupRulesFactor, err := eni.NewSecurityGroupRulesFactor(
+					a.collection,
+					func(sg aws.SecurityGroup) []aws.SecurityGroupRule {
+						return sg.OutboundRules
+					},
+					vector.Destination.IPAddress, &targetENI,
+				)
+				if err != nil {
+					return reach.NetworkVector{}, err
+				}
+
+				vector.Source.Factors = append(vector.Source.Factors, *securityGroupRulesFactor)
+			}
+		}
 	}
 
-	return networkVectors, nil
+	for _, ref := range vector.Destination.Lineage { // TODO: refactor to extract symmetry
+		if ref.Domain == aws.ResourceDomainAWS {
+			if ref.Kind == aws.SubjectKindEC2Instance {
+				ec2Instance := a.collection.Get(ref).Properties.(aws.EC2Instance)
+				vector.Destination.Factors = append(vector.Destination.Factors, ec2Instance.NewInstanceStateFactor())
+			}
+
+			if ref.Kind == aws.ResourceKindElasticNetworkInterface {
+				eni := a.collection.Get(ref).Properties.(aws.ElasticNetworkInterface)
+
+				var targetENI aws.ElasticNetworkInterface
+
+				for _, ancestor := range vector.Source.Lineage {
+					if ancestor.Domain == aws.ResourceDomainAWS && ancestor.Kind == aws.ResourceKindElasticNetworkInterface {
+						targetENI = a.collection.Get(ancestor).Properties.(aws.ElasticNetworkInterface)
+					}
+				}
+
+				securityGroupRulesFactor, err := eni.NewSecurityGroupRulesFactor(
+					a.collection,
+					func(sg aws.SecurityGroup) []aws.SecurityGroupRule {
+						return sg.InboundRules
+					},
+					vector.Destination.IPAddress, &targetENI,
+				)
+				if err != nil {
+					return reach.NetworkVector{}, err
+				}
+
+				vector.Destination.Factors = append(vector.Destination.Factors, *securityGroupRulesFactor)
+			}
+		}
+	}
+
+	return vector, nil
+}
+
+func (a *Analyzer) computeFactors(vectors []reach.NetworkVector) ([]reach.NetworkVector, error) {
+	var result []reach.NetworkVector
+
+	for _, vector := range vectors { // TODO: Consider concurrent processing
+		processedVector, err := a.computeFactorsForSingleVector(vector)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, processedVector)
+	}
+
+	return result, nil
 }
 
 func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
@@ -127,23 +210,10 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 		return nil, err
 	}
 
+	networkVectors, err = a.computeFactors(networkVectors)
+	if err != nil {
+		return nil, err
+	}
+
 	return reach.NewAnalysis(subjects, a.collection, networkVectors), nil
-}
-
-func processFactors(vector reach.NetworkVector, rc *reach.ResourceCollection) reach.NetworkVector {
-	for _, ref := range vector.Source.Lineage {
-		if ref.Domain == aws.ResourceDomainAWS && ref.Kind == aws.SubjectKindEC2Instance {
-			ec2Instance := rc.Get(ref).Properties.(aws.EC2Instance)
-			vector.Source.Factors = append(vector.Source.Factors, ec2Instance.NewInstanceStateFactor())
-		}
-	}
-
-	for _, ref := range vector.Destination.Lineage {
-		if ref.Domain == aws.ResourceDomainAWS && ref.Kind == aws.SubjectKindEC2Instance {
-			ec2Instance := rc.Get(ref).Properties.(aws.EC2Instance)
-			vector.Destination.Factors = append(vector.Destination.Factors, ec2Instance.NewInstanceStateFactor())
-		}
-	}
-
-	return vector
 }
