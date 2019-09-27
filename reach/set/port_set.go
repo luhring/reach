@@ -20,6 +20,12 @@ func NewEmptyPortSet() PortSet {
 	}
 }
 
+func NewFullPortSet() PortSet {
+	return PortSet{
+		set: newCompleteSet(),
+	}
+}
+
 func NewPortSetFromPortValue(port uint16) (*PortSet, error) {
 	if err := validatePort(port); err != nil {
 		return nil, fmt.Errorf("unable to use port: %v", err)

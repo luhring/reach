@@ -79,8 +79,8 @@ func NewEmptyICMPSet() ICMPSet {
 	}
 }
 
-func NewFullICMPSet() *ICMPSet {
-	return &ICMPSet{
+func NewFullICMPSet() ICMPSet {
+	return ICMPSet{
 		set: newCompleteSet(),
 	}
 }

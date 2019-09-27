@@ -37,6 +37,11 @@ func NewProtocolContentWithPortsEmpty(protocol Protocol) *ProtocolContent {
 	return NewProtocolContentWithPorts(protocol, &ports)
 }
 
+func NewProtocolContentWithPortsFull(protocol Protocol) *ProtocolContent {
+	ports := set.NewFullPortSet()
+	return NewProtocolContentWithPorts(protocol, &ports)
+}
+
 func NewProtocolContentWithICMP(protocol Protocol, icmp *set.ICMPSet) *ProtocolContent {
 	return NewProtocolContent(protocol, nil, icmp, nil)
 }
@@ -46,12 +51,22 @@ func NewProtocolContentWithICMPEmpty(protocol Protocol) *ProtocolContent {
 	return NewProtocolContentWithICMP(protocol, &icmp)
 }
 
+func NewProtocolContentWithICMPFull(protocol Protocol) *ProtocolContent {
+	icmp := set.NewFullICMPSet()
+	return NewProtocolContentWithICMP(protocol, &icmp)
+}
+
 func NewProtocolContentForCustomProtocol(protocol Protocol, hasContent bool) *ProtocolContent {
 	return NewProtocolContent(protocol, nil, nil, &hasContent)
 }
 
 func NewProtocolContentForCustomProtocolEmpty(protocol Protocol) *ProtocolContent {
 	hasContent := false
+	return NewProtocolContent(protocol, nil, nil, &hasContent)
+}
+
+func NewProtocolContentForCustomProtocolFull(protocol Protocol) *ProtocolContent {
+	hasContent := true
 	return NewProtocolContent(protocol, nil, nil, &hasContent)
 }
 

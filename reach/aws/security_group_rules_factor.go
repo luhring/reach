@@ -70,7 +70,7 @@ func (eni ElasticNetworkInterface) NewSecurityGroupRulesFactor(
 		}
 	}
 
-	tc, err := reach.NewTrafficContentFromMany(trafficContentSegments)
+	tc, err := reach.NewTrafficContentFromMergingMultiple(trafficContentSegments)
 	if err != nil {
 		return nil, err
 	}

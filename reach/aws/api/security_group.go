@@ -197,7 +197,8 @@ func newICMPSetFromAWSICMPTypeCode(icmpTypeCode *ec2.IcmpTypeCode) (*set.ICMPSet
 	icmpType := aws.Int64Value(icmpTypeCode.Type)
 
 	if icmpType == set.AllICMPTypes {
-		return set.NewFullICMPSet(), nil
+		result := set.NewFullICMPSet()
+		return &result, nil
 	}
 
 	icmpTypeValue := uint8(icmpType) // i.e. equivalent to ICMP header value
@@ -221,7 +222,8 @@ func newICMPSetFromAWSIPPermission(permission *ec2.IpPermission) (*set.ICMPSet, 
 	icmpType := aws.Int64Value(permission.FromPort)
 
 	if icmpType == set.AllICMPTypes {
-		return set.NewFullICMPSet(), nil
+		result := set.NewFullICMPSet()
+		return &result, nil
 	}
 
 	icmpTypeValue := uint8(icmpType) // i.e. equivalent to ICMP header value

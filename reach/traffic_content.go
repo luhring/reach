@@ -68,10 +68,10 @@ func NewTrafficContentForCustomProtocol(protocol Protocol, hasContent bool) Traf
 	}
 }
 
-func NewTrafficContentFromMany(many []TrafficContent) (*TrafficContent, error) {
+func NewTrafficContentFromMergingMultiple(contents []TrafficContent) (*TrafficContent, error) {
 	result := NewTrafficContent()
 
-	for _, tc := range many {
+	for _, tc := range contents {
 		if result.All() {
 			return result, nil
 		}
@@ -83,6 +83,28 @@ func NewTrafficContentFromMany(many []TrafficContent) (*TrafficContent, error) {
 	}
 
 	return result, nil
+}
+
+func NewTrafficContentFromIntersectingMultiple(contents []TrafficContent) (*TrafficContent, error) {
+	var content TrafficContent
+
+	for i, tc := range contents {
+		if i == 0 {
+			content = tc
+		} else {
+			err := content.Intersect(tc)
+			if err != nil {
+				return nil, err
+			}
+
+			if content.None() {
+				return &content, nil
+			}
+		}
+
+	}
+
+	return &content, nil
 }
 
 func (tc *TrafficContent) Merge(other TrafficContent) error {
@@ -103,6 +125,29 @@ func (tc *TrafficContent) Merge(other TrafficContent) error {
 		}
 
 		tc.SetProtocolContent(protocol, mergedProtocolContent)
+	}
+
+	return nil
+}
+
+func (tc *TrafficContent) Intersect(other TrafficContent) error {
+	if tc.None() || other.None() {
+		tc.SetNone()
+		return nil
+	}
+
+	if tc.All() && other.All() {
+		tc.SetAll()
+		return nil
+	}
+
+	for protocol, content := range other.protocols {
+		intersectedProtocolContent, err := tc.Protocol(protocol).intersect(*content)
+		if err != nil {
+			return err
+		}
+
+		tc.SetProtocolContent(protocol, intersectedProtocolContent)
 	}
 
 	return nil
@@ -170,15 +215,24 @@ func (tc TrafficContent) Protocol(p Protocol) *ProtocolContent {
 
 	if content == nil {
 		if p.UsesPorts() {
+			if tc.All() {
+				return NewProtocolContentWithPortsFull(p)
+			}
 			return NewProtocolContentWithPortsEmpty(p)
 		}
 
 		if p.UsesICMPTypeCodes() {
+			if tc.All() {
+				return NewProtocolContentWithICMPFull(p)
+			}
 			return NewProtocolContentWithICMPEmpty(p)
 		}
 
 		// custom protocol
 
+		if tc.All() {
+			return NewProtocolContentForCustomProtocolFull(p)
+		}
 		return NewProtocolContentForCustomProtocolEmpty(p)
 	}
 

@@ -196,6 +196,22 @@ func (a *Analyzer) computeFactors(vectors []reach.NetworkVector) ([]reach.Networ
 	return result, nil
 }
 
+func (a *Analyzer) netTraffic(vectors []reach.NetworkVector) ([]reach.NetworkVector, error) {
+	var result []reach.NetworkVector
+
+	for _, vector := range vectors { // TODO: Consider concurrent processing
+		traffic, err := vector.NetTraffic()
+		if err != nil {
+			return nil, err
+		}
+
+		vector.Traffic = traffic
+		result = append(result, vector)
+	}
+
+	return result, nil
+}
+
 func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
 	// TODO: Eventually, this dependency wiring should depend on a passed in config.
 	var provider aws.ResourceProvider = api.NewResourceProvider()
@@ -211,6 +227,11 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 	}
 
 	networkVectors, err = a.computeFactors(networkVectors)
+	if err != nil {
+		return nil, err
+	}
+
+	networkVectors, err = a.netTraffic(networkVectors)
 	if err != nil {
 		return nil, err
 	}
