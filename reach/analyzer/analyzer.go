@@ -167,7 +167,7 @@ func (a *Analyzer) computeFactorsForSingleVector(vector reach.NetworkVector) (re
 					func(sg aws.SecurityGroup) []aws.SecurityGroupRule {
 						return sg.InboundRules
 					},
-					vector.Destination.IPAddress, &targetENI,
+					vector.Source.IPAddress, &targetENI,
 				)
 				if err != nil {
 					return reach.NetworkVector{}, err

@@ -102,7 +102,6 @@ func NewTrafficContentFromIntersectingMultiple(contents []TrafficContent) (*Traf
 				return &content, nil
 			}
 		}
-
 	}
 
 	return &content, nil
@@ -200,6 +199,8 @@ func (tc TrafficContent) String() string {
 			output += fmt.Sprintf(": %s\n", content.Ports.String())
 		} else if p.UsesICMPTypeCodes() {
 			output += fmt.Sprintf(": %s\n", content.ICMP.String())
+		} else {
+			output += "\n"
 		}
 	}
 
