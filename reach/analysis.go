@@ -6,9 +6,9 @@ import (
 )
 
 type Analysis struct {
-	Subjects       []*Subject          `json:"subjects"`
-	Resources      *ResourceCollection `json:"resources"`
-	NetworkVectors []NetworkVector     `json:"networkVectors"`
+	Subjects       []*Subject
+	Resources      *ResourceCollection
+	NetworkVectors []NetworkVector
 }
 
 func NewAnalysis(subjects []*Subject, resources *ResourceCollection, networkVectors []NetworkVector) *Analysis {

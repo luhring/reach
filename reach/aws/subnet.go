@@ -5,8 +5,8 @@ import "github.com/luhring/reach/reach"
 const ResourceKindSubnet = "Subnet"
 
 type Subnet struct {
-	ID    string `json:"id"`
-	VPCID string `json:"vpcID"`
+	ID    string
+	VPCID string
 }
 
 func (s Subnet) ToResource() reach.Resource {

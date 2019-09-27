@@ -3,9 +3,9 @@ package reach
 import "net"
 
 type NetworkPoint struct {
-	IPAddress net.IP              `json:"ipAddress"`
-	Lineage   []ResourceReference `json:"lineage"` // TODO: More idiomatic approach via DAG
-	Factors   []Factor            `json:"factors"`
+	IPAddress net.IP
+	Lineage   []ResourceReference
+	Factors   []Factor
 }
 
 func (p NetworkPoint) TrafficComponents() []TrafficContent {

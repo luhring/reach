@@ -5,9 +5,9 @@ import "github.com/luhring/reach/reach"
 const ResourceKindRouteTable = "RouteTable"
 
 type RouteTable struct {
-	ID     string            `json:"id"`
-	VPCID  string            `json:"vpcID"`
-	Routes []RouteTableRoute `json:"routes"`
+	ID     string
+	VPCID  string
+	Routes []RouteTableRoute
 }
 
 func (rt RouteTable) ToResource() reach.Resource {

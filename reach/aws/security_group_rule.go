@@ -7,10 +7,10 @@ import (
 )
 
 type SecurityGroupRule struct {
-	TrafficContent                        reach.TrafficContent `json:"trafficContent"`
-	TargetSecurityGroupReferenceID        string               `json:"targetSecurityGroupReferenceID,omitempty"`
-	TargetSecurityGroupReferenceAccountID string               `json:"targetSecurityGroupReferenceAccountID,omitempty"`
-	TargetIPNetworks                      []*net.IPNet         `json:"targetIPNetworks,omitempty"`
+	TrafficContent                        reach.TrafficContent
+	TargetSecurityGroupReferenceID        string       `json:"TargetSecurityGroupReferenceID,omitempty"`
+	TargetSecurityGroupReferenceAccountID string       `json:"TargetSecurityGroupReferenceAccountID,omitempty"`
+	TargetIPNetworks                      []*net.IPNet `json:"TargetIPNetworks,omitempty"`
 }
 
 func (rule SecurityGroupRule) MatchByIP(ip net.IP) *SecurityGroupRuleMatch {

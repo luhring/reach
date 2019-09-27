@@ -5,10 +5,10 @@ import "github.com/luhring/reach/reach"
 const ResourceKindSecurityGroupReference = "SecurityGroupReference"
 
 type SecurityGroupReference struct {
-	ID        string `json:"id"`
-	AccountID string `json:"accountID"`
-	NameTag   string `json:"nameTag"`
-	GroupName string `json:"groupName"`
+	ID        string
+	AccountID string
+	NameTag   string
+	GroupName string
 }
 
 func (sgRef SecurityGroupReference) ToResource() reach.Resource {

@@ -14,10 +14,10 @@ const (
 )
 
 type Subject struct {
-	Domain string `json:"domain"`
-	Kind   string `json:"kind"`
-	ID     string `json:"id"`
-	Role   string `json:"role"`
+	Domain string
+	Kind   string
+	ID     string
+	Role   string
 }
 
 func (s *Subject) SetRoleToSource() {

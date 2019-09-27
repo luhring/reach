@@ -9,9 +9,9 @@ import (
 const ResourceKindVPC = "VPC"
 
 type VPC struct {
-	ID        string      `json:"id"`
-	IPv4CIDRs []net.IPNet `json:"ipv4CIDRs"`
-	IPv6CIDRs []net.IPNet `json:"ipv6CIDRs"`
+	ID        string
+	IPv4CIDRs []net.IPNet `json:"IPv4CIDRs,omitempty"`
+	IPv6CIDRs []net.IPNet `json:"IPv6CIDRs,omitempty"`
 }
 
 func (vpc VPC) ToResource() reach.Resource {

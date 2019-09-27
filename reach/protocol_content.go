@@ -12,7 +12,7 @@ type ProtocolContent struct {
 	Protocol                 Protocol
 	Ports                    *set.PortSet `json:"Ports,omitempty"`
 	ICMP                     *set.ICMPSet `json:"ICMP,omitempty"`
-	CustomProtocolHasContent *bool        `json:"customProtocolHasContent,omitempty"`
+	CustomProtocolHasContent *bool        `json:"CustomProtocolHasContent,omitempty"`
 }
 
 func NewProtocolContent(protocol Protocol, ports *set.PortSet, icmp *set.ICMPSet, customProtocolHasContent *bool) *ProtocolContent {
