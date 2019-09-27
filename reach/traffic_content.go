@@ -2,6 +2,7 @@ package reach
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/luhring/reach/reach/set"
 )
@@ -180,6 +181,29 @@ func (tc TrafficContent) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(result)
+}
+
+func (tc TrafficContent) String() string {
+	if tc.All() {
+		return "[all traffic]"
+	}
+
+	if tc.None() {
+		return "[no traffic]"
+	}
+
+	var output string
+
+	for p, content := range tc.protocols {
+		output += ProtocolName(p)
+		if p.UsesPorts() {
+			output += fmt.Sprintf(": %s\n", content.Ports.String())
+		} else if p.UsesICMPTypeCodes() {
+			output += fmt.Sprintf(": %s\n", content.ICMP.String())
+		}
+	}
+
+	return output
 }
 
 func (tc TrafficContent) All() bool {

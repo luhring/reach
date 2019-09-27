@@ -67,7 +67,12 @@ See https://github.com/luhring/reach for documentation.`,
 			log.Fatal(err)
 		}
 
-		fmt.Println(analysis.ToJSON())
+		traffic, err := analysis.MergeVectorTraffic()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Print(traffic)
 
 		end := time.Now()
 		_, _ = fmt.Fprintf(os.Stderr, "reach took %v seconds\n", end.Sub(start).Seconds())

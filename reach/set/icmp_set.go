@@ -118,8 +118,6 @@ func NewICMPSetFromICMPTypeCode(icmpType, icmpCode uint8) (*ICMPSet, error) {
 }
 
 func (s ICMPSet) Types() []string {
-	// TODO: Finish implementing (for specific types)
-
 	if s.set.isComplete() {
 		return []string{"[all ICMP types and codes]"}
 	}
@@ -128,7 +126,11 @@ func (s ICMPSet) Types() []string {
 		return []string{"[no ICMP traffic]"}
 	}
 
-	return []string{"[some ICMP traffic (detailed serialization not yet implemented)]"}
+	return []string{"[some ICMP traffic (detailed serialization not yet implemented)]"} // TODO: implement
+}
+
+func (s ICMPSet) String() string {
+	return "ICMP#String() not yet implemented" // TODO: implement
 }
 
 func (s ICMPSet) Intersect(other ICMPSet) ICMPSet {

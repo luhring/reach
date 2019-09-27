@@ -26,3 +26,18 @@ func (a *Analysis) ToJSON() string {
 	}
 	return string(b)
 }
+
+func (a *Analysis) MergeVectorTraffic() (*TrafficContent, error) {
+	traffic := NewTrafficContent()
+
+	for _, v := range a.NetworkVectors {
+		if t := v.Traffic; t != nil {
+			err := traffic.Merge(*v.Traffic)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return traffic, nil
+}
