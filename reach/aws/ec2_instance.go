@@ -6,7 +6,7 @@ const ResourceKindEC2Instance = "EC2Instance"
 
 type EC2Instance struct {
 	ID                          string
-	NameTag                     string
+	NameTag                     string `json:"NameTag,omitempty"`
 	State                       string
 	NetworkInterfaceAttachments []NetworkInterfaceAttachment
 }

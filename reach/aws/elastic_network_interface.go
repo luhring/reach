@@ -10,7 +10,7 @@ const ResourceKindElasticNetworkInterface = "ElasticNetworkInterface"
 
 type ElasticNetworkInterface struct {
 	ID                   string
-	NameTag              string
+	NameTag              string `json:"NameTag,omitempty"`
 	SubnetID             string
 	VPCID                string
 	SecurityGroupIDs     []string
