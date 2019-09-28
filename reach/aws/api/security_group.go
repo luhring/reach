@@ -94,9 +94,9 @@ func getSecurityGroupRule(rule *ec2.IpPermission) reachAWS.SecurityGroupRule { /
 	}
 }
 
-func newPortSetFromAWSPortRange(portRange *ec2.PortRange) (*set.PortSet, error) {
+func newPortSetFromAWSPortRange(portRange *ec2.PortRange) (set.PortSet, error) {
 	if portRange == nil {
-		return nil, fmt.Errorf("input portRange was nil")
+		return set.PortSet{}, fmt.Errorf("input portRange was nil")
 	}
 
 	from := aws.Int64Value(portRange.From)
@@ -105,9 +105,9 @@ func newPortSetFromAWSPortRange(portRange *ec2.PortRange) (*set.PortSet, error) 
 	return set.NewPortSetFromRange(uint16(from), uint16(to))
 }
 
-func newPortSetFromAWSIPPermission(permission *ec2.IpPermission) (*set.PortSet, error) {
+func newPortSetFromAWSIPPermission(permission *ec2.IpPermission) (set.PortSet, error) {
 	if permission == nil {
-		return nil, fmt.Errorf("input IpPermission was nil")
+		return set.PortSet{}, fmt.Errorf("input IpPermission was nil")
 	}
 
 	from := aws.Int64Value(permission.FromPort)
@@ -174,7 +174,7 @@ func newTrafficContentFromAWSIPPermission(permission *ec2.IpPermission) (reach.T
 			return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
 		}
 
-		return reach.NewTrafficContentForPorts(protocol, *portSet), nil
+		return reach.NewTrafficContentForPorts(protocol, portSet), nil
 	}
 
 	if protocol == reach.ProtocolICMPv4 || protocol == reach.ProtocolICMPv6 {
@@ -183,22 +183,22 @@ func newTrafficContentFromAWSIPPermission(permission *ec2.IpPermission) (reach.T
 			return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
 		}
 
-		return reach.NewTrafficContentForICMP(protocol, *icmpSet), nil
+		return reach.NewTrafficContentForICMP(protocol, icmpSet), nil
 	}
 
 	return reach.NewTrafficContentForCustomProtocol(protocol, true), nil
 }
 
-func newICMPSetFromAWSICMPTypeCode(icmpTypeCode *ec2.IcmpTypeCode) (*set.ICMPSet, error) {
+func newICMPSetFromAWSICMPTypeCode(icmpTypeCode *ec2.IcmpTypeCode) (set.ICMPSet, error) {
 	if icmpTypeCode == nil {
-		return nil, fmt.Errorf("input icmpTypeCode was nil")
+		return set.ICMPSet{}, fmt.Errorf("input icmpTypeCode was nil")
 	}
 
 	icmpType := aws.Int64Value(icmpTypeCode.Type)
 
 	if icmpType == set.AllICMPTypes {
 		result := set.NewFullICMPSet()
-		return &result, nil
+		return result, nil
 	}
 
 	icmpTypeValue := uint8(icmpType) // i.e. equivalent to ICMP header value
@@ -214,16 +214,16 @@ func newICMPSetFromAWSICMPTypeCode(icmpTypeCode *ec2.IcmpTypeCode) (*set.ICMPSet
 	return set.NewICMPSetFromICMPTypeCode(icmpTypeValue, icmpCodeValue)
 }
 
-func newICMPSetFromAWSIPPermission(permission *ec2.IpPermission) (*set.ICMPSet, error) {
+func newICMPSetFromAWSIPPermission(permission *ec2.IpPermission) (set.ICMPSet, error) {
 	if permission == nil {
-		return nil, fmt.Errorf("input IpPermission was nil")
+		return set.ICMPSet{}, fmt.Errorf("input IpPermission was nil")
 	}
 
 	icmpType := aws.Int64Value(permission.FromPort)
 
 	if icmpType == set.AllICMPTypes {
 		result := set.NewFullICMPSet()
-		return &result, nil
+		return result, nil
 	}
 
 	icmpTypeValue := uint8(icmpType) // i.e. equivalent to ICMP header value

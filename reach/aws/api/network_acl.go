@@ -117,7 +117,7 @@ func newTrafficContentFromAWSNACLEntry(entry *ec2.NetworkAclEntry) (reach.Traffi
 			return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
 		}
 
-		return reach.NewTrafficContentForPorts(protocol, *portSet), nil
+		return reach.NewTrafficContentForPorts(protocol, portSet), nil
 	}
 
 	if protocol == reach.ProtocolICMPv4 || protocol == reach.ProtocolICMPv6 {
@@ -126,7 +126,7 @@ func newTrafficContentFromAWSNACLEntry(entry *ec2.NetworkAclEntry) (reach.Traffi
 			return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
 		}
 
-		return reach.NewTrafficContentForICMP(protocol, *icmpSet), nil
+		return reach.NewTrafficContentForICMP(protocol, icmpSet), nil
 	}
 
 	return reach.NewTrafficContentForCustomProtocol(protocol, true), nil

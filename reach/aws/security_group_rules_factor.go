@@ -82,7 +82,7 @@ func (eni ElasticNetworkInterface) NewSecurityGroupRulesFactor(
 	return &reach.Factor{
 		Kind:       FactorKindSecurityGroupRules,
 		Resource:   eni.ToResourceReference(),
-		Traffic:    *tc,
+		Traffic:    tc,
 		Properties: props,
 	}, nil
 }

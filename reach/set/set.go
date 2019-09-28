@@ -124,11 +124,11 @@ func NewSetForSingleValue(val uint16) Set {
 	return newSetFromRange(val, val)
 }
 
-func (s Set) isComplete() bool {
+func (s Set) Complete() bool {
 	return s.complete
 }
 
-func (s Set) isEmpty() bool {
+func (s Set) Empty() bool {
 	return s.empty
 }
 
@@ -213,6 +213,9 @@ func (s Set) rangeStrings() []string {
 }
 
 func (s Set) String() string {
+	if s.Empty() {
+		return "[empty]"
+	}
 	return strings.Join(s.rangeStrings(), ", ")
 }
 
@@ -229,19 +232,19 @@ func rangeString(start, end int) string {
 
 // equals tests if two sets are equivalent
 func (s Set) equals(other Set) bool {
-	if s.isComplete() && other.isComplete() {
+	if s.Complete() && other.Complete() {
 		return true
 	}
 
-	if s.isComplete() != other.isComplete() {
+	if s.Complete() != other.Complete() {
 		return false
 	}
 
-	if s.isEmpty() && other.isEmpty() {
+	if s.Empty() && other.Empty() {
 		return true
 	}
 
-	if s.isEmpty() != other.isEmpty() {
+	if s.Empty() != other.Empty() {
 		return false
 	}
 
@@ -260,19 +263,19 @@ func (s Set) equals(other Set) bool {
 
 // intersect set with other set
 func (s Set) intersect(other Set) Set {
-	if s.isEmpty() || other.isEmpty() {
+	if s.Empty() || other.Empty() {
 		return newEmptySet()
 	}
 
-	if s.isComplete() && other.isComplete() {
+	if s.Complete() && other.Complete() {
 		return newCompleteSet()
 	}
 
-	if s.isComplete() {
+	if s.Complete() {
 		return other
 	}
 
-	if other.isComplete() {
+	if other.Complete() {
 		return s
 	}
 
@@ -306,19 +309,19 @@ func (s Set) intersect(other Set) Set {
 
 // merge set with other set
 func (s Set) merge(other Set) Set {
-	if s.isComplete() || other.isComplete() {
+	if s.Complete() || other.Complete() {
 		return newCompleteSet()
 	}
 
-	if s.isEmpty() && other.isEmpty() {
+	if s.Empty() && other.Empty() {
 		return newEmptySet()
 	}
 
-	if s.isEmpty() {
+	if s.Empty() {
 		return other
 	}
 
-	if other.isEmpty() {
+	if other.Empty() {
 		return s
 	}
 
@@ -352,15 +355,15 @@ func (s Set) merge(other Set) Set {
 
 // subtract 'other' set from set (= set - other set)
 func (s Set) subtract(other Set) Set {
-	if s.isEmpty() || other.isComplete() {
+	if s.Empty() || other.Complete() {
 		return newEmptySet()
 	}
 
-	if other.isEmpty() {
+	if other.Empty() {
 		return s
 	}
 
-	if s.isComplete() {
+	if s.Complete() {
 		return other.invert()
 	}
 
@@ -394,11 +397,11 @@ func (s Set) subtract(other Set) Set {
 
 // invert the set
 func (s Set) invert() Set {
-	if s.isEmpty() {
+	if s.Empty() {
 		return newCompleteSet()
 	}
 
-	if s.isComplete() {
+	if s.Complete() {
 		return newEmptySet()
 	}
 

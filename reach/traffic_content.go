@@ -2,7 +2,6 @@ package reach
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/luhring/reach/reach/set"
 )
@@ -20,8 +19,8 @@ type TrafficContent struct {
 	protocols map[Protocol]*ProtocolContent
 }
 
-func NewTrafficContent() *TrafficContent {
-	return &TrafficContent{
+func NewTrafficContent() TrafficContent {
+	return TrafficContent{
 		indicator: trafficContentIndicatorUnset,
 		protocols: nil,
 	}
@@ -41,7 +40,8 @@ func NewTrafficContentForNoTraffic() TrafficContent {
 
 func NewTrafficContentForPorts(protocol Protocol, ports set.PortSet) TrafficContent {
 	protocols := make(map[Protocol]*ProtocolContent)
-	protocols[protocol] = NewProtocolContentWithPorts(protocol, &ports)
+	content := NewProtocolContentWithPorts(protocol, &ports)
+	protocols[protocol] = &content
 
 	return TrafficContent{
 		indicator: trafficContentIndicatorUnset,
@@ -51,7 +51,8 @@ func NewTrafficContentForPorts(protocol Protocol, ports set.PortSet) TrafficCont
 
 func NewTrafficContentForICMP(protocol Protocol, icmp set.ICMPSet) TrafficContent {
 	protocols := make(map[Protocol]*ProtocolContent)
-	protocols[protocol] = NewProtocolContentWithICMP(protocol, &icmp)
+	content := NewProtocolContentWithICMP(protocol, &icmp)
+	protocols[protocol] = &content
 
 	return TrafficContent{
 		indicator: trafficContentIndicatorUnset,
@@ -61,7 +62,8 @@ func NewTrafficContentForICMP(protocol Protocol, icmp set.ICMPSet) TrafficConten
 
 func NewTrafficContentForCustomProtocol(protocol Protocol, hasContent bool) TrafficContent {
 	protocols := make(map[Protocol]*ProtocolContent)
-	protocols[protocol] = NewProtocolContentForCustomProtocol(protocol, hasContent)
+	content := NewProtocolContentForCustomProtocol(protocol, hasContent)
+	protocols[protocol] = &content
 
 	return TrafficContent{
 		indicator: trafficContentIndicatorUnset,
@@ -69,88 +71,107 @@ func NewTrafficContentForCustomProtocol(protocol Protocol, hasContent bool) Traf
 	}
 }
 
-func NewTrafficContentFromMergingMultiple(contents []TrafficContent) (*TrafficContent, error) {
-	result := NewTrafficContent()
+func NewTrafficContentFromMergingMultiple(contents []TrafficContent) (TrafficContent, error) {
+	var result TrafficContent
 
-	for _, tc := range contents {
+	for _, trafficContent := range contents {
 		if result.All() {
 			return result, nil
 		}
 
-		err := result.Merge(tc)
+		mergedTrafficContent, err := result.Merge(trafficContent)
 		if err != nil {
-			return nil, err
+			return TrafficContent{}, err
+		}
+
+		result = mergedTrafficContent
+	}
+
+	return result, nil
+}
+
+func NewTrafficContentFromIntersectingMultiple(contents []TrafficContent) (TrafficContent, error) {
+	var result TrafficContent
+
+	for i, trafficContent := range contents {
+		if i == 0 {
+			result = trafficContent
+		} else {
+			intersection, err := result.Intersect(trafficContent)
+			if err != nil {
+				return TrafficContent{}, err
+			}
+
+			result = intersection
+
+			if result.None() {
+				return result, nil
+			}
 		}
 	}
 
 	return result, nil
 }
 
-func NewTrafficContentFromIntersectingMultiple(contents []TrafficContent) (*TrafficContent, error) {
-	var content TrafficContent
+func TrafficContentsFromFactors(factors []Factor) []TrafficContent {
+	var result []TrafficContent
 
-	for i, tc := range contents {
-		if i == 0 {
-			content = tc
-		} else {
-			err := content.Intersect(tc)
-			if err != nil {
-				return nil, err
-			}
-
-			if content.None() {
-				return &content, nil
-			}
-		}
+	for _, factor := range factors {
+		result = append(result, factor.Traffic)
 	}
 
-	return &content, nil
+	return result
 }
 
-func (tc *TrafficContent) Merge(other TrafficContent) error {
+func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 	if tc.All() || other.All() {
-		tc.SetAll()
-		return nil
+		return NewTrafficContentForAllTraffic(), nil
 	}
 
 	if tc.None() && other.None() {
-		tc.SetNone()
-		return nil
+		return NewTrafficContentForNoTraffic(), nil
 	}
 
-	for protocol, content := range other.protocols {
-		mergedProtocolContent, err := tc.Protocol(protocol).merge(*content)
+	var result TrafficContent
+
+	for p, content := range tc.protocols {
+		mergedProtocolContent, err := content.merge(other.Protocol(p))
 		if err != nil {
-			return err
+			return TrafficContent{}, err
 		}
 
-		tc.SetProtocolContent(protocol, mergedProtocolContent)
+		result.SetProtocolContent(p, mergedProtocolContent)
 	}
 
-	return nil
+	// Grab unique content from other traffic content
+	for p, otherContent := range other.protocols {
+		result.SetProtocolContent(p, *otherContent)
+	}
+
+	return result, nil
 }
 
-func (tc *TrafficContent) Intersect(other TrafficContent) error {
+func (tc *TrafficContent) Intersect(other TrafficContent) (TrafficContent, error) {
 	if tc.None() || other.None() {
-		tc.SetNone()
-		return nil
+		return NewTrafficContentForNoTraffic(), nil
 	}
 
 	if tc.All() && other.All() {
-		tc.SetAll()
-		return nil
+		return NewTrafficContentForAllTraffic(), nil
 	}
 
-	for protocol, content := range other.protocols {
-		intersectedProtocolContent, err := tc.Protocol(protocol).intersect(*content)
+	var result TrafficContent
+
+	for p, otherContent := range other.protocols {
+		intersectedProtocolContent, err := tc.Protocol(p).intersect(*otherContent) // this line is castrating sets!
 		if err != nil {
-			return err
+			return TrafficContent{}, err
 		}
 
-		tc.SetProtocolContent(protocol, intersectedProtocolContent)
+		result.SetProtocolContent(p, intersectedProtocolContent)
 	}
 
-	return nil
+	return result, nil
 }
 
 func (tc TrafficContent) MarshalJSON() ([]byte, error) {
@@ -184,23 +205,18 @@ func (tc TrafficContent) MarshalJSON() ([]byte, error) {
 
 func (tc TrafficContent) String() string {
 	if tc.All() {
-		return "[all traffic]"
+		return "[all traffic]\n"
 	}
 
 	if tc.None() {
-		return "[no traffic]"
+		return "[no traffic]\n"
 	}
 
 	var output string
 
-	for p, content := range tc.protocols {
-		output += ProtocolName(p)
-		if p.UsesPorts() {
-			output += fmt.Sprintf(": %s\n", content.Ports.String())
-		} else if p.UsesICMPTypeCodes() {
-			output += fmt.Sprintf(": %s\n", content.ICMP.String())
-		} else {
-			output += "\n"
+	for _, content := range tc.protocols {
+		if !content.Empty() {
+			output += content.String() + "\n"
 		}
 	}
 
@@ -225,17 +241,17 @@ func (tc *TrafficContent) SetNone() {
 	tc.protocols = nil
 }
 
-func (tc *TrafficContent) SetProtocolContent(p Protocol, content *ProtocolContent) {
+func (tc *TrafficContent) SetProtocolContent(p Protocol, content ProtocolContent) {
 	tc.indicator = trafficContentIndicatorUnset
 
 	if tc.protocols == nil {
 		tc.protocols = make(map[Protocol]*ProtocolContent)
 	}
 
-	tc.protocols[p] = content
+	tc.protocols[p] = &content
 }
 
-func (tc TrafficContent) Protocol(p Protocol) *ProtocolContent {
+func (tc TrafficContent) Protocol(p Protocol) ProtocolContent {
 	content := tc.protocols[p]
 
 	if content == nil {
@@ -261,21 +277,21 @@ func (tc TrafficContent) Protocol(p Protocol) *ProtocolContent {
 		return NewProtocolContentForCustomProtocolEmpty(p)
 	}
 
-	return content
+	return *content
 }
 
-func (tc TrafficContent) TCP() *ProtocolContent {
+func (tc TrafficContent) TCP() ProtocolContent {
 	return tc.Protocol(ProtocolTCP)
 }
 
-func (tc TrafficContent) UDP() *ProtocolContent {
+func (tc TrafficContent) UDP() ProtocolContent {
 	return tc.Protocol(ProtocolUDP)
 }
 
-func (tc TrafficContent) ICMPv4() *ProtocolContent {
+func (tc TrafficContent) ICMPv4() ProtocolContent {
 	return tc.Protocol(ProtocolICMPv4)
 }
 
-func (tc TrafficContent) ICMPv6() *ProtocolContent {
+func (tc TrafficContent) ICMPv6() ProtocolContent {
 	return tc.Protocol(ProtocolICMPv6)
 }

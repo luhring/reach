@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
-	"time"
 
 	"github.com/spf13/cobra"
 
@@ -42,8 +40,6 @@ See https://github.com/luhring/reach for documentation.`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		start := time.Now()
-
 		sourceIdentifier := args[0]
 		destinationIdentifier := args[1]
 
@@ -67,15 +63,14 @@ See https://github.com/luhring/reach for documentation.`,
 			log.Fatal(err)
 		}
 
-		traffic, err := analysis.MergeVectorTraffic()
-		if err != nil {
-			log.Fatal(err)
-		}
+		fmt.Println(analysis.ToJSON())
 
-		fmt.Print(traffic)
-
-		end := time.Now()
-		_, _ = fmt.Fprintf(os.Stderr, "reach took %v seconds\n", end.Sub(start).Seconds())
+		// traffic, err := analysis.MergeVectorTraffic()
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
+		//
+		// fmt.Print(traffic)
 	},
 }
 

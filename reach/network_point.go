@@ -1,6 +1,8 @@
 package reach
 
-import "net"
+import (
+	"net"
+)
 
 type NetworkPoint struct {
 	IPAddress net.IP
@@ -8,10 +10,10 @@ type NetworkPoint struct {
 	Factors   []Factor
 }
 
-func (p NetworkPoint) TrafficComponents() []TrafficContent {
+func (point NetworkPoint) TrafficComponents() []TrafficContent {
 	var components []TrafficContent
 
-	for _, factor := range p.Factors {
+	for _, factor := range point.Factors {
 		components = append(components, factor.Traffic)
 	}
 

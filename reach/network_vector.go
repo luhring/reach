@@ -31,12 +31,12 @@ func (v NetworkVector) TrafficComponents() []TrafficContent {
 	return components
 }
 
-func (v NetworkVector) NetTraffic() (*TrafficContent, error) {
+func (v NetworkVector) NetTraffic() (TrafficContent, error) {
 	vectorTrafficComponents := v.TrafficComponents()
 
 	resultingTraffic, err := NewTrafficContentFromIntersectingMultiple(vectorTrafficComponents)
 	if err != nil {
-		return nil, err
+		return TrafficContent{}, err
 	}
 
 	return resultingTraffic, nil

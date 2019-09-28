@@ -85,9 +85,9 @@ func NewFullICMPSet() ICMPSet {
 	}
 }
 
-func NewICMPSetFromICMPType(icmpType uint8) (*ICMPSet, error) {
+func NewICMPSetFromICMPType(icmpType uint8) (ICMPSet, error) {
 	if err := validateICMPType(icmpType); err != nil {
-		return nil, fmt.Errorf("unable to use icmpType: %v", err)
+		return ICMPSet{}, fmt.Errorf("unable to use icmpType: %v", err)
 	}
 
 	startingICMPTypeCodeIndex := encodeICMPTypeCode(uint(icmpType), minimumICMPCode)
@@ -95,34 +95,42 @@ func NewICMPSetFromICMPType(icmpType uint8) (*ICMPSet, error) {
 
 	set := newSetFromRange(startingICMPTypeCodeIndex, endingICMPTypeCodeIndex)
 
-	return &ICMPSet{
+	return ICMPSet{
 		set: set,
 	}, nil
 }
 
-func NewICMPSetFromICMPTypeCode(icmpType, icmpCode uint8) (*ICMPSet, error) {
+func NewICMPSetFromICMPTypeCode(icmpType, icmpCode uint8) (ICMPSet, error) {
 	if err := validateICMPType(icmpType); err != nil {
-		return nil, fmt.Errorf("unable to use icmpType: %v", err)
+		return ICMPSet{}, fmt.Errorf("unable to use icmpType: %v", err)
 	}
 
 	if err := validateICMPCode(icmpCode); err != nil {
-		return nil, fmt.Errorf("unable to use icmpCode: %v", err)
+		return ICMPSet{}, fmt.Errorf("unable to use icmpCode: %v", err)
 	}
 
 	typeCodeIndex := encodeICMPTypeCode(uint(icmpType), uint(icmpCode))
 	set := NewSetForSingleValue(typeCodeIndex)
 
-	return &ICMPSet{
+	return ICMPSet{
 		set: set,
 	}, nil
 }
 
+func (s ICMPSet) Complete() bool {
+	return s.set.Complete()
+}
+
+func (s ICMPSet) Empty() bool {
+	return s.set.Empty()
+}
+
 func (s ICMPSet) Types() []string {
-	if s.set.isComplete() {
+	if s.set.Complete() {
 		return []string{"[all ICMP types and codes]"}
 	}
 
-	if s.set.isEmpty() {
+	if s.set.Empty() {
 		return []string{"[no ICMP traffic]"}
 	}
 

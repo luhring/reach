@@ -19,6 +19,17 @@ type ElasticNetworkInterface struct {
 	IPv6Addresses        []net.IP `json:"IPv6Addresses,omitempty"`
 }
 
+func ElasticNetworkInterfaceFromNetworkPoint(point reach.NetworkPoint, rc *reach.ResourceCollection) *ElasticNetworkInterface {
+	for _, ancestor := range point.Lineage { // assumes there will only be one ENI among the ancestors
+		if ancestor.Domain == ResourceDomainAWS && ancestor.Kind == ResourceKindElasticNetworkInterface {
+			eni := rc.Get(ancestor).Properties.(ElasticNetworkInterface)
+			return &eni
+		}
+	}
+
+	return nil
+}
+
 func (eni ElasticNetworkInterface) ToResource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindElasticNetworkInterface,

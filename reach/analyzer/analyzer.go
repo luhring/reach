@@ -10,13 +10,13 @@ import (
 )
 
 type Analyzer struct {
-	collection *reach.ResourceCollection
+	resourceCollection *reach.ResourceCollection
 }
 
 func New() *Analyzer {
 	rc := reach.NewResourceCollection()
 	return &Analyzer{
-		collection: rc,
+		resourceCollection: rc,
 	}
 }
 
@@ -33,7 +33,7 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider a
 					if err != nil {
 						log.Fatalf("couldn't get resource: %v", err)
 					}
-					a.collection.Put(reach.ResourceReference{
+					a.resourceCollection.Put(reach.ResourceReference{
 						Domain: aws.ResourceDomainAWS,
 						Kind:   aws.ResourceKindEC2Instance,
 						ID:     ec2Instance.ID,
@@ -43,7 +43,7 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider a
 					if err != nil {
 						return err
 					}
-					a.collection.Merge(dependencies)
+					a.resourceCollection.Merge(dependencies)
 				default:
 					return fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
 				}
@@ -66,13 +66,13 @@ func (a *Analyzer) identifyNetworkVectors(subjects []*reach.Subject) ([]reach.Ne
 			case aws.ResourceDomainAWS:
 				switch subject.Kind {
 				case aws.SubjectKindEC2Instance:
-					ec2Instance := a.collection.Get(reach.ResourceReference{
+					ec2Instance := a.resourceCollection.Get(reach.ResourceReference{
 						Domain: aws.ResourceDomainAWS,
 						Kind:   aws.ResourceKindEC2Instance,
 						ID:     subject.ID,
 					}).Properties.(aws.EC2Instance)
 
-					sourceNetworkPoints = append(sourceNetworkPoints, ec2Instance.GetNetworkPoints(a.collection)...)
+					sourceNetworkPoints = append(sourceNetworkPoints, ec2Instance.GetNetworkPoints(a.resourceCollection)...)
 				}
 			}
 		} else if subject.Role == reach.SubjectRoleDestination {
@@ -80,13 +80,13 @@ func (a *Analyzer) identifyNetworkVectors(subjects []*reach.Subject) ([]reach.Ne
 			case aws.ResourceDomainAWS:
 				switch subject.Kind {
 				case aws.SubjectKindEC2Instance:
-					ec2Instance := a.collection.Get(reach.ResourceReference{
+					ec2Instance := a.resourceCollection.Get(reach.ResourceReference{
 						Domain: aws.ResourceDomainAWS,
 						Kind:   aws.ResourceKindEC2Instance,
 						ID:     subject.ID,
 					}).Properties.(aws.EC2Instance)
 
-					destinationNetworkPoints = append(destinationNetworkPoints, ec2Instance.GetNetworkPoints(a.collection)...)
+					destinationNetworkPoints = append(destinationNetworkPoints, ec2Instance.GetNetworkPoints(a.resourceCollection)...)
 				}
 			}
 		}
@@ -108,110 +108,6 @@ func (a *Analyzer) identifyNetworkVectors(subjects []*reach.Subject) ([]reach.Ne
 	return networkVectors, nil
 }
 
-func (a *Analyzer) computeFactorsForSingleVector(vector reach.NetworkVector) (reach.NetworkVector, error) {
-	for _, ref := range vector.Source.Lineage {
-		if ref.Domain == aws.ResourceDomainAWS {
-			if ref.Kind == aws.ResourceKindEC2Instance {
-				ec2Instance := a.collection.Get(ref).Properties.(aws.EC2Instance)
-
-				vector.Source.Factors = append(vector.Source.Factors, ec2Instance.NewInstanceStateFactor())
-			}
-
-			if ref.Kind == aws.ResourceKindElasticNetworkInterface {
-				eni := a.collection.Get(ref).Properties.(aws.ElasticNetworkInterface)
-
-				var targetENI aws.ElasticNetworkInterface
-
-				for _, ancestor := range vector.Destination.Lineage {
-					if ancestor.Domain == aws.ResourceDomainAWS && ancestor.Kind == aws.ResourceKindElasticNetworkInterface {
-						targetENI = a.collection.Get(ancestor).Properties.(aws.ElasticNetworkInterface)
-					}
-				}
-
-				securityGroupRulesFactor, err := eni.NewSecurityGroupRulesFactor(
-					a.collection,
-					func(sg aws.SecurityGroup) []aws.SecurityGroupRule {
-						return sg.OutboundRules
-					},
-					vector.Destination.IPAddress, &targetENI,
-				)
-				if err != nil {
-					return reach.NetworkVector{}, err
-				}
-
-				vector.Source.Factors = append(vector.Source.Factors, *securityGroupRulesFactor)
-			}
-		}
-	}
-
-	for _, ref := range vector.Destination.Lineage { // TODO: refactor to extract symmetry
-		if ref.Domain == aws.ResourceDomainAWS {
-			if ref.Kind == aws.SubjectKindEC2Instance {
-				ec2Instance := a.collection.Get(ref).Properties.(aws.EC2Instance)
-				vector.Destination.Factors = append(vector.Destination.Factors, ec2Instance.NewInstanceStateFactor())
-			}
-
-			if ref.Kind == aws.ResourceKindElasticNetworkInterface {
-				eni := a.collection.Get(ref).Properties.(aws.ElasticNetworkInterface)
-
-				var targetENI aws.ElasticNetworkInterface
-
-				for _, ancestor := range vector.Source.Lineage {
-					if ancestor.Domain == aws.ResourceDomainAWS && ancestor.Kind == aws.ResourceKindElasticNetworkInterface {
-						targetENI = a.collection.Get(ancestor).Properties.(aws.ElasticNetworkInterface)
-					}
-				}
-
-				securityGroupRulesFactor, err := eni.NewSecurityGroupRulesFactor(
-					a.collection,
-					func(sg aws.SecurityGroup) []aws.SecurityGroupRule {
-						return sg.InboundRules
-					},
-					vector.Source.IPAddress, &targetENI,
-				)
-				if err != nil {
-					return reach.NetworkVector{}, err
-				}
-
-				vector.Destination.Factors = append(vector.Destination.Factors, *securityGroupRulesFactor)
-			}
-		}
-	}
-
-	return vector, nil
-}
-
-func (a *Analyzer) computeFactors(vectors []reach.NetworkVector) ([]reach.NetworkVector, error) {
-	var result []reach.NetworkVector
-
-	for _, vector := range vectors { // TODO: Consider concurrent processing
-		processedVector, err := a.computeFactorsForSingleVector(vector)
-		if err != nil {
-			return nil, err
-		}
-
-		result = append(result, processedVector)
-	}
-
-	return result, nil
-}
-
-func (a *Analyzer) netTraffic(vectors []reach.NetworkVector) ([]reach.NetworkVector, error) {
-	var result []reach.NetworkVector
-
-	for _, vector := range vectors { // TODO: Consider concurrent processing
-		traffic, err := vector.NetTraffic()
-		if err != nil {
-			return nil, err
-		}
-
-		vector.Traffic = traffic
-		result = append(result, vector)
-	}
-
-	return result, nil
-}
-
 func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
 	// TODO: Eventually, this dependency wiring should depend on a passed in config.
 	var provider aws.ResourceProvider = api.NewResourceProvider()
@@ -221,20 +117,32 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 		return nil, err
 	}
 
+	// TODO: Eventually, this dependency wiring should depend on a passed in config.
+	var vectorAnalyzer reach.VectorAnalyzer = aws.NewVectorAnalyzer(a.resourceCollection)
+
 	networkVectors, err := a.identifyNetworkVectors(subjects)
 	if err != nil {
 		return nil, err
 	}
 
-	networkVectors, err = a.computeFactors(networkVectors)
-	if err != nil {
-		return nil, err
+	processedNetworkVectors := make([]reach.NetworkVector, len(networkVectors))
+
+	for i, v := range networkVectors {
+		factors, processedVector, err := vectorAnalyzer.Factors(v)
+		if err != nil {
+			return nil, err
+		}
+
+		trafficContents := reach.TrafficContentsFromFactors(factors)
+
+		trafficContent, err := reach.NewTrafficContentFromIntersectingMultiple(trafficContents)
+		if err != nil {
+			return nil, err
+		}
+
+		processedVector.Traffic = &trafficContent
+		processedNetworkVectors[i] = processedVector
 	}
 
-	networkVectors, err = a.netTraffic(networkVectors)
-	if err != nil {
-		return nil, err
-	}
-
-	return reach.NewAnalysis(subjects, a.collection, networkVectors), nil
+	return reach.NewAnalysis(subjects, a.resourceCollection, processedNetworkVectors), nil
 }

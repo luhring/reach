@@ -171,7 +171,7 @@ func TestIsComplete(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.setDescription, func(t *testing.T) {
-			actual := tc.set.isComplete()
+			actual := tc.set.Complete()
 			if actual != tc.expected {
 				t.Errorf("expectedValue %t but got %t", tc.expected, actual)
 			}
@@ -204,7 +204,7 @@ func TestIsEmpty(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.setDescription, func(t *testing.T) {
-			actual := tc.set.isEmpty()
+			actual := tc.set.Empty()
 			if actual != tc.expected {
 				t.Errorf("expectedValue %t but got %t", tc.expected, actual)
 			}

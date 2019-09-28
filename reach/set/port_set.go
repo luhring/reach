@@ -26,28 +26,26 @@ func NewFullPortSet() PortSet {
 	}
 }
 
-func NewPortSetFromPortValue(port uint16) (*PortSet, error) {
-	if err := validatePort(port); err != nil {
-		return nil, fmt.Errorf("unable to use port: %v", err)
-	}
-
-	return &PortSet{
-		set: NewSetForSingleValue(port),
-	}, nil
-}
-
-func NewPortSetFromRange(lowPort, highPort uint16) (*PortSet, error) {
+func NewPortSetFromRange(lowPort, highPort uint16) (PortSet, error) {
 	if err := validatePort(lowPort); err != nil {
-		return nil, fmt.Errorf("unable to use lowPort: %v", err)
+		return PortSet{}, fmt.Errorf("unable to use lowPort: %v", err)
 	}
 
 	if err := validatePort(highPort); err != nil {
-		return nil, fmt.Errorf("unable to use highPort: %v", err)
+		return PortSet{}, fmt.Errorf("unable to use highPort: %v", err)
 	}
 
-	return &PortSet{
+	return PortSet{
 		set: newSetFromRange(lowPort, highPort),
 	}, nil
+}
+
+func (s PortSet) Complete() bool {
+	return s.set.Complete()
+}
+
+func (s PortSet) Empty() bool {
+	return s.set.Empty()
 }
 
 func (s PortSet) Intersect(other PortSet) PortSet {

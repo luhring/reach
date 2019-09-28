@@ -15,12 +15,12 @@ type ProtocolContent struct {
 	CustomProtocolHasContent *bool        `json:"CustomProtocolHasContent,omitempty"`
 }
 
-func NewProtocolContent(protocol Protocol, ports *set.PortSet, icmp *set.ICMPSet, customProtocolHasContent *bool) *ProtocolContent {
+func NewProtocolContent(protocol Protocol, ports *set.PortSet, icmp *set.ICMPSet, customProtocolHasContent *bool) ProtocolContent {
 	if protocol < 0 {
 		log.Panicf("unexpected protocol value: %v", protocol) // TODO: Handle error better
 	}
 
-	return &ProtocolContent{
+	return ProtocolContent{
 		protocol,
 		ports,
 		icmp,
@@ -28,46 +28,71 @@ func NewProtocolContent(protocol Protocol, ports *set.PortSet, icmp *set.ICMPSet
 	}
 }
 
-func NewProtocolContentWithPorts(protocol Protocol, ports *set.PortSet) *ProtocolContent {
+func NewProtocolContentWithPorts(protocol Protocol, ports *set.PortSet) ProtocolContent {
 	return NewProtocolContent(protocol, ports, nil, nil)
 }
 
-func NewProtocolContentWithPortsEmpty(protocol Protocol) *ProtocolContent {
+func NewProtocolContentWithPortsEmpty(protocol Protocol) ProtocolContent {
 	ports := set.NewEmptyPortSet()
 	return NewProtocolContentWithPorts(protocol, &ports)
 }
 
-func NewProtocolContentWithPortsFull(protocol Protocol) *ProtocolContent {
+func NewProtocolContentWithPortsFull(protocol Protocol) ProtocolContent {
 	ports := set.NewFullPortSet()
 	return NewProtocolContentWithPorts(protocol, &ports)
 }
 
-func NewProtocolContentWithICMP(protocol Protocol, icmp *set.ICMPSet) *ProtocolContent {
+func NewProtocolContentWithICMP(protocol Protocol, icmp *set.ICMPSet) ProtocolContent {
 	return NewProtocolContent(protocol, nil, icmp, nil)
 }
 
-func NewProtocolContentWithICMPEmpty(protocol Protocol) *ProtocolContent {
+func NewProtocolContentWithICMPEmpty(protocol Protocol) ProtocolContent {
 	icmp := set.NewEmptyICMPSet()
 	return NewProtocolContentWithICMP(protocol, &icmp)
 }
 
-func NewProtocolContentWithICMPFull(protocol Protocol) *ProtocolContent {
+func NewProtocolContentWithICMPFull(protocol Protocol) ProtocolContent {
 	icmp := set.NewFullICMPSet()
 	return NewProtocolContentWithICMP(protocol, &icmp)
 }
 
-func NewProtocolContentForCustomProtocol(protocol Protocol, hasContent bool) *ProtocolContent {
+func NewProtocolContentForCustomProtocol(protocol Protocol, hasContent bool) ProtocolContent {
 	return NewProtocolContent(protocol, nil, nil, &hasContent)
 }
 
-func NewProtocolContentForCustomProtocolEmpty(protocol Protocol) *ProtocolContent {
+func NewProtocolContentForCustomProtocolEmpty(protocol Protocol) ProtocolContent {
 	hasContent := false
 	return NewProtocolContent(protocol, nil, nil, &hasContent)
 }
 
-func NewProtocolContentForCustomProtocolFull(protocol Protocol) *ProtocolContent {
+func NewProtocolContentForCustomProtocolFull(protocol Protocol) ProtocolContent {
 	hasContent := true
 	return NewProtocolContent(protocol, nil, nil, &hasContent)
+}
+
+func (pc ProtocolContent) Empty() bool {
+	if pc.isTCPOrUDP() {
+		return pc.Ports.Empty()
+	} else if pc.isICMPv4OrICMPv6() {
+		return pc.ICMP.Empty()
+	} else {
+		return !*pc.CustomProtocolHasContent
+	}
+}
+
+func (pc ProtocolContent) String() string {
+	output := ""
+
+	if !pc.Empty() {
+		output += ProtocolName(pc.Protocol)
+		if pc.isTCPOrUDP() {
+			output += fmt.Sprintf(": %s", pc.Ports.String())
+		} else if pc.isICMPv4OrICMPv6() {
+			output += fmt.Sprintf(": %s", pc.ICMP.String())
+		}
+	}
+
+	return output
 }
 
 func (pc ProtocolContent) isTCPOrUDP() bool {
@@ -78,9 +103,9 @@ func (pc ProtocolContent) isICMPv4OrICMPv6() bool {
 	return pc.Protocol == ProtocolICMPv4 || pc.Protocol == ProtocolICMPv6
 }
 
-func (pc ProtocolContent) intersect(other ProtocolContent) (*ProtocolContent, error) {
+func (pc ProtocolContent) intersect(other ProtocolContent) (ProtocolContent, error) {
 	if pc.sameProtocolAs(other) == false {
-		return nil, fmt.Errorf(
+		return ProtocolContent{}, fmt.Errorf(
 			"cannot intersect with different protocols (IP protocols %v and %v)",
 			pc.Protocol,
 			other.Protocol,
@@ -108,9 +133,9 @@ func (pc ProtocolContent) intersect(other ProtocolContent) (*ProtocolContent, er
 	return NewProtocolContentForCustomProtocol(pc.Protocol, false), nil
 }
 
-func (pc ProtocolContent) merge(other ProtocolContent) (*ProtocolContent, error) {
+func (pc ProtocolContent) merge(other ProtocolContent) (ProtocolContent, error) {
 	if pc.sameProtocolAs(other) == false {
-		return nil, fmt.Errorf(
+		return ProtocolContent{}, fmt.Errorf(
 			"cannot merge with different protocols (IP protocols %v and %v)",
 			pc.Protocol,
 			other.Protocol,
@@ -138,9 +163,9 @@ func (pc ProtocolContent) merge(other ProtocolContent) (*ProtocolContent, error)
 	return NewProtocolContentForCustomProtocol(pc.Protocol, false), nil
 }
 
-func (pc ProtocolContent) subtract(other ProtocolContent) (*ProtocolContent, error) {
+func (pc ProtocolContent) subtract(other ProtocolContent) (ProtocolContent, error) {
 	if pc.sameProtocolAs(other) == false {
-		return nil, fmt.Errorf(
+		return ProtocolContent{}, fmt.Errorf(
 			"cannot subtract with different protocols (IP protocols %v and %v)",
 			pc.Protocol,
 			other.Protocol,
