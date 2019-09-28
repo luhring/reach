@@ -143,7 +143,7 @@ func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 		result.SetProtocolContent(p, mergedProtocolContent)
 	}
 
-	// Grab unique content from other traffic content
+	// Grab unique protocol content from other
 	for p, otherContent := range other.protocols {
 		result.SetProtocolContent(p, *otherContent)
 	}
@@ -162,8 +162,17 @@ func (tc *TrafficContent) Intersect(other TrafficContent) (TrafficContent, error
 
 	var result TrafficContent
 
-	for p, otherContent := range other.protocols {
-		intersectedProtocolContent, err := tc.Protocol(p).intersect(*otherContent) // this line is castrating sets!
+	// We can't loop through protocols on an 'all traffic' TrafficContent,
+	// so we need to make sure not to try.
+	var protocolContents map[Protocol]*ProtocolContent
+	if !tc.All() {
+		protocolContents = tc.protocols
+	} else {
+		protocolContents = other.protocols
+	}
+
+	for p, _ := range protocolContents {
+		intersectedProtocolContent, err := tc.Protocol(p).intersect(other.Protocol(p))
 		if err != nil {
 			return TrafficContent{}, err
 		}

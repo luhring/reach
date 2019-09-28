@@ -104,7 +104,7 @@ func (pc ProtocolContent) isICMPv4OrICMPv6() bool {
 }
 
 func (pc ProtocolContent) intersect(other ProtocolContent) (ProtocolContent, error) {
-	if pc.sameProtocolAs(other) == false {
+	if !pc.sameProtocolAs(other) {
 		return ProtocolContent{}, fmt.Errorf(
 			"cannot intersect with different protocols (IP protocols %v and %v)",
 			pc.Protocol,
@@ -127,10 +127,10 @@ func (pc ProtocolContent) intersect(other ProtocolContent) (ProtocolContent, err
 	// custom Protocol
 
 	if *pc.CustomProtocolHasContent && *other.CustomProtocolHasContent {
-		return NewProtocolContentForCustomProtocol(pc.Protocol, true), nil
+		return NewProtocolContentForCustomProtocolFull(pc.Protocol), nil
 	}
 
-	return NewProtocolContentForCustomProtocol(pc.Protocol, false), nil
+	return NewProtocolContentForCustomProtocolEmpty(pc.Protocol), nil
 }
 
 func (pc ProtocolContent) merge(other ProtocolContent) (ProtocolContent, error) {
