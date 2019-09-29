@@ -168,31 +168,30 @@ func (tc *TrafficContent) Intersect(other TrafficContent) (TrafficContent, error
 		return NewTrafficContentForAllTraffic(), nil
 	}
 
-	result := NewTrafficContentForAllTraffic()
+	protocolsToProcess := make(map[Protocol]bool)
 
 	if !tc.All() {
 		for p, _ := range tc.protocols {
-			intersectedProtocolContent, err := result.Protocol(p).intersect(tc.Protocol(p))
-			if err != nil {
-				return TrafficContent{}, err
-			}
-
-			if !intersectedProtocolContent.Empty() {
-				result.SetProtocolContent(p, intersectedProtocolContent)
-			}
+			protocolsToProcess[p] = true
 		}
 	}
 
 	if !other.All() {
 		for p, _ := range other.protocols {
-			intersectedProtocolContent, err := result.Protocol(p).intersect(other.Protocol(p))
+			protocolsToProcess[p] = true
+		}
+	}
+
+	result := NewTrafficContent()
+
+	for p, shouldProcess := range protocolsToProcess {
+		if shouldProcess && !tc.Protocol(p).Empty() && !other.Protocol(p).Empty() {
+			intersection, err := tc.Protocol(p).intersect(other.Protocol(p))
 			if err != nil {
 				return TrafficContent{}, err
 			}
 
-			if !intersectedProtocolContent.Empty() {
-				result.SetProtocolContent(p, intersectedProtocolContent)
-			}
+			result.SetProtocolContent(p, intersection)
 		}
 	}
 
@@ -240,9 +239,9 @@ func (tc TrafficContent) String() string {
 	var output string
 
 	for _, content := range tc.protocols {
-		if !content.Empty() {
-			output += content.String() + "\n"
-		}
+		// if !content.Empty() { // TODO: revert or remove
+		output += content.String() + "\n"
+		// }
 	}
 
 	return output

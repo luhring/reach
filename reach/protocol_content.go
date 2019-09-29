@@ -81,15 +81,18 @@ func (pc ProtocolContent) Empty() bool {
 }
 
 func (pc ProtocolContent) String() string {
-	output := ""
+	output := ProtocolName(pc.Protocol)
 
 	if !pc.Empty() {
-		output += ProtocolName(pc.Protocol)
 		if pc.isTCPOrUDP() {
 			output += fmt.Sprintf(": %s", pc.Ports.String())
 		} else if pc.isICMPv4OrICMPv6() {
 			output += fmt.Sprintf(": %s", pc.ICMP.String())
+		} else {
+			output += ": [all traffic for this protocol]"
 		}
+	} else {
+		output += ": [no traffic for this protocol]"
 	}
 
 	return output
