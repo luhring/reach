@@ -1,10 +1,13 @@
-package reach
+package analyzer
 
 import (
+	"log"
+	"os"
 	"path"
 	"reflect"
 	"testing"
 
+	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/acceptance"
 	"github.com/luhring/reach/reach/acceptance/terraform"
 	"github.com/luhring/reach/reach/aws"
@@ -20,12 +23,14 @@ func TestAnalyze(t *testing.T) {
 			acceptance.IfErrorFailNow(t, tf.CleanUp())
 		}()
 
-		tfFilesDir := path.Join("acceptance", "data", "tf")
+		tfFilesDir := path.Join("..", "acceptance", "data", "tf") // TODO: Need a better way to coordinate path construction with CWD of test execution
 		tfFiles := []string{
 			"main.tf",
 			"ami_ubuntu.tf",
 			"ec2_instance_source_and_destination.tf",
 		}
+
+		t.Log(os.Getwd())
 
 		acceptance.IfErrorFailNow(t, tf.LoadFilesFromDir(tfFilesDir, tfFiles))
 		acceptance.IfErrorFailNow(t, tf.Init())
@@ -57,30 +62,30 @@ func TestAnalyze(t *testing.T) {
 
 				// Arrange
 
-				src, err := NewEC2InstanceSubject(sourceEC2InstanceID, SubjectRoleSource)
+				source, err := aws.NewEC2InstanceSubject(sourceEC2InstanceID, reach.SubjectRoleSource)
 				acceptance.IfErrorFailNow(t, err)
 
-				dest, err := NewEC2InstanceSubject(destinationEC2InstanceID, SubjectRoleDestination)
+				destination, err := aws.NewEC2InstanceSubject(destinationEC2InstanceID, reach.SubjectRoleDestination)
 				acceptance.IfErrorFailNow(t, err)
 
 				// Act
 
-				subjects := []Subject{
-					*src,
-					*dest,
+				a := New()
+				analysis, err := a.Analyze(source, destination)
+				if err != nil {
+					log.Fatal(err)
 				}
-				analysis, err := Analyze(subjects, aws.NewResourceStore())
 
 				// Assert
 
 				if !reflect.DeepEqual(tc.expectedError, err) {
-					DiffErrorf(t, "err", tc.expectedError, err)
+					reach.DiffErrorf(t, "err", tc.expectedError, err)
 				}
 
 				analysisJSON := analysis.ToJSON()
 
 				if expectedAnalysisJSON != analysis.ToJSON() {
-					DiffErrorf(t, "analysis", expectedAnalysisJSON, analysisJSON)
+					reach.DiffErrorf(t, "analysis", expectedAnalysisJSON, analysisJSON)
 				}
 			})
 		}

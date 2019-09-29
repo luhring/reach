@@ -18,7 +18,7 @@ type SubjectPairForTwoEC2Instances struct {
 func ProcessTemplate(t *testing.T, name string, data interface{}) (string, error) {
 	t.Helper()
 
-	tmpl, err := template.New(name).ParseFiles(path.Join("acceptance", "data", "golden", name))
+	tmpl, err := template.New(name).ParseFiles(path.Join("..", "acceptance", "data", "golden", name)) // TODO: Need a better way to coordinate path construction with CWD of test
 	if err != nil {
 		t.Fail()
 		return "", fmt.Errorf("error: unable to parse template file '%s': %v", name, err)

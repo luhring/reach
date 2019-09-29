@@ -2,6 +2,7 @@ package reach
 
 import (
 	"net"
+	"strings"
 )
 
 type NetworkPoint struct {
@@ -18,4 +19,16 @@ func (point NetworkPoint) TrafficComponents() []TrafficContent {
 	}
 
 	return components
+}
+
+func (point NetworkPoint) String() string {
+	var generations []string
+
+	for i := len(point.Lineage) - 1; i >= 0; i -= 1 {
+		generations = append(generations, point.Lineage[i].ID)
+	}
+
+	generations = append(generations, point.IPAddress.String())
+
+	return strings.Join(generations, " : ")
 }

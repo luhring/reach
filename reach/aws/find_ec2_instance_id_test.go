@@ -35,14 +35,14 @@ func TestFindEC2InstanceID(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.searchText, func(t *testing.T) {
-			id, err := FindEC2InstanceID(tc.searchText)
+			id, err := FindEC2InstanceID(tc.searchText, nil)
 
 			if tc.expectedID != id {
-				reach.diffErrorf(t, "id", tc.expectedID, id)
+				reach.DiffErrorf(t, "id", tc.expectedID, id)
 			}
 
 			if !reflect.DeepEqual(tc.expectedError, err) {
-				reach.diffErrorf(t, "err", tc.expectedError, err)
+				reach.DiffErrorf(t, "err", tc.expectedError, err)
 			}
 		})
 	}

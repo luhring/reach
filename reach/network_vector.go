@@ -1,6 +1,10 @@
 package reach
 
-import "github.com/nu7hatch/gouuid"
+import (
+	"fmt"
+
+	"github.com/nu7hatch/gouuid"
+)
 
 type NetworkVector struct {
 	ID          string
@@ -40,4 +44,8 @@ func (v NetworkVector) NetTraffic() (TrafficContent, error) {
 	}
 
 	return resultingTraffic, nil
+}
+
+func (v NetworkVector) String() string {
+	return fmt.Sprintf("From %s\nTo %s\n", v.Source.String(), v.Destination.String())
 }

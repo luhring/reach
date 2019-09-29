@@ -63,14 +63,12 @@ See https://github.com/luhring/reach for documentation.`,
 			log.Fatal(err)
 		}
 
-		fmt.Println(analysis.ToJSON())
+		for _, v := range analysis.NetworkVectors {
+			fmt.Print(v)
+			fmt.Println(v.Traffic)
+		}
 
-		// traffic, err := analysis.MergeVectorTraffic()
-		// if err != nil {
-		// 	log.Fatal(err)
-		// }
-		//
-		// fmt.Print(traffic)
+		// fmt.Println(analysis.ToJSON())
 	},
 }
 
