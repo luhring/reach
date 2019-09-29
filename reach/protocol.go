@@ -42,6 +42,6 @@ func ProtocolName(protocol Protocol) string {
 	case ProtocolICMPv6:
 		return ProtocolNameICMPv6
 	default:
-		return fmt.Sprintf("[IP Protocol %d]", protocol)
+		return fmt.Sprintf("IP protocol %d", protocol)
 	}
 }

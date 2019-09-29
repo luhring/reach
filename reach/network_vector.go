@@ -47,5 +47,14 @@ func (v NetworkVector) NetTraffic() (TrafficContent, error) {
 }
 
 func (v NetworkVector) String() string {
-	return fmt.Sprintf("source %s\ndestination %s\n", v.Source.String(), v.Destination.String())
+	output := ""
+	output += fmt.Sprintf("* network vector ID: %s\n", v.ID)
+	output += fmt.Sprintf("* source: %s\n* destination: %s\n", v.Source.String(), v.Destination.String())
+
+	if v.Traffic != nil {
+		output += "\n"
+		output += v.Traffic.String()
+	}
+
+	return output
 }

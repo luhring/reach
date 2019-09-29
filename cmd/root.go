@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -62,13 +64,16 @@ See https://github.com/luhring/reach for documentation.`,
 			log.Fatal(err)
 		}
 
-		fmt.Println(analysis.ToJSON())
-
 		if showVectors {
+			vectorOutputs := []string{}
+
 			for _, v := range analysis.NetworkVectors {
-				fmt.Print(v)
-				fmt.Println(v.Traffic)
+				output := ""
+				output += v.String()
+				vectorOutputs = append(vectorOutputs, output)
 			}
+
+			fmt.Print(strings.Join(vectorOutputs, "\n"))
 		} else {
 			mergedTraffic, err := analysis.MergedTraffic()
 			if err != nil {
@@ -76,6 +81,10 @@ See https://github.com/luhring/reach for documentation.`,
 			}
 
 			fmt.Print(mergedTraffic)
+
+			if len(analysis.NetworkVectors) > 1 {
+				printMergedResultsWarning()
+			}
 		}
 	},
 }
@@ -91,4 +100,9 @@ func init() {
 	rootCmd.Flags().BoolVar(&showVectors, vectorsFlag, false, "show allowed traffic in terms of network vectors")
 	rootCmd.Flags().BoolVar(&assertReachable, assertReachableFlag, false, "exit non-zero if no traffic is allowed from source to destination")
 	rootCmd.Flags().BoolVar(&assertNotReachable, assertNotReachableFlag, false, "exit non-zero if any traffic can reach destination from source")
+}
+
+func printMergedResultsWarning() {
+	const mergedResultsWarning = "IMPORTANT: Reach detected more than one network path between the source and destination. Reach calls these paths \"network vectors\". The analysis result shown above is the merging of all network vectors' analysis results. The impact that infrastructure configuration has on actual network reachability might vary based on the way hosts are configured to use their network interfaces, and Reach is unable to access any configuration internal to a host. To see the network reachability across individual network vectors, run the command again with '--vectors'.\n"
+	_, _ = fmt.Fprintln(os.Stderr, "\n"+mergedResultsWarning)
 }

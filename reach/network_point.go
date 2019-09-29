@@ -30,5 +30,5 @@ func (point NetworkPoint) String() string {
 
 	generations = append(generations, point.IPAddress.String())
 
-	return strings.Join(generations, " : ")
+	return strings.Join(generations, " -> ")
 }
