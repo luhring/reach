@@ -72,7 +72,7 @@ func NewTrafficContentForCustomProtocol(protocol Protocol, hasContent bool) Traf
 }
 
 func NewTrafficContentFromMergingMultiple(contents []TrafficContent) (TrafficContent, error) {
-	var result TrafficContent
+	result := NewTrafficContent()
 
 	for _, trafficContent := range contents {
 		if result.All() {
@@ -132,20 +132,28 @@ func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 		return NewTrafficContentForNoTraffic(), nil
 	}
 
-	var result TrafficContent
+	result := NewTrafficContent()
 
-	for p, content := range tc.protocols {
-		mergedProtocolContent, err := content.merge(other.Protocol(p))
-		if err != nil {
-			return TrafficContent{}, err
+	if !tc.None() {
+		for p, _ := range tc.protocols {
+			mergedProtocolContent, err := result.Protocol(p).merge(tc.Protocol(p))
+			if err != nil {
+				return TrafficContent{}, err
+			}
+
+			result.SetProtocolContent(p, mergedProtocolContent)
 		}
-
-		result.SetProtocolContent(p, mergedProtocolContent)
 	}
 
-	// Grab unique protocol content from other
-	for p, otherContent := range other.protocols {
-		result.SetProtocolContent(p, *otherContent)
+	if !other.None() {
+		for p, _ := range other.protocols {
+			mergedProtocolContent, err := result.Protocol(p).merge(other.Protocol(p))
+			if err != nil {
+				return TrafficContent{}, err
+			}
+
+			result.SetProtocolContent(p, mergedProtocolContent)
+		}
 	}
 
 	return result, nil
@@ -160,24 +168,32 @@ func (tc *TrafficContent) Intersect(other TrafficContent) (TrafficContent, error
 		return NewTrafficContentForAllTraffic(), nil
 	}
 
-	var result TrafficContent
+	result := NewTrafficContentForAllTraffic()
 
-	// We can't loop through protocols on an 'all traffic' TrafficContent,
-	// so we need to make sure not to try.
-	var protocolContents map[Protocol]*ProtocolContent
 	if !tc.All() {
-		protocolContents = tc.protocols
-	} else {
-		protocolContents = other.protocols
+		for p, _ := range tc.protocols {
+			intersectedProtocolContent, err := result.Protocol(p).intersect(tc.Protocol(p))
+			if err != nil {
+				return TrafficContent{}, err
+			}
+
+			if !intersectedProtocolContent.Empty() {
+				result.SetProtocolContent(p, intersectedProtocolContent)
+			}
+		}
 	}
 
-	for p, _ := range protocolContents {
-		intersectedProtocolContent, err := tc.Protocol(p).intersect(other.Protocol(p))
-		if err != nil {
-			return TrafficContent{}, err
-		}
+	if !other.All() {
+		for p, _ := range other.protocols {
+			intersectedProtocolContent, err := result.Protocol(p).intersect(other.Protocol(p))
+			if err != nil {
+				return TrafficContent{}, err
+			}
 
-		result.SetProtocolContent(p, intersectedProtocolContent)
+			if !intersectedProtocolContent.Empty() {
+				result.SetProtocolContent(p, intersectedProtocolContent)
+			}
+		}
 	}
 
 	return result, nil

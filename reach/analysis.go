@@ -27,7 +27,7 @@ func (a *Analysis) ToJSON() string {
 	return string(b)
 }
 
-func (a *Analysis) MergeVectorTraffic() (TrafficContent, error) {
+func (a *Analysis) MergedTraffic() (TrafficContent, error) {
 	result := NewTrafficContent()
 
 	for _, v := range a.NetworkVectors {

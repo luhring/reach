@@ -13,13 +13,12 @@ import (
 )
 
 const explainFlag = "explain"
-const portFlag = "port"
-const portFlagShorthand = "p"
+const vectorsFlag = "vectors"
 const assertReachableFlag = "assert-reachable"
 const assertNotReachableFlag = "assert-not-reachable"
 
-var shouldExplain bool
-var port uint16
+var explain bool
+var showVectors bool
 var assertReachable bool
 var assertNotReachable bool
 
@@ -63,12 +62,21 @@ See https://github.com/luhring/reach for documentation.`,
 			log.Fatal(err)
 		}
 
-		for _, v := range analysis.NetworkVectors {
-			fmt.Print(v)
-			fmt.Println(v.Traffic)
-		}
+		fmt.Println(analysis.ToJSON())
 
-		// fmt.Println(analysis.ToJSON())
+		if showVectors {
+			for _, v := range analysis.NetworkVectors {
+				fmt.Print(v)
+				fmt.Println(v.Traffic)
+			}
+		} else {
+			mergedTraffic, err := analysis.MergedTraffic()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Print(mergedTraffic)
+		}
 	},
 }
 
@@ -79,8 +87,8 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.Flags().BoolVar(&shouldExplain, explainFlag, false, "explain how the configuration was analyzed")
-	rootCmd.Flags().Uint16VarP(&port, portFlag, portFlagShorthand, 0, "restrict analysis to a specified TCP port")
-	rootCmd.Flags().BoolVar(&assertReachable, assertReachableFlag, false, "exit non-zero if no traffic is allowed from source to destination (within analysis scope, if specified)")
-	rootCmd.Flags().BoolVar(&assertNotReachable, assertNotReachableFlag, false, "exit non-zero if any traffic can reach destination from source (within analysis scope, if specified)")
+	rootCmd.Flags().BoolVar(&explain, explainFlag, false, "explain how the configuration was analyzed")
+	rootCmd.Flags().BoolVar(&showVectors, vectorsFlag, false, "show allowed traffic in terms of network vectors")
+	rootCmd.Flags().BoolVar(&assertReachable, assertReachableFlag, false, "exit non-zero if no traffic is allowed from source to destination")
+	rootCmd.Flags().BoolVar(&assertNotReachable, assertNotReachableFlag, false, "exit non-zero if any traffic can reach destination from source")
 }

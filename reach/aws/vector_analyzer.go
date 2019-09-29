@@ -1,6 +1,8 @@
 package aws
 
-import "github.com/luhring/reach/reach"
+import (
+	"github.com/luhring/reach/reach"
+)
 
 type VectorAnalyzer struct {
 	resourceCollection *reach.ResourceCollection
