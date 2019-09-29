@@ -64,8 +64,13 @@ See https://github.com/luhring/reach for documentation.`,
 			log.Fatal(err)
 		}
 
+		mergedTraffic, err := analysis.MergedTraffic()
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		if showVectors {
-			vectorOutputs := []string{}
+			var vectorOutputs []string
 
 			for _, v := range analysis.NetworkVectors {
 				output := ""
@@ -75,15 +80,29 @@ See https://github.com/luhring/reach for documentation.`,
 
 			fmt.Print(strings.Join(vectorOutputs, "\n"))
 		} else {
-			mergedTraffic, err := analysis.MergedTraffic()
-			if err != nil {
-				log.Fatal(err)
-			}
-
 			fmt.Print(mergedTraffic)
 
 			if len(analysis.NetworkVectors) > 1 {
 				printMergedResultsWarning()
+			}
+		}
+
+		const canReach = "source is able to reach destination"
+		const cannotReach = "source is unable to reach destination"
+
+		if assertReachable {
+			if mergedTraffic.None() {
+				exitWithFailedAssertion(cannotReach)
+			} else {
+				exitWithSuccessfulAssertion(canReach)
+			}
+		}
+
+		if assertNotReachable {
+			if mergedTraffic.None() {
+				exitWithSuccessfulAssertion(cannotReach)
+			} else {
+				exitWithFailedAssertion(canReach)
 			}
 		}
 	},
@@ -103,6 +122,6 @@ func init() {
 }
 
 func printMergedResultsWarning() {
-	const mergedResultsWarning = "IMPORTANT: Reach detected more than one network path between the source and destination. Reach calls these paths \"network vectors\". The analysis result shown above is the merging of all network vectors' analysis results. The impact that infrastructure configuration has on actual network reachability might vary based on the way hosts are configured to use their network interfaces, and Reach is unable to access any configuration internal to a host. To see the network reachability across individual network vectors, run the command again with '--vectors'.\n"
-	_, _ = fmt.Fprintln(os.Stderr, "\n"+mergedResultsWarning)
+	const mergedResultsWarning = "IMPORTANT: Reach detected more than one network path between the source and destination. Reach calls these paths \"network vectors\". The analysis result shown above is the merging of all network vectors' analysis results. The impact that infrastructure configuration has on actual network reachability might vary based on the way hosts are configured to use their network interfaces, and Reach is unable to access any configuration internal to a host. To see the network reachability across individual network vectors, run the command again with '--vectors'.\n\n"
+	_, _ = fmt.Fprint(os.Stderr, "\n"+mergedResultsWarning)
 }
