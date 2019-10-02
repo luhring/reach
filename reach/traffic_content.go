@@ -2,6 +2,8 @@ package reach
 
 import (
 	"encoding/json"
+	"sort"
+	"strings"
 
 	"github.com/luhring/reach/reach/set"
 )
@@ -236,13 +238,53 @@ func (tc TrafficContent) String() string {
 		return "[no traffic]\n"
 	}
 
-	var output string
+	var output, tcpOutput, udpOutput, icmpv4Output, icmpv6Output, customOutput string
+	var customProtocolContents []*ProtocolContent
+	var customOutputItems []string
+	var outputItems []string
 
 	for _, content := range tc.protocols {
-		// if !content.Empty() { // TODO: revert or remove
-		output += content.String() + "\n"
-		// }
+		switch content.Protocol {
+		case ProtocolTCP:
+			tcpOutput += content.String()
+		case ProtocolUDP:
+			udpOutput += content.String()
+		case ProtocolICMPv4:
+			icmpv4Output += content.String()
+		case ProtocolICMPv6:
+			icmpv6Output += content.String()
+		default:
+			customProtocolContents = append(customProtocolContents, content)
+		}
 	}
+	sort.Slice(customProtocolContents, func(i, j int) bool {
+		return customProtocolContents[i].Protocol < customProtocolContents[j].Protocol
+	})
+
+	for _, item := range customProtocolContents {
+		customOutputItems = append(customOutputItems, item.String())
+	}
+
+	customOutput += strings.Join(customOutputItems, "\n")
+
+	if tcpOutput != "" {
+		outputItems = append(outputItems, tcpOutput)
+	}
+	if udpOutput != "" {
+		outputItems = append(outputItems, udpOutput)
+	}
+	if icmpv4Output != "" {
+		outputItems = append(outputItems, icmpv4Output)
+	}
+	if icmpv6Output != "" {
+		outputItems = append(outputItems, icmpv6Output)
+	}
+	if customOutput != "" {
+		outputItems = append(outputItems, customOutput)
+	}
+
+	output = strings.Join(outputItems, "\n")
+	output += "\n"
 
 	return output
 }
