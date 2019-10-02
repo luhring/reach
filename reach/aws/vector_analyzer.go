@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"fmt"
+
 	"github.com/luhring/reach/reach"
 )
 
@@ -27,7 +29,6 @@ func (analyzer VectorAnalyzer) FactorsForPerspective(p AnalysisPerspective) ([]r
 
 			if resourceRef.Kind == ResourceKindElasticNetworkInterface {
 				eni := analyzer.resourceCollection.Get(resourceRef).Properties.(ElasticNetworkInterface)
-
 				targetENI := ElasticNetworkInterfaceFromNetworkPoint(p.other, analyzer.resourceCollection)
 
 				securityGroupRulesFactor, err := eni.NewSecurityGroupRulesFactor(
@@ -41,6 +42,10 @@ func (analyzer VectorAnalyzer) FactorsForPerspective(p AnalysisPerspective) ([]r
 				}
 
 				factors = append(factors, *securityGroupRulesFactor)
+
+				if !sameSubnet(&eni, targetENI) {
+					return nil, fmt.Errorf("unable to analyze without two EC2 instances existing in the same subnet (source subnet: %s, destination subnet: %s)", eni.SubnetID, targetENI.SubnetID)
+				}
 			}
 		}
 	}
@@ -70,4 +75,12 @@ func (analyzer VectorAnalyzer) Factors(v reach.NetworkVector) ([]reach.Factor, r
 	v.Destination.Factors = destinationFactors
 
 	return factors, v, nil
+}
+
+func sameSubnet(first, second *ElasticNetworkInterface) bool {
+	if first == nil || second == nil {
+		return false
+	}
+
+	return first.SubnetID == second.SubnetID
 }
