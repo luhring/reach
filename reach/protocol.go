@@ -42,6 +42,15 @@ func ProtocolName(protocol Protocol) string {
 	case ProtocolICMPv6:
 		return ProtocolNameICMPv6
 	default:
+		return customProtocolName(protocol)
+	}
+}
+
+func customProtocolName(protocol Protocol) string {
+	name, exists := customProtocols[protocol]
+	if exists {
+		return name
+	} else {
 		return fmt.Sprintf("IP protocol %d", protocol)
 	}
 }
