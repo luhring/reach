@@ -47,7 +47,7 @@ func ProtocolName(protocol Protocol) string {
 }
 
 func customProtocolName(protocol Protocol) string {
-	name, exists := customProtocols[protocol]
+	name, exists := ipProtocols[protocol]
 	if exists {
 		return name
 	} else {
