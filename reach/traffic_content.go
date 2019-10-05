@@ -231,11 +231,11 @@ func (tc TrafficContent) MarshalJSON() ([]byte, error) {
 
 func (tc TrafficContent) String() string {
 	if tc.All() {
-		return "[all traffic]\n"
+		return "all traffic allowed\n"
 	}
 
 	if tc.None() {
-		return "[no traffic]\n"
+		return "no traffic allowed\n"
 	}
 
 	var output, tcpOutput, udpOutput, icmpv4Output, icmpv6Output, customOutput string

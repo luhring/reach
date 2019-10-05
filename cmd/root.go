@@ -74,7 +74,13 @@ See https://github.com/luhring/reach for documentation.`,
 
 			for _, v := range analysis.NetworkVectors {
 				output := ""
-				output += v.String()
+
+				if explain {
+					// output += a
+				} else {
+					output += v.String()
+				}
+
 				vectorOutputs = append(vectorOutputs, output)
 			}
 

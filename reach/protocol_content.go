@@ -89,10 +89,10 @@ func (pc ProtocolContent) String() string {
 		} else if pc.isICMPv4OrICMPv6() {
 			output += fmt.Sprintf(": %s", pc.ICMP.String())
 		} else {
-			output += ": [all traffic for this protocol]"
+			output += ": all traffic"
 		}
 	} else {
-		output += ": [no traffic for this protocol]"
+		output += ": no traffic"
 	}
 
 	return output
@@ -205,7 +205,7 @@ func (pc ProtocolContent) getProtocolName() string {
 	case ProtocolAll:
 		return ProtocolNameAll
 	case ProtocolICMPv4:
-		return ProtocolNameICMP
+		return ProtocolNameICMPv4
 	case ProtocolTCP:
 		return ProtocolNameTCP
 	case ProtocolUDP:
@@ -221,6 +221,6 @@ func (pc ProtocolContent) usesNamedProtocol() bool {
 	name := pc.getProtocolName()
 	return strings.EqualFold(name, ProtocolNameTCP) ||
 		strings.EqualFold(name, ProtocolNameUDP) ||
-		strings.EqualFold(name, ProtocolNameICMP) ||
+		strings.EqualFold(name, ProtocolNameICMPv4) ||
 		strings.EqualFold(name, ProtocolNameICMPv6)
 }

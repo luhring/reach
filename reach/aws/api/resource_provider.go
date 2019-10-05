@@ -70,13 +70,13 @@ func convertAWSIPProtocolStringToProtocol(ipProtocol *string) (reach.Protocol, e
 	var protocolNumber reach.Protocol
 
 	switch protocolString {
-	case strings.ToLower(reach.ProtocolNameTCP):
+	case "tcp":
 		protocolNumber = reach.ProtocolTCP
-	case strings.ToLower(reach.ProtocolNameUDP):
+	case "udp":
 		protocolNumber = reach.ProtocolUDP
-	case strings.ToLower(reach.ProtocolNameICMP):
+	case "icmp":
 		protocolNumber = reach.ProtocolICMPv4
-	case strings.ToLower(reach.ProtocolNameICMPv6):
+	case "icmpv6":
 		protocolNumber = reach.ProtocolICMPv6
 	default:
 		return 0, errors.New("unrecognized ipProtocol value")

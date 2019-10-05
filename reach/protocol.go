@@ -13,7 +13,7 @@ const (
 	ProtocolUDP        Protocol = 17
 	ProtocolICMPv6     Protocol = 58
 	ProtocolNameAll             = "all"
-	ProtocolNameICMP            = "ICMP"
+	ProtocolNameICMPv4          = "ICMPv4"
 	ProtocolNameTCP             = "TCP"
 	ProtocolNameUDP             = "UDP"
 	ProtocolNameICMPv6          = "ICMPv6"
@@ -34,7 +34,7 @@ func (p Protocol) IsCustomProtocol() bool {
 func ProtocolName(protocol Protocol) string {
 	switch protocol {
 	case ProtocolICMPv4:
-		return ProtocolNameICMP
+		return ProtocolNameICMPv4
 	case ProtocolTCP:
 		return ProtocolNameTCP
 	case ProtocolUDP:

@@ -84,3 +84,7 @@ func sameSubnet(first, second *ElasticNetworkInterface) bool {
 
 	return first.SubnetID == second.SubnetID
 }
+
+// func (analyzer VectorAnalyzer) Explain(v reach.NetworkVector) string {
+// 	v.Source.
+// }
