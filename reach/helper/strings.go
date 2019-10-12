@@ -6,6 +6,20 @@ import (
 	"github.com/mgutz/ansi"
 )
 
+func PrefixLines(lines []string, prefix string) string {
+	var outputLines []string
+
+	for _, line := range lines {
+		if line == "" {
+			outputLines = append(outputLines, line)
+		} else {
+			outputLines = append(outputLines, prefix+line)
+		}
+	}
+
+	return strings.Join(outputLines, "\n")
+}
+
 func Indent(text string, spaces int) string {
 	if spaces < 1 {
 		return text

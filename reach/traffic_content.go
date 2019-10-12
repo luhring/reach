@@ -7,6 +7,7 @@ import (
 
 	"github.com/mgutz/ansi"
 
+	"github.com/luhring/reach/reach/helper"
 	"github.com/luhring/reach/reach/set"
 )
 
@@ -306,7 +307,7 @@ func (tc TrafficContent) StringWithSymbols() string {
 		return noTrafficString + "\n"
 	}
 
-	var output, tcpOutput, udpOutput, icmpv4Output, icmpv6Output, customOutput string
+	var tcpLines, udpLines, icmpv4Lines, icmpv6Lines []string
 	var customProtocolContents []*ProtocolContent
 	var customOutputItems []string
 	var outputItems []string
@@ -314,13 +315,13 @@ func (tc TrafficContent) StringWithSymbols() string {
 	for _, content := range tc.protocols {
 		switch content.Protocol {
 		case ProtocolTCP:
-			tcpOutput += content.String()
+			tcpLines = append(tcpLines, content.Lines()...)
 		case ProtocolUDP:
-			udpOutput += content.String()
+			udpLines = append(udpLines, content.Lines()...)
 		case ProtocolICMPv4:
-			icmpv4Output += content.String()
+			icmpv4Lines = append(icmpv4Lines, content.Lines()...)
 		case ProtocolICMPv6:
-			icmpv6Output += content.String()
+			icmpv6Lines = append(icmpv6Lines, content.Lines()...)
 		default:
 			customProtocolContents = append(customProtocolContents, content)
 		}
@@ -333,28 +334,25 @@ func (tc TrafficContent) StringWithSymbols() string {
 		customOutputItems = append(customOutputItems, "✓ "+item.String())
 	}
 
-	customOutput += strings.Join(customOutputItems, "\n")
+	customOutput := strings.Join(customOutputItems, "\n")
 
-	if tcpOutput != "" {
-		outputItems = append(outputItems, "✓ "+tcpOutput)
+	if len(tcpLines) > 0 {
+		outputItems = append(outputItems, helper.PrefixLines(tcpLines, "✓ "))
 	}
-	if udpOutput != "" {
-		outputItems = append(outputItems, "✓ "+udpOutput)
+	if len(udpLines) > 0 {
+		outputItems = append(outputItems, helper.PrefixLines(udpLines, "✓ "))
 	}
-	if icmpv4Output != "" {
-		outputItems = append(outputItems, "✓ "+icmpv4Output)
+	if len(icmpv4Lines) > 0 {
+		outputItems = append(outputItems, helper.PrefixLines(icmpv4Lines, "✓ "))
 	}
-	if icmpv6Output != "" {
-		outputItems = append(outputItems, "✓ "+icmpv6Output)
+	if len(icmpv6Lines) > 0 {
+		outputItems = append(outputItems, helper.PrefixLines(icmpv6Lines, "✓ "))
 	}
 	if customOutput != "" {
 		outputItems = append(outputItems, customOutput)
 	}
 
-	output = strings.Join(outputItems, "\n")
-	output += "\n"
-
-	return output
+	return strings.Join(outputItems, "\n") + "\n"
 }
 
 func (tc TrafficContent) ColorString() string {

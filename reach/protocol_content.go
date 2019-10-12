@@ -100,6 +100,33 @@ func (pc ProtocolContent) String() string {
 	return fmt.Sprintf("%s (no traffic)", protocolName)
 }
 
+func (pc ProtocolContent) Lines() []string {
+	protocolName := ProtocolName(pc.Protocol)
+
+	if !pc.Empty() {
+		if pc.isTCPOrUDP() {
+
+			var lines []string
+
+			for _, rangeString := range pc.Ports.RangeStrings() {
+				lines = append(lines, fmt.Sprintf("%s %s", protocolName, rangeString))
+			}
+
+			return lines
+		} else if pc.isICMPv4OrICMPv6() {
+			if pc.Protocol == ProtocolICMPv6 {
+				return pc.ICMP.RangeStringsV6()
+			} else {
+				return pc.ICMP.RangeStringsV4()
+			}
+		} else {
+			return []string{fmt.Sprintf("%s (all traffic)", protocolName)}
+		}
+	}
+
+	return []string{fmt.Sprintf("%s (no traffic)", protocolName)}
+}
+
 func (pc ProtocolContent) isTCPOrUDP() bool {
 	return pc.Protocol == ProtocolTCP || pc.Protocol == ProtocolUDP
 }

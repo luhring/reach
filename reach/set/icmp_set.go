@@ -87,7 +87,7 @@ func allCodesForOneTypeV4(first, last ICMPTypeCode) (bool, string) {
 	// same type!
 
 	if first.icmpCode == minimumICMPCode && last.icmpCode == maximumICMPCode {
-		return true, fmt.Sprintf("all traffic for ICMPv4 type \"%s\"", GetICMPv4TypeName(first.icmpType))
+		return true, fmt.Sprintf("ICMPv4 type \"%s\" (all traffic)", GetICMPv4TypeName(first.icmpType))
 	}
 
 	return false, ""
@@ -101,7 +101,7 @@ func allCodesForOneTypeV6(first, last ICMPTypeCode) (bool, string) {
 	// same type!
 
 	if first.icmpCode == minimumICMPCode && last.icmpCode == maximumICMPCode {
-		return true, fmt.Sprintf("all traffic for ICMPv6 type \"%s\"", GetICMPv6TypeName(first.icmpType))
+		return true, fmt.Sprintf("ICMPv6 type \"%s\" (all traffic)", GetICMPv6TypeName(first.icmpType))
 	}
 
 	return false, ""
