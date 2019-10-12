@@ -81,25 +81,23 @@ func (pc ProtocolContent) Empty() bool {
 }
 
 func (pc ProtocolContent) String() string {
-	output := ProtocolName(pc.Protocol)
+	protocolName := ProtocolName(pc.Protocol)
 
 	if !pc.Empty() {
 		if pc.isTCPOrUDP() {
-			output += fmt.Sprintf(": %s", pc.Ports.String())
+			return fmt.Sprintf("%s %s", protocolName, pc.Ports.String())
 		} else if pc.isICMPv4OrICMPv6() {
 			if pc.Protocol == ProtocolICMPv6 {
-				output += fmt.Sprintf(": %s", pc.ICMP.StringV6())
+				return fmt.Sprintf("%s", pc.ICMP.StringV6())
 			} else {
-				output += fmt.Sprintf(": %s", pc.ICMP.StringV4())
+				return fmt.Sprintf("%s", pc.ICMP.StringV4())
 			}
 		} else {
-			output += ": all traffic"
+			return fmt.Sprintf("%s (all traffic)", protocolName)
 		}
-	} else {
-		output += ": no traffic"
 	}
 
-	return output
+	return fmt.Sprintf("%s (no traffic)", protocolName)
 }
 
 func (pc ProtocolContent) isTCPOrUDP() bool {
