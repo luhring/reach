@@ -48,7 +48,7 @@ func (ex *Explainer) InstanceState(factor reach.Factor) string {
 	outputItems = append(outputItems, helper.Bold("instance state:"))
 	outputItems = append(outputItems, helper.Indent(fmt.Sprintf("\"%s\"", ec2Instance.State), 2))
 	outputItems = append(outputItems, "")
-	outputItems = append(outputItems, helper.Indent("traffic allowed by instance state:", 2))
+	outputItems = append(outputItems, helper.Indent("network traffic allowed based on instance state:", 2))
 	outputItems = append(outputItems, helper.Indent(factor.Traffic.ColorString(), 4))
 
 	return strings.Join(outputItems, "\n")
@@ -128,7 +128,7 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor) string {
 		}
 	}
 
-	bodyItems = append(bodyItems, "traffic allowed by security group rules:")
+	bodyItems = append(bodyItems, "network traffic allowed based on security group rules:")
 	bodyItems = append(bodyItems, helper.Indent(factor.Traffic.ColorString(), 2))
 
 	body := strings.Join(bodyItems, "\n")

@@ -14,6 +14,8 @@ const (
 	trafficContentIndicatorUnset trafficContentIndicator = iota
 	trafficContentIndicatorAll
 	trafficContentIndicatorNone
+	allTrafficString = "all traffic"
+	noTrafficString  = "(none)"
 )
 
 type trafficContentIndicator int
@@ -139,7 +141,7 @@ func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 	result := NewTrafficContent()
 
 	if !tc.None() {
-		for p, _ := range tc.protocols {
+		for p := range tc.protocols {
 			mergedProtocolContent, err := result.Protocol(p).merge(tc.Protocol(p))
 			if err != nil {
 				return TrafficContent{}, err
@@ -150,7 +152,7 @@ func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 	}
 
 	if !other.None() {
-		for p, _ := range other.protocols {
+		for p := range other.protocols {
 			mergedProtocolContent, err := result.Protocol(p).merge(other.Protocol(p))
 			if err != nil {
 				return TrafficContent{}, err
@@ -175,13 +177,13 @@ func (tc *TrafficContent) Intersect(other TrafficContent) (TrafficContent, error
 	protocolsToProcess := make(map[Protocol]bool)
 
 	if !tc.All() {
-		for p, _ := range tc.protocols {
+		for p := range tc.protocols {
 			protocolsToProcess[p] = true
 		}
 	}
 
 	if !other.All() {
-		for p, _ := range other.protocols {
+		for p := range other.protocols {
 			protocolsToProcess[p] = true
 		}
 	}
@@ -237,11 +239,11 @@ func (tc TrafficContent) MarshalJSON() ([]byte, error) {
 
 func (tc TrafficContent) String() string {
 	if tc.All() {
-		return "all traffic\n"
+		return allTrafficString + "\n"
 	}
 
 	if tc.None() {
-		return "no traffic\n"
+		return noTrafficString + "\n"
 	}
 
 	var output, tcpOutput, udpOutput, icmpv4Output, icmpv6Output, customOutput string
@@ -297,11 +299,11 @@ func (tc TrafficContent) String() string {
 
 func (tc TrafficContent) StringWithSymbols() string {
 	if tc.All() {
-		return "✓ all traffic\n"
+		return "✓ " + allTrafficString + "\n"
 	}
 
 	if tc.None() {
-		return "✗ no traffic\n"
+		return noTrafficString + "\n"
 	}
 
 	var output, tcpOutput, udpOutput, icmpv4Output, icmpv6Output, customOutput string
