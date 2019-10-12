@@ -33,8 +33,7 @@ func (analyzer VectorAnalyzer) FactorsForPerspective(p AnalysisPerspective) ([]r
 
 				securityGroupRulesFactor, err := eni.NewSecurityGroupRulesFactor(
 					analyzer.resourceCollection,
-					p.getSecurityGroupRules,
-					p.other.IPAddress,
+					p,
 					targetENI,
 				)
 				if err != nil {
@@ -85,6 +84,10 @@ func sameSubnet(first, second *ElasticNetworkInterface) bool {
 	return first.SubnetID == second.SubnetID
 }
 
-// func (analyzer VectorAnalyzer) Explain(v reach.NetworkVector) string {
-// 	v.Source.
-// }
+func sameVPC(first, second *ElasticNetworkInterface) bool {
+	if first == nil || second == nil {
+		return false
+	}
+
+	return first.VPCID == second.VPCID
+}

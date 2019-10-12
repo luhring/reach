@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mgutz/ansi"
+
 	"github.com/luhring/reach/reach/set"
 )
 
@@ -231,11 +233,11 @@ func (tc TrafficContent) MarshalJSON() ([]byte, error) {
 
 func (tc TrafficContent) String() string {
 	if tc.All() {
-		return "all traffic allowed\n"
+		return "all traffic\n"
 	}
 
 	if tc.None() {
-		return "no traffic allowed\n"
+		return "no traffic\n"
 	}
 
 	var output, tcpOutput, udpOutput, icmpv4Output, icmpv6Output, customOutput string
@@ -287,6 +289,14 @@ func (tc TrafficContent) String() string {
 	output += "\n"
 
 	return output
+}
+
+func (tc TrafficContent) ColorString() string {
+	if tc.None() {
+		return ansi.Color(tc.String(), "red+b")
+	} else {
+		return ansi.Color(tc.String(), "green+b")
+	}
 }
 
 func (tc TrafficContent) All() bool {

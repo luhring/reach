@@ -12,6 +12,7 @@ import (
 	"github.com/luhring/reach/reach/analyzer"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/aws/api"
+	"github.com/luhring/reach/reach/explainer"
 )
 
 const explainFlag = "explain"
@@ -69,23 +70,22 @@ See https://github.com/luhring/reach for documentation.`,
 			log.Fatal(err)
 		}
 
-		if showVectors {
+		if explain {
+			ex := explainer.New(*analysis)
+			fmt.Print(ex.Explain())
+		} else if showVectors {
 			var vectorOutputs []string
 
 			for _, v := range analysis.NetworkVectors {
 				output := ""
-
-				if explain {
-					// output += a
-				} else {
-					output += v.String()
-				}
+				output += v.String()
 
 				vectorOutputs = append(vectorOutputs, output)
 			}
 
 			fmt.Print(strings.Join(vectorOutputs, "\n"))
 		} else {
+			fmt.Print("Traffic allowed from source to destination:\n\n")
 			fmt.Print(mergedTraffic)
 
 			if len(analysis.NetworkVectors) > 1 {

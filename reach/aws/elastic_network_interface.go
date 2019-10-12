@@ -1,7 +1,9 @@
 package aws
 
 import (
+	"fmt"
 	"net"
+	"strings"
 
 	"github.com/luhring/reach/reach"
 )
@@ -123,4 +125,12 @@ func (eni ElasticNetworkInterface) GetNetworkPoints(parent reach.ResourceReferen
 	}
 
 	return networkPoints
+}
+
+func (eni ElasticNetworkInterface) Name() string {
+	if name := strings.TrimSpace(eni.NameTag); name != "" {
+		return fmt.Sprintf("\"%s\" (%s)", name, eni.ID)
+	} else {
+		return eni.ID
+	}
 }

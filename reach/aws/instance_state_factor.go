@@ -1,6 +1,10 @@
 package aws
 
-import "github.com/luhring/reach/reach"
+import (
+	"fmt"
+
+	"github.com/luhring/reach/reach"
+)
 
 const FactorKindInstanceState = "InstanceState"
 
@@ -18,4 +22,10 @@ func (i EC2Instance) NewInstanceStateFactor() reach.Factor {
 		Resource: i.ToResourceReference(),
 		Traffic:  tc,
 	}
+}
+
+func (i EC2Instance) ExplainInstanceState() string {
+	output := fmt.Sprintf("EC2 instance state is '%s'", i.State)
+
+	return output
 }

@@ -1,6 +1,11 @@
 package aws
 
-import "github.com/luhring/reach/reach"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/luhring/reach/reach"
+)
 
 const ResourceKindEC2Instance = "EC2Instance"
 
@@ -90,4 +95,12 @@ func (i EC2Instance) GetNetworkPoints(rc *reach.ResourceCollection) []reach.Netw
 	}
 
 	return points
+}
+
+func (i EC2Instance) Name() string {
+	if name := strings.TrimSpace(i.NameTag); name != "" {
+		return fmt.Sprintf("\"%s\" (%s)", name, i.ID)
+	} else {
+		return i.ID
+	}
 }

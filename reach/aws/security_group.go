@@ -1,6 +1,10 @@
 package aws
 
-import "github.com/luhring/reach/reach"
+import (
+	"fmt"
+
+	"github.com/luhring/reach/reach"
+)
 
 const ResourceKindSecurityGroup = "SecurityGroup"
 
@@ -52,4 +56,41 @@ func (sg SecurityGroup) GetDependencies(provider ResourceProvider) (*reach.Resou
 	}
 
 	return rc, nil
+}
+
+func (sg SecurityGroup) Name() string {
+	var name string
+
+	if sg.NameTag != "" {
+		name = sg.NameTag
+	} else if sg.GroupName != "" {
+		name = sg.GroupName
+	}
+
+	if name != "" {
+		return fmt.Sprintf("%s (%s)", name, sg.ID)
+	}
+
+	return sg.ID
+}
+
+func (sg SecurityGroup) GetRule(direction SecurityGroupRuleDirection, ruleIndex int) (*SecurityGroupRule, error) {
+	errNotFound := fmt.Errorf("rule not found for direction '%s' and index '%d'", direction, ruleIndex)
+
+	var rules []SecurityGroupRule
+
+	switch direction {
+	case SecurityGroupRuleDirectionInbound:
+		rules = sg.InboundRules
+	case SecurityGroupRuleDirectionOutbound:
+		rules = sg.OutboundRules
+	default:
+		return nil, errNotFound
+	}
+
+	if ruleIndex < 0 || ruleIndex >= len(rules) {
+		return nil, errNotFound
+	}
+
+	return &rules[ruleIndex], nil
 }

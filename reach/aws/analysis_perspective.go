@@ -6,6 +6,7 @@ type AnalysisPerspective struct {
 	self                  reach.NetworkPoint
 	other                 reach.NetworkPoint
 	getSecurityGroupRules func(sg SecurityGroup) []SecurityGroupRule
+	ruleDirection         SecurityGroupRuleDirection
 }
 
 func NewAnalysisPerspectiveSourceOriented(v reach.NetworkVector) AnalysisPerspective {
@@ -15,6 +16,7 @@ func NewAnalysisPerspectiveSourceOriented(v reach.NetworkVector) AnalysisPerspec
 		getSecurityGroupRules: func(sg SecurityGroup) []SecurityGroupRule {
 			return sg.OutboundRules
 		},
+		ruleDirection: SecurityGroupRuleDirectionOutbound,
 	}
 }
 
@@ -25,5 +27,6 @@ func NewAnalysisPerspectiveDestinationOriented(v reach.NetworkVector) AnalysisPe
 		getSecurityGroupRules: func(sg SecurityGroup) []SecurityGroupRule {
 			return sg.InboundRules
 		},
+		ruleDirection: SecurityGroupRuleDirectionInbound,
 	}
 }

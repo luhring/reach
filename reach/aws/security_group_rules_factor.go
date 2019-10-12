@@ -1,8 +1,6 @@
 package aws
 
 import (
-	"net"
-
 	"github.com/luhring/reach/reach"
 )
 
@@ -13,12 +11,18 @@ type SecurityGroupRuleMatchBasis string
 const SecurityGroupRuleMatchBasisIP SecurityGroupRuleMatchBasis = "IP"
 const SecurityGroupRuleMatchBasisSGRef SecurityGroupRuleMatchBasis = "SecurityGroupReference"
 
+type SecurityGroupRuleDirection string
+
+const SecurityGroupRuleDirectionInbound SecurityGroupRuleDirection = "inbound"
+const SecurityGroupRuleDirectionOutbound SecurityGroupRuleDirection = "outbound"
+
 type SecurityGroupRulesFactor struct {
 	ComponentRules []SecurityGroupRulesFactorComponent
 }
 
 type SecurityGroupRulesFactorComponent struct {
 	SecurityGroup reach.ResourceReference
+	RuleDirection SecurityGroupRuleDirection
 	RuleIndex     int
 	Match         SecurityGroupRuleMatch
 }
@@ -28,10 +32,20 @@ type SecurityGroupRuleMatch struct {
 	Value interface{}
 }
 
+func (basis SecurityGroupRuleMatchBasis) String() string {
+	switch basis {
+	case SecurityGroupRuleMatchBasisIP:
+		return "IP address"
+	case SecurityGroupRuleMatchBasisSGRef:
+		return "attached security group"
+	default:
+		return "[unknown match basis]"
+	}
+}
+
 func (eni ElasticNetworkInterface) NewSecurityGroupRulesFactor(
 	rc *reach.ResourceCollection,
-	getRules func(sg SecurityGroup) []SecurityGroupRule,
-	targetIPAddress net.IP,
+	p AnalysisPerspective,
 	targetENI *ElasticNetworkInterface,
 ) (*reach.Factor, error) {
 	var componentRules []SecurityGroupRulesFactorComponent
@@ -46,11 +60,11 @@ func (eni ElasticNetworkInterface) NewSecurityGroupRulesFactor(
 
 		sg := rc.Get(ref).Properties.(SecurityGroup)
 
-		for ruleIndex, rule := range getRules(sg) {
+		for ruleIndex, rule := range p.getSecurityGroupRules(sg) {
 			var match *SecurityGroupRuleMatch
 
 			// check ip match
-			match = rule.MatchByIP(targetIPAddress)
+			match = rule.MatchByIP(p.other.IPAddress)
 
 			// check SG ref match (only if we don't already have a match)
 			if match == nil {
@@ -60,6 +74,7 @@ func (eni ElasticNetworkInterface) NewSecurityGroupRulesFactor(
 			if match != nil {
 				component := SecurityGroupRulesFactorComponent{
 					SecurityGroup: ref,
+					RuleDirection: p.ruleDirection,
 					RuleIndex:     ruleIndex,
 					Match:         *match,
 				}
