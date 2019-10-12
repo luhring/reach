@@ -71,18 +71,6 @@ func (s ICMPSet) Empty() bool {
 	return s.set.Empty()
 }
 
-func (s ICMPSet) Types() []string {
-	if s.set.Complete() {
-		return []string{"[all ICMP types and codes]"}
-	}
-
-	if s.set.Empty() {
-		return []string{"[no ICMP traffic]"}
-	}
-
-	return []string{"[some ICMP traffic (detailed serialization not yet implemented)]"} // TODO: implement
-}
-
 func allTypes(first, last ICMPTypeCode) (bool, string) {
 	if first.icmpType == minimumICMPType && first.icmpCode == minimumICMPCode && last.icmpType == maximumICMPType && last.icmpCode == maximumICMPCode {
 		return true, "all traffic"

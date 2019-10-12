@@ -218,12 +218,16 @@ func (tc TrafficContent) MarshalJSON() ([]byte, error) {
 		if protocol.UsesPorts() {
 			result[key] = content.Ports.RangeStrings()
 		} else if protocol.UsesICMPTypeCodes() {
-			result[key] = content.ICMP.Types()
+			if protocol == ProtocolICMPv6 {
+				result[key] = content.ICMP.RangeStringsV6()
+			} else {
+				result[key] = content.ICMP.RangeStringsV4()
+			}
 		} else {
 			if content.CustomProtocolHasContent != nil && *content.CustomProtocolHasContent {
-				result[key] = []string{"[all traffic for this protocol]"}
+				result[key] = []string{"[all traffic]"}
 			} else {
-				result[key] = []string{"[no traffic for this protocol]"}
+				result[key] = []string{"[no traffic]"}
 			}
 		}
 	}
