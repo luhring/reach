@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"strconv"
 	"strings"
 )
 
@@ -134,13 +133,23 @@ func (s Set) Empty() bool {
 
 func (s Set) rangeStrings() []string {
 	var result []string
-	var curRangeStart int
+
+	for _, rangeItem := range s.ranges() {
+		result = append(result, rangeItem.String())
+	}
+
+	return result
+}
+
+func (s Set) ranges() []Range {
+	var result []Range
+	var curRangeStart uint16
 	var chunk uint64
 	var err error
 	midRange := false
 
 	if s.complete {
-		result = append(result, fmt.Sprintf("0-%d", chunkSize*numberOfChunksInSet-1))
+		result = append(result, Range{0, chunkSize*numberOfChunksInSet - 1})
 		return result
 	} else if s.empty {
 		return nil
@@ -169,7 +178,7 @@ func (s Set) rangeStrings() []string {
 				if err != nil {
 					panic(err)
 				}
-				result = append(result, rangeString(curRangeStart, curRangeEnd-1))
+				result = append(result, Range{curRangeStart, curRangeEnd - 1})
 				midRange = false
 			}
 			continue
@@ -185,7 +194,7 @@ func (s Set) rangeStrings() []string {
 				if err != nil {
 					panic(err)
 				}
-				result = append(result, rangeString(curRangeStart, curRangeEnd-1))
+				result = append(result, Range{curRangeStart, curRangeEnd - 1})
 				midRange = false
 			}
 
@@ -206,7 +215,7 @@ func (s Set) rangeStrings() []string {
 		if err != nil {
 			panic(err)
 		}
-		result = append(result, rangeString(curRangeStart, curRangeEnd))
+		result = append(result, Range{curRangeStart, curRangeEnd})
 	}
 
 	return result
@@ -221,13 +230,6 @@ func (s Set) String() string {
 
 func (s Set) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.rangeStrings())
-}
-
-func rangeString(start, end int) string {
-	if start == end {
-		return strconv.Itoa(start)
-	}
-	return strconv.Itoa(start) + "-" + strconv.Itoa(end)
 }
 
 // equals tests if two sets are equivalent
@@ -439,11 +441,11 @@ func createUint64ForBitPositionRange(start, end, chunkSize uint8) uint64 { // ra
 	return block ^ hole
 }
 
-func calculateValueAtPosition(chunkSize, chunkIndex, chunkSubIndex int) (int, error) {
+func calculateValueAtPosition(chunkSize, chunkIndex, chunkSubIndex int) (uint16, error) {
 	if chunkSubIndex > chunkSize {
-		return -1, fmt.Errorf("chunk index (%d) is greater than chunk size (%d)", chunkSubIndex, chunkSize)
+		return 0, fmt.Errorf("chunk index (%d) is greater than chunk size (%d)", chunkSubIndex, chunkSize)
 	}
-	return (chunkSize * chunkIndex) + chunkSubIndex, nil
+	return uint16((chunkSize * chunkIndex) + chunkSubIndex), nil
 }
 
 func calculateBitPositionWithinChunk(chunkSize, chunkIndex, value int) uint8 {

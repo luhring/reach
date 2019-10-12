@@ -2,6 +2,7 @@ package set
 
 import (
 	"fmt"
+	"strings"
 )
 
 const (
@@ -13,61 +14,6 @@ const (
 	minimumICMPCode = 0
 	maximumICMPCode = 255
 )
-
-var icmpv4TypeNames = map[uint]string{
-	0:  "echo reply",
-	1:  "reserved",
-	2:  "reserved",
-	3:  "destination unreachable",
-	4:  "source quench",
-	5:  "redirect message",
-	6:  "alternate host address",
-	7:  "reserved",
-	8:  "echo request",
-	9:  "router advertisement",
-	10: "router solicitation",
-	11: "time exceeded",
-	12: "parameter problem: bad IP header",
-	13: "timestamp",
-	14: "timestamp reply",
-	15: "information request",
-	16: "information reply",
-	17: "address mask request",
-	18: "address mask reply",
-	30: "information request",
-	31: "datagram conversion error",
-	32: "mobile host redirect",
-	33: "where are you",
-	34: "here I am",
-	35: "mobile registration request",
-	36: "mobile registration reply",
-	37: "domain name request",
-	38: "domain name reply",
-	39: "SKIP algorithm discovery protocol",
-	40: "Photuris, security failures",
-}
-
-var icmpv6TypeNames = map[uint]string{
-	1:   "destination unreachable",
-	2:   "packet too big",
-	3:   "time exceeded",
-	4:   "parameter problem",
-	100: "private experimentation",
-	101: "private experimentation",
-	128: "echo request",
-	129: "echo reply",
-	130: "multicast listener query (MLD)",
-	131: "multicast listener report (MLD)",
-	132: "multicast listener done (MLD)",
-	133: "router solicitation (NDP)",
-	134: "router advertisement (NDP)",
-	135: "neighbor solicitation (NDP)",
-	136: "neighbor advertisement (NDP)",
-	137: "redirect message",
-	138: "router renumbering",
-	139: "ICMP node information query",
-	140: "ICMP node information response",
-}
 
 type ICMPSet struct {
 	set Set
@@ -137,8 +83,100 @@ func (s ICMPSet) Types() []string {
 	return []string{"[some ICMP traffic (detailed serialization not yet implemented)]"} // TODO: implement
 }
 
-func (s ICMPSet) String() string {
-	return "ICMP#String() not yet implemented" // TODO: implement
+func allTypes(first, last ICMPTypeCode) (bool, string) {
+	if first.icmpType == minimumICMPType && first.icmpCode == minimumICMPCode && last.icmpType == maximumICMPType && last.icmpCode == maximumICMPCode {
+		return true, "all traffic"
+	}
+
+	return false, ""
+}
+
+func allCodesForOneTypeV4(first, last ICMPTypeCode) (bool, string) {
+	if first.icmpType != last.icmpType {
+		return false, ""
+	}
+
+	// same type!
+
+	if first.icmpCode == minimumICMPCode && last.icmpCode == maximumICMPCode {
+		return true, fmt.Sprintf("all traffic for ICMPv4 type \"%s\"", GetICMPv4TypeName(first.icmpType))
+	}
+
+	return false, ""
+}
+
+func allCodesForOneTypeV6(first, last ICMPTypeCode) (bool, string) {
+	if first.icmpType != last.icmpType {
+		return false, ""
+	}
+
+	// same type!
+
+	if first.icmpCode == minimumICMPCode && last.icmpCode == maximumICMPCode {
+		return true, fmt.Sprintf("all traffic for ICMPv6 type \"%s\"", GetICMPv6TypeName(first.icmpType))
+	}
+
+	return false, ""
+}
+
+func (s ICMPSet) RangeStringsV4() []string {
+	var result []string
+
+	for _, rangeItem := range s.set.ranges() {
+		firstICMPTypeCode := decodeICMPTypeCode(rangeItem.first)
+		lastICMPTypeCode := decodeICMPTypeCode(rangeItem.last)
+
+		if isAllTypes, name := allTypes(firstICMPTypeCode, lastICMPTypeCode); isAllTypes {
+			return []string{name}
+		}
+
+		if isAllCodesForType, name := allCodesForOneTypeV4(firstICMPTypeCode, lastICMPTypeCode); isAllCodesForType {
+			result = append(result, name)
+			continue
+		}
+
+		rangeString := fmt.Sprintf("%s - %s", firstICMPTypeCode.StringV4(), lastICMPTypeCode.StringV4())
+		result = append(result, rangeString)
+	}
+
+	return result
+}
+
+func (s ICMPSet) RangeStringsV6() []string {
+	var result []string
+
+	for _, rangeItem := range s.set.ranges() {
+		firstICMPTypeCode := decodeICMPTypeCode(rangeItem.first)
+		lastICMPTypeCode := decodeICMPTypeCode(rangeItem.last)
+
+		if isAllTypes, name := allTypes(firstICMPTypeCode, lastICMPTypeCode); isAllTypes {
+			return []string{name}
+		}
+
+		if isAllCodesForType, name := allCodesForOneTypeV6(firstICMPTypeCode, lastICMPTypeCode); isAllCodesForType {
+			result = append(result, name)
+			continue
+		}
+
+		rangeString := fmt.Sprintf("%s - %s", firstICMPTypeCode.StringV6(), lastICMPTypeCode.StringV6())
+		result = append(result, rangeString)
+	}
+
+	return result
+}
+
+func (s ICMPSet) StringV4() string {
+	if s.Empty() {
+		return "[empty]"
+	}
+	return strings.Join(s.RangeStringsV4(), ", ")
+}
+
+func (s ICMPSet) StringV6() string {
+	if s.Empty() {
+		return "[empty]"
+	}
+	return strings.Join(s.RangeStringsV6(), ", ")
 }
 
 func (s ICMPSet) Intersect(other ICMPSet) ICMPSet {
@@ -189,4 +227,14 @@ func encodeICMPTypeCode(icmpType, icmpCode uint) uint16 {
 	const bitSize = 8
 
 	return uint16((icmpType << bitSize) | icmpCode)
+}
+
+func decodeICMPTypeCode(value uint16) ICMPTypeCode {
+	const bitSize = 8
+
+	var icmpType uint8 = uint8((value & 0b1111111100000000) >> bitSize)
+
+	var icmpCode uint8 = uint8((value & 0b0000000011111111))
+
+	return ICMPTypeCode{icmpType, icmpCode}
 }

@@ -87,7 +87,11 @@ func (pc ProtocolContent) String() string {
 		if pc.isTCPOrUDP() {
 			output += fmt.Sprintf(": %s", pc.Ports.String())
 		} else if pc.isICMPv4OrICMPv6() {
-			output += fmt.Sprintf(": %s", pc.ICMP.String())
+			if pc.Protocol == ProtocolICMPv6 {
+				output += fmt.Sprintf(": %s", pc.ICMP.StringV6())
+			} else {
+				output += fmt.Sprintf(": %s", pc.ICMP.StringV4())
+			}
 		} else {
 			output += ": all traffic"
 		}
