@@ -6,7 +6,9 @@ A tool for examining network reachability issues in AWS.
 [![Go Report Card](https://goreportcard.com/badge/github.com/luhring/reach)](https://goreportcard.com/report/github.com/luhring/reach)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/luhring/reach/blob/master/LICENSE)
 
-**IMPORTANT: THIS IS STILL IN DEVELOPMENT! USE AT YOUR OWN RISK!**
+**IMPORTANT: This tool is a work in progress!**
+
+Use at your own risk, and please submit issues as you encounter bugs or have feature requests.
 
 ## Overview
 
