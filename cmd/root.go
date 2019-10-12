@@ -85,8 +85,8 @@ See https://github.com/luhring/reach for documentation.`,
 
 			fmt.Print(strings.Join(vectorOutputs, "\n"))
 		} else {
-			fmt.Print("Traffic allowed from source to destination:\n\n")
-			fmt.Print(mergedTraffic)
+			fmt.Print("network traffic allowed from source to destination:" + "\n")
+			fmt.Print(mergedTraffic.ColorStringWithSymbols())
 
 			if len(analysis.NetworkVectors) > 1 {
 				printMergedResultsWarning()

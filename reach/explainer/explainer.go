@@ -28,7 +28,6 @@ func (ex *Explainer) Explain() string {
 
 	output := ""
 	output += strings.Join(outputItems, "\n")
-	output += "\n"
 
 	return output
 }
@@ -38,27 +37,29 @@ func (ex *Explainer) ExplainNetworkVector(v reach.NetworkVector) string {
 
 	// setting the stage: the source and destination
 	var vectorHeader string
-	vectorHeader += fmt.Sprintf("%s\n  %s\n", helper.Bold("source:"), ex.networkPointName(v.Source))
-	vectorHeader += fmt.Sprintf("%s\n  %s\n", helper.Bold("destination:"), ex.networkPointName(v.Destination))
+	vectorHeader += fmt.Sprintf("%s %s\n", helper.Bold("source:"), ex.networkPointName(v.Source))
+	vectorHeader += fmt.Sprintf("%s %s\n", helper.Bold("destination:"), ex.networkPointName(v.Destination))
 	outputSections = append(outputSections, vectorHeader)
 
 	// capability checks
-	outputSections = append(outputSections, ex.ExplainCapabilityChecks(v)+"\n")
+	// outputSections = append(outputSections, ex.ExplainCapabilityChecks(v)+"\n")
 
 	// explain source
-	var sourceItems []string
-	sourceItems = append(sourceItems, fmt.Sprintf("%s\n", helper.Bold("source factors:")))
-	sourceItems = append(sourceItems, ex.ExplainNetworkPoint(v.Source))
-	outputSections = append(outputSections, strings.Join(sourceItems, "\n"))
+	sourceHeader := helper.Bold("source factors:")
+	outputSections = append(outputSections, sourceHeader)
+
+	sourceContent := ex.ExplainNetworkPoint(v.Source)
+	outputSections = append(outputSections, helper.Indent(sourceContent, 2))
 
 	// explain destination
-	var destinationItems []string
-	destinationItems = append(destinationItems, fmt.Sprintf("%s\n", helper.Bold("destination factors:")))
-	destinationItems = append(destinationItems, ex.ExplainNetworkPoint(v.Destination))
-	outputSections = append(outputSections, strings.Join(destinationItems, "\n"))
+	destinationHeader := helper.Bold("destination factors:")
+	outputSections = append(outputSections, destinationHeader)
+
+	destinationContent := ex.ExplainNetworkPoint(v.Destination)
+	outputSections = append(outputSections, helper.Indent(destinationContent, 2))
 
 	// final results
-	results := fmt.Sprintf("%s\n\n%s", helper.Bold("traffic allowed from source to destination:"), v.Traffic.ColorString())
+	results := fmt.Sprintf("%s\n%s", helper.Bold("network traffic allowed from source to destination:"), v.Traffic.ColorStringWithSymbols())
 	outputSections = append(outputSections, results)
 
 	return strings.Join(outputSections, "\n")

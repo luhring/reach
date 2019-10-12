@@ -45,7 +45,7 @@ func (ex *Explainer) InstanceState(factor reach.Factor) string {
 	}
 
 	ec2Instance := ec2instanceRef.Properties.(EC2Instance)
-	outputItems = append(outputItems, "instance state:")
+	outputItems = append(outputItems, helper.Bold("instance state:"))
 	outputItems = append(outputItems, helper.Indent(fmt.Sprintf("\"%s\"", ec2Instance.State), 2))
 	outputItems = append(outputItems, "")
 	outputItems = append(outputItems, helper.Indent("traffic allowed by instance state:", 2))
@@ -56,7 +56,7 @@ func (ex *Explainer) InstanceState(factor reach.Factor) string {
 
 func (ex *Explainer) SecurityGroupRules(factor reach.Factor) string {
 	var outputItems []string
-	header := "security group rules:"
+	header := fmt.Sprintf("%s (only showing rules that match analysis):", helper.Bold("security group rules"))
 	outputItems = append(outputItems, header)
 
 	props := factor.Properties.(SecurityGroupRulesFactor)
@@ -64,7 +64,7 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor) string {
 	var bodyItems []string
 
 	if rules := props.ComponentRules; len(rules) == 0 {
-		bodyItems = append(bodyItems, "(no rules apply to other network point)")
+		bodyItems = append(bodyItems, "no rules that match analysis\n")
 	} else {
 		var ruleViewModels []RuleExplanationViewModel
 
@@ -82,7 +82,7 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor) string {
 
 			ruleViewModel := RuleExplanationViewModel{
 				securityGroupName: sg.Name(),
-				ruleMatchText:     fmt.Sprintf("rule matching other network point's %s: %s", rule.Match.Basis, rule.Match.Value),
+				ruleMatchText:     fmt.Sprintf("rule #%d (matches %s: %s)", rule.RuleIndex+1, rule.Match.Basis, rule.Match.Value),
 				allowedTraffic:    originalRule.TrafficContent.String(),
 			}
 
@@ -128,8 +128,8 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor) string {
 		}
 	}
 
-	bodyItems = append(bodyItems, helper.Indent("traffic allowed by security group rules:", 2))
-	bodyItems = append(bodyItems, helper.Indent(factor.Traffic.ColorString(), 4))
+	bodyItems = append(bodyItems, "traffic allowed by security group rules:")
+	bodyItems = append(bodyItems, helper.Indent(factor.Traffic.ColorString(), 2))
 
 	body := strings.Join(bodyItems, "\n")
 	outputItems = append(outputItems, helper.Indent(body, 2))
