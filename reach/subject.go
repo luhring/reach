@@ -4,20 +4,22 @@ import (
 	"fmt"
 )
 
+type SubjectRole string
+
 const (
-	SubjectRoleNone          = "none"
-	SubjectRoleSource        = "source"
-	SubjectRoleDestination   = "destination"
-	ErrSubjectPrefix         = "subject creation error"
-	ErrSubjectRoleValidation = "subject role must be 'source' or 'destination'"
-	ErrSubjectIDValidation   = "id must be a non-empty string"
+	SubjectRoleNone          SubjectRole = "none"
+	SubjectRoleSource        SubjectRole = "source"
+	SubjectRoleDestination   SubjectRole = "destination"
+	ErrSubjectPrefix                     = "subject creation error"
+	ErrSubjectRoleValidation             = "subject role must be 'source' or 'destination'"
+	ErrSubjectIDValidation               = "id must be a non-empty string"
 )
 
 type Subject struct {
 	Domain string
 	Kind   string
 	ID     string
-	Role   string
+	Role   SubjectRole
 }
 
 func (s *Subject) SetRoleToSource() {
@@ -28,13 +30,13 @@ func (s *Subject) SetRoleToDestination() {
 	s.SetRole(SubjectRoleDestination)
 }
 
-func (s *Subject) SetRole(role string) {
+func (s *Subject) SetRole(role SubjectRole) {
 	if ValidSubjectRole(role) {
 		s.Role = role
 	}
 }
 
-func ValidSubjectRole(role string) bool {
+func ValidSubjectRole(role SubjectRole) bool {
 	return role == SubjectRoleNone || role == SubjectRoleSource || role == SubjectRoleDestination
 }
 

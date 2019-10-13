@@ -16,10 +16,10 @@ func NewVectorAnalyzer(resourceCollection *reach.ResourceCollection) VectorAnaly
 	}
 }
 
-func (analyzer VectorAnalyzer) FactorsForPerspective(p AnalysisPerspective) ([]reach.Factor, error) {
+func (analyzer VectorAnalyzer) FactorsForPerspective(p reach.Perspective) ([]reach.Factor, error) {
 	var factors []reach.Factor
 
-	for _, resourceRef := range p.self.Lineage {
+	for _, resourceRef := range p.Self.Lineage {
 		if resourceRef.Domain == ResourceDomainAWS {
 			if resourceRef.Kind == ResourceKindEC2Instance {
 				ec2Instance := analyzer.resourceCollection.Get(resourceRef).Properties.(EC2Instance)
@@ -29,11 +29,19 @@ func (analyzer VectorAnalyzer) FactorsForPerspective(p AnalysisPerspective) ([]r
 
 			if resourceRef.Kind == ResourceKindElasticNetworkInterface {
 				eni := analyzer.resourceCollection.Get(resourceRef).Properties.(ElasticNetworkInterface)
-				targetENI := ElasticNetworkInterfaceFromNetworkPoint(p.other, analyzer.resourceCollection)
+				targetENI := ElasticNetworkInterfaceFromNetworkPoint(p.Other, analyzer.resourceCollection)
+
+				var awsP Perspective
+				if p.SelfRole == reach.SubjectRoleSource {
+					awsP = NewPerspectiveSourceOriented()
+				} else {
+					awsP = NewPerspectiveDestinationOriented()
+				}
 
 				securityGroupRulesFactor, err := eni.NewSecurityGroupRulesFactor(
 					analyzer.resourceCollection,
 					p,
+					awsP,
 					targetENI,
 				)
 				if err != nil {
@@ -42,8 +50,12 @@ func (analyzer VectorAnalyzer) FactorsForPerspective(p AnalysisPerspective) ([]r
 
 				factors = append(factors, *securityGroupRulesFactor)
 
+				if !sameVPC(&eni, targetENI) {
+					return nil, fmt.Errorf("error: reach is not yet able to analyze EC2 instances in different VPCs, but that's coming soon! (VPCs: %s, %s)", eni.VPCID, targetENI.VPCID)
+				}
+
 				if !sameSubnet(&eni, targetENI) {
-					return nil, fmt.Errorf("unable to analyze without two EC2 instances existing in the same subnet (source subnet: %s, destination subnet: %s)", eni.SubnetID, targetENI.SubnetID)
+					return nil, fmt.Errorf("error: reach is not yet able to analyze EC2 instances in different subnets, but that's coming soon! (subnets: %s, %s)", eni.SubnetID, targetENI.SubnetID)
 				}
 			}
 		}
@@ -55,13 +67,13 @@ func (analyzer VectorAnalyzer) FactorsForPerspective(p AnalysisPerspective) ([]r
 func (analyzer VectorAnalyzer) Factors(v reach.NetworkVector) ([]reach.Factor, reach.NetworkVector, error) {
 	var factors []reach.Factor
 
-	sourcePerspective := NewAnalysisPerspectiveSourceOriented(v)
+	sourcePerspective := v.SourcePerspective()
 	sourceFactors, err := analyzer.FactorsForPerspective(sourcePerspective)
 	if err != nil {
 		return nil, reach.NetworkVector{}, err
 	}
 
-	destinationPerspective := NewAnalysisPerspectiveDestinationOriented(v)
+	destinationPerspective := v.DestinationPerspective()
 	destinationFactors, err := analyzer.FactorsForPerspective(destinationPerspective)
 	if err != nil {
 		return nil, reach.NetworkVector{}, err

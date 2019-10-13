@@ -37,25 +37,22 @@ func (ex *Explainer) ExplainNetworkVector(v reach.NetworkVector) string {
 
 	// setting the stage: the source and destination
 	var vectorHeader string
-	vectorHeader += fmt.Sprintf("%s %s\n", helper.Bold("source:"), ex.networkPointName(v.Source))
-	vectorHeader += fmt.Sprintf("%s %s\n", helper.Bold("destination:"), ex.networkPointName(v.Destination))
+	vectorHeader += fmt.Sprintf("%s %s\n", helper.Bold("source:"), ex.NetworkPointName(v.Source))
+	vectorHeader += fmt.Sprintf("%s %s\n", helper.Bold("destination:"), ex.NetworkPointName(v.Destination))
 	outputSections = append(outputSections, vectorHeader)
-
-	// capability checks
-	// outputSections = append(outputSections, ex.ExplainCapabilityChecks(v)+"\n")
 
 	// explain source
 	sourceHeader := helper.Bold("source factors:")
 	outputSections = append(outputSections, sourceHeader)
 
-	sourceContent := ex.ExplainNetworkPoint(v.Source)
+	sourceContent := ex.ExplainNetworkPoint(v.Source, v.SourcePerspective())
 	outputSections = append(outputSections, helper.Indent(sourceContent, 2))
 
 	// explain destination
 	destinationHeader := helper.Bold("destination factors:")
 	outputSections = append(outputSections, destinationHeader)
 
-	destinationContent := ex.ExplainNetworkPoint(v.Destination)
+	destinationContent := ex.ExplainNetworkPoint(v.Destination, v.DestinationPerspective())
 	outputSections = append(outputSections, helper.Indent(destinationContent, 2))
 
 	// final results
@@ -97,16 +94,16 @@ func (ex *Explainer) ExplainCapabilityChecks(v reach.NetworkVector) string {
 	return strings.Join(outputItems, "\n")
 }
 
-func (ex *Explainer) ExplainNetworkPoint(point reach.NetworkPoint) string {
+func (ex *Explainer) ExplainNetworkPoint(point reach.NetworkPoint, p reach.Perspective) string {
 	if aws.IsUsedByNetworkPoint(point) {
 		awsEx := aws.NewExplainer(ex.analysis)
-		return awsEx.NetworkPoint(point)
+		return awsEx.NetworkPoint(point, p)
 	}
 
 	return fmt.Sprintf("unable to explain analysis for network point with IP address '%s'", point.IPAddress)
 }
 
-func (ex *Explainer) networkPointName(point reach.NetworkPoint) string {
+func (ex *Explainer) NetworkPointName(point reach.NetworkPoint) string {
 	// ignoring errors because it's okay if we can't find a particular kind of AWS resource in the lineage
 	eni, _ := aws.GetENIFromLineage(point.Lineage, ex.analysis.Resources)
 	ec2Instance, _ := aws.GetEC2InstanceFromLineage(point.Lineage, ex.analysis.Resources)

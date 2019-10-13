@@ -4,7 +4,7 @@ import "github.com/luhring/reach/reach"
 
 const SubjectKindEC2Instance = "EC2Instance"
 
-func NewEC2InstanceSubject(id, role string) (*reach.Subject, error) {
+func NewEC2InstanceSubject(id string, role reach.SubjectRole) (*reach.Subject, error) {
 	if !reach.ValidSubjectRole(role) {
 		return nil, reach.NewSubjectError(reach.ErrSubjectRoleValidation)
 	}

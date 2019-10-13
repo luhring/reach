@@ -11,11 +11,6 @@ type SecurityGroupRuleMatchBasis string
 const SecurityGroupRuleMatchBasisIP SecurityGroupRuleMatchBasis = "IP"
 const SecurityGroupRuleMatchBasisSGRef SecurityGroupRuleMatchBasis = "SecurityGroupReference"
 
-type SecurityGroupRuleDirection string
-
-const SecurityGroupRuleDirectionInbound SecurityGroupRuleDirection = "inbound"
-const SecurityGroupRuleDirectionOutbound SecurityGroupRuleDirection = "outbound"
-
 type SecurityGroupRulesFactor struct {
 	ComponentRules []SecurityGroupRulesFactorComponent
 }
@@ -45,7 +40,8 @@ func (basis SecurityGroupRuleMatchBasis) String() string {
 
 func (eni ElasticNetworkInterface) NewSecurityGroupRulesFactor(
 	rc *reach.ResourceCollection,
-	p AnalysisPerspective,
+	p reach.Perspective,
+	awsP Perspective,
 	targetENI *ElasticNetworkInterface,
 ) (*reach.Factor, error) {
 	var componentRules []SecurityGroupRulesFactorComponent
@@ -60,11 +56,11 @@ func (eni ElasticNetworkInterface) NewSecurityGroupRulesFactor(
 
 		sg := rc.Get(ref).Properties.(SecurityGroup)
 
-		for ruleIndex, rule := range p.getSecurityGroupRules(sg) {
+		for ruleIndex, rule := range awsP.getSecurityGroupRules(sg) {
 			var match *SecurityGroupRuleMatch
 
 			// check ip match
-			match = rule.MatchByIP(p.other.IPAddress)
+			match = rule.MatchByIP(p.Other.IPAddress)
 
 			// check SG ref match (only if we don't already have a match)
 			if match == nil {
@@ -74,7 +70,7 @@ func (eni ElasticNetworkInterface) NewSecurityGroupRulesFactor(
 			if match != nil {
 				component := SecurityGroupRulesFactorComponent{
 					SecurityGroup: ref,
-					RuleDirection: p.ruleDirection,
+					RuleDirection: awsP.ruleDirection,
 					RuleIndex:     ruleIndex,
 					Match:         *match,
 				}

@@ -48,7 +48,7 @@ func FindEC2InstanceID(searchText string, provider ResourceProvider) (string, er
 			}
 
 			matches := strings.Join(ids, ", ")
-			return "", fmt.Errorf("search text matches multiple EC2 instances' IDs (matches for search text '%s': %s)", searchText, matches)
+			return "", fmt.Errorf("error: search text matches multiple EC2 instances' IDs (matches for search text '%s': %s)", searchText, matches)
 		}
 	}
 
@@ -71,11 +71,11 @@ func FindEC2InstanceID(searchText string, provider ResourceProvider) (string, er
 			}
 
 			matches := strings.Join(matchedInstances, ", ")
-			return "", fmt.Errorf("search text matches multiple EC2 instances' name tags (matches for search text '%s': %s)", searchText, matches)
+			return "", fmt.Errorf("error: search text matches multiple EC2 instances' name tags (matches for search text '%s': %s)", searchText, matches)
 		}
 	}
 
-	return "", fmt.Errorf("search text '%s' did not match the ID or name tag of any EC2 instances", searchText)
+	return "", fmt.Errorf("error: search text '%s' did not match the ID or name tag of any EC2 instances", searchText)
 }
 
 func isInstanceID(text string) bool {

@@ -22,7 +22,7 @@ func NewExplainer(analysis reach.Analysis) *Explainer {
 	}
 }
 
-func (ex *Explainer) NetworkPoint(point reach.NetworkPoint) string {
+func (ex *Explainer) NetworkPoint(point reach.NetworkPoint, p reach.Perspective) string {
 	var outputItems []string
 
 	if instanceStateFactor, _ := GetInstanceStateFactor(point.Factors); instanceStateFactor != nil {
@@ -30,7 +30,7 @@ func (ex *Explainer) NetworkPoint(point reach.NetworkPoint) string {
 	}
 
 	if securityGroupRulesFactor, _ := GetSecurityGroupRulesFactor(point.Factors); securityGroupRulesFactor != nil {
-		outputItems = append(outputItems, ex.SecurityGroupRules(*securityGroupRulesFactor))
+		outputItems = append(outputItems, ex.SecurityGroupRules(*securityGroupRulesFactor, p))
 	}
 
 	return strings.Join(outputItems, "\n")
@@ -54,9 +54,14 @@ func (ex *Explainer) InstanceState(factor reach.Factor) string {
 	return strings.Join(outputItems, "\n")
 }
 
-func (ex *Explainer) SecurityGroupRules(factor reach.Factor) string {
+func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective) string {
 	var outputItems []string
-	header := fmt.Sprintf("%s (only showing rules that apply to analysis):", helper.Bold("security group rules"))
+	header := fmt.Sprintf(
+		"%s (including only rules from %s that match %s):",
+		helper.Bold("security group rules"),
+		p.SelfRole,
+		p.OtherRole,
+	)
 	outputItems = append(outputItems, header)
 
 	props := factor.Properties.(SecurityGroupRulesFactor)
@@ -80,9 +85,29 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor) string {
 				log.Fatalf(err.Error())
 			}
 
+			var inclusionReason string
+
+			switch rule.Match.Basis {
+			case SecurityGroupRuleMatchBasisSGRef:
+				inclusionReason = fmt.Sprintf(
+					"This rule specifies a security group \"%s\" that is attached to the %s's network interface.",
+					rule.Match.Value,
+					p.OtherRole,
+				)
+			case SecurityGroupRuleMatchBasisIP:
+				inclusionReason = fmt.Sprintf(
+					"This rule specifies an IP CIDR block \"%s\" that contains the %s's IP address \"%s\".",
+					originalRule.TargetIPNetworks[0], // TODO: This could show a different network than the matched network, which would be wrong. Include this IPNet in the Match struct to ensure we use the right network here.
+					p.OtherRole,
+					p.Other.IPAddress,
+				)
+			default:
+				inclusionReason = fmt.Sprintf("Unknown reason for inclusion. Match basis is '%s'. Please report this.", rule.Match.Basis)
+			}
+
 			ruleViewModel := RuleExplanationViewModel{
 				securityGroupName: sg.Name(),
-				ruleMatchText:     fmt.Sprintf("rule (matches %s: %s) that allows:", rule.Match.Basis, rule.Match.Value),
+				inclusionReason:   inclusionReason,
 				allowedTraffic:    originalRule.TrafficContent.String(),
 			}
 
@@ -137,41 +162,6 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor) string {
 	return strings.Join(outputItems, "\n")
 }
 
-type SecurityGroupViewModel struct {
-	securityGroupName string
-	rules             string
-}
-
-func (vm SecurityGroupViewModel) String() string {
-	securityGroupLine := vm.securityGroupName
-	rulesLines := helper.Indent(vm.rules, 2)
-
-	lines := []string{
-		securityGroupLine,
-		rulesLines,
-	}
-
-	return strings.Join(lines, "\n")
-}
-
-type RuleExplanationViewModel struct {
-	securityGroupName string
-	ruleMatchText     string
-	allowedTraffic    string
-}
-
-func (vm RuleExplanationViewModel) String() string {
-	ruleMatchTextLine := fmt.Sprintf("- %s", vm.ruleMatchText)
-	allowedTrafficLines := vm.allowedTraffic
-
-	lines := []string{
-		ruleMatchTextLine,
-		helper.Indent(allowedTrafficLines, 4),
-	}
-
-	return strings.Join(lines, "\n")
-}
-
 func (ex Explainer) CheckBothInAWS(v reach.NetworkVector) bool {
 	return IsUsedByNetworkPoint(v.Source) && IsUsedByNetworkPoint(v.Destination)
 }
@@ -192,4 +182,41 @@ func (ex Explainer) CheckBothInSameSubnet(v reach.NetworkVector) bool {
 	}
 
 	return sourceENI.SubnetID == destinationENI.SubnetID
+}
+
+type SecurityGroupViewModel struct {
+	securityGroupName string
+	rules             string
+}
+
+func (vm SecurityGroupViewModel) String() string {
+	securityGroupLine := vm.securityGroupName
+	rulesLines := helper.Indent(vm.rules, 2)
+
+	lines := []string{
+		securityGroupLine,
+		rulesLines,
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+type RuleExplanationViewModel struct {
+	securityGroupName string
+	allowedTraffic    string
+	inclusionReason   string
+}
+
+func (vm RuleExplanationViewModel) String() string {
+	output := "- rule\n"
+
+	allowedTrafficHeader := "network traffic allowed:"
+	allowedTrafficSection := fmt.Sprintf("%s\n%s", allowedTrafficHeader, helper.Indent(vm.allowedTraffic, 2))
+	output += helper.Indent(allowedTrafficSection, 4)
+
+	inclusionReasonHeader := "reason for inclusion:"
+	inclusionReasonSection := fmt.Sprintf("%s\n%s\n", inclusionReasonHeader, helper.Indent(vm.inclusionReason, 2))
+	output += helper.Indent(inclusionReasonSection, 4)
+
+	return output
 }

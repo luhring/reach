@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -49,25 +48,29 @@ See https://github.com/luhring/reach for documentation.`,
 
 		source, err := aws.NewSubject(sourceIdentifier, provider)
 		if err != nil {
-			log.Fatal(err)
+			exitWithError(err)
 		}
 		source.SetRoleToSource()
 
 		destination, err := aws.NewSubject(destinationIdentifier, provider)
 		if err != nil {
-			log.Fatal(err)
+			exitWithError(err)
 		}
 		destination.SetRoleToDestination()
+
+		if !explain && !showVectors {
+			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
+		}
 
 		a := analyzer.New()
 		analysis, err := a.Analyze(source, destination)
 		if err != nil {
-			log.Fatal(err)
+			exitWithError(err)
 		}
 
 		mergedTraffic, err := analysis.MergedTraffic()
 		if err != nil {
-			log.Fatal(err)
+			exitWithError(err)
 		}
 
 		if explain {
@@ -85,7 +88,7 @@ See https://github.com/luhring/reach for documentation.`,
 
 			fmt.Print(strings.Join(vectorOutputs, "\n"))
 		} else {
-			fmt.Print("network traffic able to reach destination from source:" + "\n")
+			fmt.Print("network traffic allowed from source to destination:" + "\n")
 			fmt.Print(mergedTraffic.ColorStringWithSymbols())
 
 			if len(analysis.NetworkVectors) > 1 {

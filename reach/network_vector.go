@@ -59,3 +59,21 @@ func (v NetworkVector) String() string {
 
 	return output
 }
+
+func (v NetworkVector) SourcePerspective() Perspective {
+	return Perspective{
+		Self:      v.Source,
+		Other:     v.Destination,
+		SelfRole:  SubjectRoleSource,
+		OtherRole: SubjectRoleDestination,
+	}
+}
+
+func (v NetworkVector) DestinationPerspective() Perspective {
+	return Perspective{
+		Self:      v.Destination,
+		Other:     v.Source,
+		SelfRole:  SubjectRoleDestination,
+		OtherRole: SubjectRoleSource,
+	}
+}
