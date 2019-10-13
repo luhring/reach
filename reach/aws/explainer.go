@@ -82,7 +82,7 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor) string {
 
 			ruleViewModel := RuleExplanationViewModel{
 				securityGroupName: sg.Name(),
-				ruleMatchText:     fmt.Sprintf("rule #%d (matches %s: %s)", rule.RuleIndex+1, rule.Match.Basis, rule.Match.Value),
+				ruleMatchText:     fmt.Sprintf("rule (matches %s: %s) that allows:", rule.Match.Basis, rule.Match.Value),
 				allowedTraffic:    originalRule.TrafficContent.String(),
 			}
 
