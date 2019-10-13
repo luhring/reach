@@ -56,7 +56,7 @@ func (ex *Explainer) InstanceState(factor reach.Factor) string {
 
 func (ex *Explainer) SecurityGroupRules(factor reach.Factor) string {
 	var outputItems []string
-	header := fmt.Sprintf("%s (only showing rules that match analysis):", helper.Bold("security group rules"))
+	header := fmt.Sprintf("%s (only showing rules that apply to analysis):", helper.Bold("security group rules"))
 	outputItems = append(outputItems, header)
 
 	props := factor.Properties.(SecurityGroupRulesFactor)
@@ -64,7 +64,7 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor) string {
 	var bodyItems []string
 
 	if rules := props.ComponentRules; len(rules) == 0 {
-		bodyItems = append(bodyItems, "no rules that match analysis\n")
+		bodyItems = append(bodyItems, "no rules that apply to analysis\n")
 	} else {
 		var ruleViewModels []RuleExplanationViewModel
 

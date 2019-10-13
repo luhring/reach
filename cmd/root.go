@@ -93,6 +93,8 @@ See https://github.com/luhring/reach for documentation.`,
 			}
 		}
 
+		// fmt.Println(analysis.ToJSON()) // for debugging
+
 		const canReach = "source is able to reach destination"
 		const cannotReach = "source is unable to reach destination"
 

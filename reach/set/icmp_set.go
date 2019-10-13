@@ -71,9 +71,17 @@ func (s ICMPSet) Empty() bool {
 	return s.set.Empty()
 }
 
-func allTypes(first, last ICMPTypeCode) (bool, string) {
+func allTypesV4(first, last ICMPTypeCode) (bool, string) {
 	if first.icmpType == minimumICMPType && first.icmpCode == minimumICMPCode && last.icmpType == maximumICMPType && last.icmpCode == maximumICMPCode {
-		return true, "all traffic"
+		return true, "ICMPv4 (all traffic)"
+	}
+
+	return false, ""
+}
+
+func allTypesV6(first, last ICMPTypeCode) (bool, string) {
+	if first.icmpType == minimumICMPType && first.icmpCode == minimumICMPCode && last.icmpType == maximumICMPType && last.icmpCode == maximumICMPCode {
+		return true, "ICMPv6 (all traffic)"
 	}
 
 	return false, ""
@@ -114,7 +122,7 @@ func (s ICMPSet) RangeStringsV4() []string {
 		firstICMPTypeCode := decodeICMPTypeCode(rangeItem.first)
 		lastICMPTypeCode := decodeICMPTypeCode(rangeItem.last)
 
-		if isAllTypes, name := allTypes(firstICMPTypeCode, lastICMPTypeCode); isAllTypes {
+		if isAllTypes, name := allTypesV4(firstICMPTypeCode, lastICMPTypeCode); isAllTypes {
 			return []string{name}
 		}
 
@@ -137,7 +145,7 @@ func (s ICMPSet) RangeStringsV6() []string {
 		firstICMPTypeCode := decodeICMPTypeCode(rangeItem.first)
 		lastICMPTypeCode := decodeICMPTypeCode(rangeItem.last)
 
-		if isAllTypes, name := allTypes(firstICMPTypeCode, lastICMPTypeCode); isAllTypes {
+		if isAllTypes, name := allTypesV6(firstICMPTypeCode, lastICMPTypeCode); isAllTypes {
 			return []string{name}
 		}
 
