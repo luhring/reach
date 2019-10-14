@@ -6,13 +6,21 @@
 
 Reach is a tool for examining the allowed flow of network traffic in AWS.
 
+## Getting Started
+
+To perform an analysis, specify a **source** EC2 instance and a **destination** EC2 instance:
+
+```Text
+$ reach <source> <destination>
+```
+
 ![Image](.data/reach-demo.gif)
 
-Reach uses your AWS configuration to analyze the potential for network connectivity within your cloud environment. This means **you don't need to install Reach on any servers** — it just needs access to the AWS API.
+Reach uses your AWS configuration to analyze the potential for network connectivity within your cloud environment. This means **you don't need to install Reach on any servers** — you just need access to the AWS API.
 
 The key features of Reach are:
 
-- **Instant diagnosis:** Pinpoint missing links in a network path in seconds, not hours.
+- **Instant diagnosis:** Pinpoint missing links in a network path _in seconds_, not hours.
 
 - **Learn about your network:** Gain better insight into currently allowed network flows, and discover new consequences of your network design.
 
@@ -20,15 +28,9 @@ The key features of Reach are:
 
 - **Better pipelines:** Confirm network-level problems before running application integration or end-to-end tests by adding Reach to your infrastructure-as-code (IaC) deployment pipelines.
 
-## Getting Started
+## Basic Usage
 
-To perform an analysis, specify a source and destination:
-
-```Text
-$ reach source destination
-```
-
-The values for `source` and `destination` should each uniquely identify an EC2 instance in your AWS account. You can use the **instance ID** or a **name tag**, and you can use just the first few characters instead of the entire value, as long as it matches only one EC2 instance.
+The values for `source` and `destination` should each uniquely identify an EC2 instance in your AWS account. You can use an **instance ID** or a **name tag**, and you can enter just the first few characters instead of the entire value, as long as what you've entered matches exactly one EC2 instance.
 
 Some examples:
 
@@ -56,7 +58,7 @@ If you deploy infrastructure via CI/CD pipelines, it can be helpful to confirm t
 
 You can use assertion flags to ensure that your source **can** or **cannot** reach your destination.
 
-If an assertion succeeds, Reach's exit status is `0`. If an assertion fails, Reach's exit status is `2`.
+If an assertion succeeds, Reach exits  `0`. If an assertion fails, Reach exits `2`.
 
 To confirm that the source **can** reach the destination:
 
@@ -72,17 +74,17 @@ $ reach some-server super-sensitive-server --assert-not-reachable
 
 ### Explanations
 
-Normally, Reach's output is very basic. It displays a simple list of zero or more kinds of traffic that is allowed from the source to the destination. However, the process Reach uses to perform its analysis is extremely thorough and complex.
+Normally, Reach's output is very basic. It displays a simple list of zero or more kinds of network traffic that is allowed to flow from the source to the destination. However, the actual process Reach uses to perform its analysis is extremely thorough and complex.
 
 If you're troubleshooting a network problem in AWS, Reach's basic output is sometimes insufficient for your needs.
 
-You can tell Reach to expose its reasoning behind its final determination by using the `--explain` flag:
+You can tell Reach to expose its reasoning behind its determination by using the `--explain` flag:
 
 ```Text
 $ reach web-instance db-instance --explain
 ```
 
-This will have Reach provide significantly more detail about the analysis. Specificially, the output will show you:
+In this case, Reach will provide significantly more detail about the analysis. Specificially, the output will show you:
 
 - Exactly which "network points" were used in the analysis (not just the EC2 instance, but the EC2 instance's specific network interface, and the specific IP address attached to the network interface)
 - All of the "factors" (relevant aspects of your configuration) Reach used to figure out what traffic is being allowed by specific properties of your resources (e.g. security group rules, instance state, etc.)
