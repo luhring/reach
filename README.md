@@ -26,7 +26,7 @@ The key features of Reach are:
 
 - **Stay secure:** Tighten security without worrying about impacting any required network flows.
 
-- **Better pipelines:** Confirm network-level problems before running application integration or end-to-end tests by adding Reach to your infrastructure-as-code (IaC) deployment pipelines.
+- **Better pipelines:** Confirm network-level problems before running application integration or end-to-end tests by adding Reach to your CI/CD pipelines.
 
 ## Basic Usage
 
