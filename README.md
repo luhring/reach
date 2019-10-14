@@ -1,95 +1,105 @@
 # reach
 
-A tool for examining network reachability issues in AWS.
-
 [![CircleCI](https://circleci.com/gh/luhring/reach.svg?style=svg)](https://circleci.com/gh/luhring/reach)
 [![Go Report Card](https://goreportcard.com/badge/github.com/luhring/reach)](https://goreportcard.com/report/github.com/luhring/reach)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/luhring/reach/blob/master/LICENSE)
 
-**IMPORTANT: This tool is a work in progress!**
+Reach is a tool for examining the allowed flow of network traffic in AWS.
 
-Use at your own risk, and please submit issues as you encounter bugs or have feature requests.
+![Image](.data/reach-demo.gif)
 
-## Overview
+Reach uses your AWS configuration to analyze the potential for network connectivity within your cloud environment. This means **you don't need to install Reach on any servers** — it just needs access to the AWS API.
 
-reach evaluates the potential for network connectivity between EC2 instances by querying the AWS API for network configuration data.
+The key features of Reach are:
 
-reach determines the ports on an EC2 instance that can be accessed by another EC2 instance, taking into consideration security group rules, instance subnet placements, instance running states, network ACL rules, and route tables.
+- **Instant diagnosis:** Pinpoint missing links in a network path in seconds, not hours.
 
-reach doesn't need to run on any EC2 instance, it just needs to run on a system that has access to the AWS API.
+- **Learn about your network:** Gain better insight into currently allowed network flows, and discover new consequences of your network design.
 
-**Disclaimer:** Because reach gets all of its information from the AWS API, reach makes no guarantees about network service accessibility with respect to the operating system or applications running on an EC2 instance. In other words, reach can tell you if your VPC resources and EC2 instances are configured correctly, but reach _can't_ tell you if an OS firewall is blocking network traffic, or if an application listening on a port has crashed.
+- **Stay secure:** Tighten security without worrying about impacting any required network flows.
 
-## Uses
+- **Better pipelines:** Confirm network-level problems before running application integration or end-to-end tests by adding Reach to your infrastructure-as-code (IaC) deployment pipelines.
 
-You can ask what ports are reachable on an EC2 instance from the perspective of another instance.
+## Getting Started
 
-```ShellSession
-$ reach "client instance" "server instance"
-✔ TCP 80
-✔ TCP 443
+To perform an analysis, specify a source and destination:
+
+```Text
+$ reach source destination
 ```
 
-You can ask about just one specific port.
+The values for `source` and `destination` should each uniquely identify an EC2 instance in your AWS account. You can use the **instance ID** or a **name tag**, and you can use just the first few characters instead of the entire value, as long as it matches only one EC2 instance.
 
-```ShellSession
-$ reach "web-server" "db-server" --port 1433
-analysis scope: TCP 1433
-not reachable
+Some examples:
+
+```Text
+$ reach i-0452993c7efa3a314 i-02b8dfb5537e80860
 ```
 
-You can ask reach to explain its logic for its evaluation:
-
-```ShellSession
-$ reach "web-server" "db-server" --port 1433 --explain
-not reachable
-
-- The instance "db-server" doesn't have any security groups with an inbound rule that allows access on port TCP 1433.
-- The subnet "database-private-subnet" in which the instance "db-server" resides doesn't have any network ACL rules that allow inbound traffic on port TCP 1433.
+```Text
+$ reach i-04 i-02
 ```
 
-## CLI Syntax
+```Text
+$ reach web-instance database-instance
+```
 
-`reach "first-instance" ["second-instance"] [OPTIONS]`
+```Text
+$ reach web data
+```
 
-### Options
+## More Features
 
-`--port`, `-p` Restrict analysis to a specified TCP port.
+### Assertions
 
-`--assert-reachable` Exit non-zero if no traffic is allowed from source to destination (within analysis scope, if specified).
+If you deploy infrastructure via CI/CD pipelines, it can be helpful to confirm the network design itself before running any tests that rely on a correct network configuration.
 
-`--assert-not-reachable` Exit non-zero if any traffic can reach destination from source (within analysis scope, if specified).
+You can use assertion flags to ensure that your source **can** or **cannot** reach your destination.
 
-`--explain` Explain how the configuration was analyzed.
+If an assertion succeeds, Reach's exit status is `0`. If an assertion fails, Reach's exit status is `2`.
 
-### Specifying an instance
+To confirm that the source **can** reach the destination:
 
-reach is able to handle various methods of specifying an EC2 instance.
+```Text
+$ reach web-server database-server --assert-reachable
+```
 
-- **By Name tag.** Most people assign a descriptive name to each of their EC2 instances via a "Name" [tag](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html). Example: `"my-database-server"`.
-- **By Instance ID.** This is a reliably unique identifier within the EC2 service, and it's assigned by AWS. Example: `"i-08a43985c56df54e4"`.
+To confirm that the source **cannot** reach the destination:
 
-#### Notes about instance specification strings
+```Text
+$ reach some-server super-sensitive-server --assert-not-reachable
+```
 
-1. **Quotes:** Use quotes to surround instance specification strings as necessary within your shell environment. Quotes never hurt, but sometimes they can be left off -- for example, when using an instance name tag that contains no spaces, only letters and hyphens.
+### Explanations
 
-1. **Shortened strings:** To make CLI text entry less tedious, reach only requires enough of an instance specification string to be unique within the current AWS account and region. For example, let's say you have three EC2 instances in a particular region in your AWS account, and these instances are named "web-01", "web-02", and "db-master". You could refer to the "db-master" instance by typing just `"db"`, since no other instance begins with the same text. This would let you type the command `reach db --inbound`, and reach would understand that you were asking about inbound access to the "db-master" instance. However, it would not be sufficient to use the string `"web"`, since multiple instances have name tags that begin with the text "web". The rules for shortened strings apply to both name tags and instance IDs.
+Normally, Reach's output is very basic. It displays a simple list of zero or more kinds of traffic that is allowed from the source to the destination. However, the process Reach uses to perform its analysis is extremely thorough and complex.
 
-## Benefits
+If you're troubleshooting a network problem in AWS, Reach's basic output is sometimes insufficient for your needs.
 
-**Instant diagnosis.** Instantly pinpoint missing links in a network setup in AWS.
+You can tell Reach to expose its reasoning behind its final determination by using the `--explain` flag:
 
-**Learn about your network.** Gain better insight into currently allowed network flows, and learn how resource configuration affects larger picture.
+```Text
+$ reach web-instance db-instance --explain
+```
 
-**Stay secure.** Tighten security without worrying about impacting any required network flows.
+This will have Reach provide significantly more detail about the analysis. Specificially, the output will show you:
 
-**Better deployment pipelines.** Add into CI/CD pipelines alongside infrastructure as code (IaC) deployments to assert business expectations for your network, so you can confirm (or rule out) network-level problems before running integration or end-to-end tests.
+- Exactly which "network points" were used in the analysis (not just the EC2 instance, but the EC2 instance's specific network interface, and the specific IP address attached to the network interface)
+- All of the "factors" (relevant aspects of your configuration) Reach used to figure out what traffic is being allowed by specific properties of your resources (e.g. security group rules, instance state, etc.)
+- The same end result output Reach displays normally
 
-## Road map
+## Feature Ideas
 
-- ~~Analyze traffic allowed from one EC2 instance to another, within the same subnet~~
-- Analyze traffic allowed from an EC2 instance in one subnet to an EC2 instance in another subnet, within the same VPC **<-- MVP**
-- Analyze traffic allowed between an EC2 instance and a specified IP address (e.g. user's IP address, specified hostname, etc.)
-- Support for non-EC2 resources within AWS (e.g. ELB, Lambda, gateways, etc.)
-- Support for VPC peering
+- ~~**Same-subnet analysis:** Between two EC2 instances within the same subnet~~
+- **Same-VPC analysis:** Between two EC2 instances within the same VPC, both for EC2 instances within the same subnet and from different subnets
+- **IP address analysis:** Between an EC2 instance and a specified IP address that may be outside of AWS (enhancement idea: provide shortcuts for specifying the user's own IP address, a specified hostname's resolved IP address, etc.)
+- **Filtered analysis:** Specify a particular kind of traffic to analyze (e.g. a single TCP port) and return results only in terms of that kind of traffic
+- **Other AWS resources:** Analyze other kinds of AWS resources bessides EC2 instances (e.g. ELB, Lambda, VPC endpoints, etc.)
+- **Peered VPC analysis**: Between resources from separate but peered VPCs
 - Other things! Your ideas are welcome!
+
+## Disclaimers
+
+- This tool is a work in progress! Use at your own risk, and please submit issues as you encounter bugs or have feature requests.
+
+- Because Reach gets all of its information from the AWS API, Reach makes no guarantees about network service accessibility with respect to the operating system or applications running on a host within the cloud environment. In other words, Reach can tell you if your VPC resources and EC2 instances are configured correctly, but Reach _can't_ tell you if an OS firewall is blocking network traffic, or if an application listening on a port has crashed.
