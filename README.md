@@ -74,11 +74,11 @@ $ reach some-server super-sensitive-server --assert-not-reachable
 
 ### Explanations
 
-Normally, Reach's output is very basic. It displays a simple list of zero or more kinds of network traffic that is allowed to flow from the source to the destination. However, the actual process Reach uses to perform its analysis is extremely thorough and complex.
+Normally, Reach's output is very basic. It displays a simple list of zero or more kinds of network traffic that are allowed to flow from the source to the destination. However, the actual process Reach uses to perform its analysis is extremely thorough and complex.
 
 If you're troubleshooting a network problem in AWS, Reach's basic output is sometimes insufficient for your needs.
 
-You can tell Reach to expose its reasoning behind its determination by using the `--explain` flag:
+You can tell Reach to expose the reasoning behind the displayed result by using the `--explain` flag:
 
 ```Text
 $ reach web-instance db-instance --explain
@@ -94,9 +94,9 @@ In this case, Reach will provide significantly more detail about the analysis. S
 
 - ~~**Same-subnet analysis:** Between two EC2 instances within the same subnet~~
 - **Same-VPC analysis:** Between two EC2 instances within the same VPC, both for EC2 instances within the same subnet and from different subnets
-- **IP address analysis:** Between an EC2 instance and a specified IP address that may be outside of AWS (enhancement idea: provide shortcuts for specifying the user's own IP address, a specified hostname's resolved IP address, etc.)
-- **Filtered analysis:** Specify a particular kind of traffic to analyze (e.g. a single TCP port) and return results only in terms of that kind of traffic
-- **Other AWS resources:** Analyze other kinds of AWS resources bessides EC2 instances (e.g. ELB, Lambda, VPC endpoints, etc.)
+- **IP address analysis:** Between an EC2 instance and a specified IP address that may be outside of AWS (enhancement idea: provide shortcuts for things like the user's own IP address, a specified hostname's resolved IP address, etc.)
+- **Filtered analysis:** Specify a particular kind of network traffic to analyze (e.g. a single TCP port) and return results only in terms of that kind of traffic
+- **Other AWS resources:** Analyze other kinds of AWS resources than just EC2 instances (e.g. ELB, Lambda, VPC endpoints, etc.)
 - **Peered VPC analysis**: Between resources from separate but peered VPCs
 - Other things! Your ideas are welcome!
 
@@ -104,4 +104,4 @@ In this case, Reach will provide significantly more detail about the analysis. S
 
 - This tool is a work in progress! Use at your own risk, and please submit issues as you encounter bugs or have feature requests.
 
-- Because Reach gets all of its information from the AWS API, Reach makes no guarantees about network service accessibility with respect to the operating system or applications running on a host within the cloud environment. In other words, Reach can tell you if your VPC resources and EC2 instances are configured correctly, but Reach _can't_ tell you if an OS firewall is blocking network traffic, or if an application listening on a port has crashed.
+- Because Reach gets all of its information from the AWS API, Reach makes no guarantees about network service accessibility with respect to the operating system or applications running on a host within the cloud environment. In other words, Reach can tell you if your VPC resources and EC2 instances are configured correctly, but Reach _cannot_ tell you if an OS firewall is blocking network traffic, or if an application listening on a port has crashed.
