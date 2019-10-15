@@ -7,7 +7,7 @@ import (
 )
 
 func exitWithError(err error) {
-	fmt.Println(err)
+	_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 
 	os.Exit(1)
 }
@@ -15,7 +15,7 @@ func exitWithError(err error) {
 func exitWithFailedAssertion(text string) {
 	failedMessage := ansi.Color("assertion failed:", "red+b")
 	secondaryMessage := ansi.Color(text, "red")
-	fmt.Printf("%v %v\n", failedMessage, secondaryMessage)
+	_, _ = fmt.Fprintf(os.Stderr, "\n%v %v\n", failedMessage, secondaryMessage)
 
 	os.Exit(2)
 }
@@ -23,7 +23,7 @@ func exitWithFailedAssertion(text string) {
 func exitWithSuccessfulAssertion(text string) {
 	succeededMessage := ansi.Color("assertion succeeded:", "green+b")
 	secondaryMessage := ansi.Color(text, "green")
-	fmt.Printf("%v %v\n", succeededMessage, secondaryMessage)
+	_, _ = fmt.Fprintf(os.Stderr, "\n%v %v\n", succeededMessage, secondaryMessage)
 
 	os.Exit(0)
 }

@@ -1,29 +1,45 @@
 package reach
 
+import (
+	"encoding/json"
+	"log"
+)
+
 type Analysis struct {
-	trafficAllowances []*TrafficAllowance
-	explanation       Explanation
+	Subjects       []*Subject
+	Resources      *ResourceCollection
+	NetworkVectors []NetworkVector
 }
 
-func newAnalysisWithNoTrafficAllowances(explanation Explanation) Analysis {
-	return Analysis{
-		[]*TrafficAllowance{},
-		explanation,
+func NewAnalysis(subjects []*Subject, resources *ResourceCollection, networkVectors []NetworkVector) *Analysis {
+	return &Analysis{
+		Subjects:       subjects,
+		Resources:      resources,
+		NetworkVectors: networkVectors,
 	}
 }
 
-func (a *Analysis) Results() string {
-	return describeListOfTrafficAllowances(a.trafficAllowances)
+func (a *Analysis) ToJSON() string {
+	b, err := json.MarshalIndent(a, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(b)
 }
 
-func (a *Analysis) Explanation() string {
-	return a.explanation.render()
-}
+func (a *Analysis) MergedTraffic() (TrafficContent, error) {
+	result := NewTrafficContent()
 
-func (a *Analysis) PassesAssertReachable() bool {
-	return a.trafficAllowances != nil && len(a.trafficAllowances) >= 1
-}
+	for _, v := range a.NetworkVectors {
+		if t := v.Traffic; t != nil {
+			mergedTrafficContent, err := result.Merge(*v.Traffic)
+			if err != nil {
+				return TrafficContent{}, err
+			}
 
-func (a *Analysis) PassesAssertNotReachable() bool {
-	return false == (a.trafficAllowances != nil && len(a.trafficAllowances) >= 1)
+			result = mergedTrafficContent
+		}
+	}
+
+	return result, nil
 }

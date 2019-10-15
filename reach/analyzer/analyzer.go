@@ -1,0 +1,99 @@
+package analyzer
+
+import (
+	"fmt"
+	"log"
+
+	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/aws/api"
+)
+
+type Analyzer struct {
+	resourceCollection *reach.ResourceCollection
+}
+
+func New() *Analyzer {
+	rc := reach.NewResourceCollection()
+	return &Analyzer{
+		resourceCollection: rc,
+	}
+}
+
+func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider aws.ResourceProvider) error { // TODO: Allow passing any number of providers of various domains
+	for _, subject := range subjects {
+		if subject.Role != reach.SubjectRoleNone {
+			switch subject.Domain {
+			case aws.ResourceDomainAWS:
+				switch subject.Kind {
+				case aws.SubjectKindEC2Instance:
+					id := subject.ID
+
+					ec2Instance, err := provider.GetEC2Instance(id)
+					if err != nil {
+						log.Fatalf("couldn't get resource: %v", err)
+					}
+					a.resourceCollection.Put(reach.ResourceReference{
+						Domain: aws.ResourceDomainAWS,
+						Kind:   aws.ResourceKindEC2Instance,
+						ID:     ec2Instance.ID,
+					}, ec2Instance.ToResource())
+
+					dependencies, err := ec2Instance.GetDependencies(provider)
+					if err != nil {
+						return err
+					}
+					a.resourceCollection.Merge(dependencies)
+				default:
+					return fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
+				}
+			default:
+				return fmt.Errorf("unsupported subject domain: '%s'", subject.Domain)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
+	// TODO: Eventually, this dependency wiring should depend on a passed in config.
+	var provider aws.ResourceProvider = api.NewResourceProvider()
+
+	err := a.buildResourceCollection(subjects, provider)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Eventually, this dependency wiring should depend on a passed in config.
+	var vectorDiscoverer reach.VectorDiscoverer = aws.NewVectorDiscoverer(a.resourceCollection)
+
+	networkVectors, err := vectorDiscoverer.Discover(subjects)
+	if err != nil {
+		return nil, err
+	}
+
+	processedNetworkVectors := make([]reach.NetworkVector, len(networkVectors))
+
+	// TODO: Eventually, this dependency wiring should depend on a passed in config.
+	var vectorAnalyzer reach.VectorAnalyzer = aws.NewVectorAnalyzer(a.resourceCollection)
+
+	for i, v := range networkVectors {
+		factors, processedVector, err := vectorAnalyzer.Factors(v)
+		if err != nil {
+			return nil, err
+		}
+
+		trafficContents := reach.TrafficContentsFromFactors(factors)
+
+		trafficContent, err := reach.NewTrafficContentFromIntersectingMultiple(trafficContents)
+		if err != nil {
+			return nil, err
+		}
+
+		processedVector.Traffic = &trafficContent
+		processedNetworkVectors[i] = processedVector
+	}
+
+	return reach.NewAnalysis(subjects, a.resourceCollection, processedNetworkVectors), nil
+}
