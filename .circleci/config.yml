@@ -41,6 +41,6 @@ workflows:
           filters:
             branches:
               only:
-                - same-subnet-int-tests # TODO: Replace with master
+                - master
     jobs:
       - acceptance_tests
