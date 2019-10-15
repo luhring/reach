@@ -49,7 +49,7 @@ $ reach web-instance database-instance
 $ reach web data
 ```
 
-**Note:** Right now, Reach can only analyze the path between two EC2 instances when the instances are **in the same subnet**. Adding support for mulitple subnets is the top priority and is currently in development.
+**Note:** Right now, Reach can only analyze the path between two EC2 instances when the instances are **in the same subnet**. Adding support for multiple subnets is the top priority and is currently in development.
 
 ## Initial Setup
 
