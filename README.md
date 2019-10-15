@@ -1,10 +1,9 @@
 # reach
 
 [![CircleCI](https://circleci.com/gh/luhring/reach.svg?style=svg)](https://circleci.com/gh/luhring/reach)
-[![Go Report Card](https://goreportcard.com/badge/github.com/luhring/reach)](https://goreportcard.com/report/github.com/luhring/reach)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/luhring/reach/blob/master/LICENSE)
 
-Reach is a tool for examining the allowed flow of network traffic in AWS.
+Reach is a tool for discovering the impact your AWS configuration has on the flow of network traffic.
 
 ## Getting Started
 
@@ -16,17 +15,17 @@ $ reach <source> <destination>
 
 ![Image](.data/reach-demo.gif)
 
-Reach uses your AWS configuration to analyze the potential for network connectivity within your cloud environment. This means **you don't need to install Reach on any servers** — you just need access to the AWS API.
+Reach uses your AWS configuration to analyze the potential for network connectivity between two EC2 instances in your AWS account. This means **you don't need to install Reach on any servers** — you just need access to the AWS API.
 
-The key features of Reach are:
+The key benefits of Reach are:
 
-- **Instant diagnosis:** Pinpoint missing links in a network path _in seconds_, not hours.
+- **Solve problems faster:** Find missing links in a network path in _seconds_, not hours.
+
+- **Don't compromise on security:** Tighten security without worrying about impacting any required network flows.
 
 - **Learn about your network:** Gain better insight into currently allowed network flows, and discover new consequences of your network design.
 
-- **Stay secure:** Tighten security without worrying about impacting any required network flows.
-
-- **Better pipelines:** Confirm network-level problems before running application integration or end-to-end tests by adding Reach to your CI/CD pipelines.
+- **Build better pipelines:** Discover network-level problems before running application integration or end-to-end tests by adding Reach to your CI/CD pipelines.
 
 ## Basic Usage
 
@@ -54,7 +53,7 @@ $ reach web data
 
 ### Assertions
 
-If you deploy infrastructure via CI/CD pipelines, it can be helpful to confirm the network design itself before running any tests that rely on a correct network configuration.
+If you deploy infrastructure via CI/CD pipelines, it can be helpful to validate the network design itself before running any tests that rely on a correct network configuration.
 
 You can use assertion flags to ensure that your source **can** or **cannot** reach your destination.
 
@@ -74,9 +73,9 @@ $ reach some-server super-sensitive-server --assert-not-reachable
 
 ### Explanations
 
-Normally, Reach's output is very basic. It displays a simple list of zero or more kinds of network traffic that are allowed to flow from the source to the destination. However, the actual process Reach uses to perform its analysis is extremely thorough and complex.
+Normally, Reach's output is very basic. It displays a simple list of zero or more kinds of network traffic that are allowed to flow from the source to the destination. However, the process Reach uses to perform its analysis is more complex.
 
-If you're troubleshooting a network problem in AWS, Reach's basic output is sometimes insufficient for your needs.
+If you're troubleshooting a network problem in AWS, it's probably more helpful to see _"why"_ the analysis result is what it is.
 
 You can tell Reach to expose the reasoning behind the displayed result by using the `--explain` flag:
 
@@ -84,18 +83,17 @@ You can tell Reach to expose the reasoning behind the displayed result by using 
 $ reach web-instance db-instance --explain
 ```
 
-In this case, Reach will provide significantly more detail about the analysis. Specificially, the output will show you:
+In this case, Reach will provide significantly more detail about the analysis. Specificially, the output will also show you:
 
 - Exactly which "network points" were used in the analysis (not just the EC2 instance, but the EC2 instance's specific network interface, and the specific IP address attached to the network interface)
 - All of the "factors" (relevant aspects of your configuration) Reach used to figure out what traffic is being allowed by specific properties of your resources (e.g. security group rules, instance state, etc.)
-- The same end result output Reach displays normally
 
 ## Feature Ideas
 
-- ~~**Same-subnet analysis:** Between two EC2 instances within the same subnet~~
-- **Same-VPC analysis:** Between two EC2 instances within the same VPC, both for EC2 instances within the same subnet and from different subnets
-- **IP address analysis:** Between an EC2 instance and a specified IP address that may be outside of AWS (enhancement idea: provide shortcuts for things like the user's own IP address, a specified hostname's resolved IP address, etc.)
-- **Filtered analysis:** Specify a particular kind of network traffic to analyze (e.g. a single TCP port) and return results only in terms of that kind of traffic
+- ~~**Same-subnet analysis:** Between two EC2 instances within the same subnet~~ (done!)
+- **Same-VPC analysis:** Between two EC2 instances within the same VPC, including for EC2 instances in separate subnets
+- **IP address analysis:** Between an EC2 instance and a specified IP address that may be outside of AWS entirely (enhancement idea: provide shortcuts for things like the user's own IP address, a specified hostname's resolved IP address, etc.)
+- **Filtered analysis:** Specify a particular kind of network traffic to analyze (e.g. a single TCP port) and return results only for that filter
 - **Other AWS resources:** Analyze other kinds of AWS resources than just EC2 instances (e.g. ELB, Lambda, VPC endpoints, etc.)
 - **Peered VPC analysis**: Between resources from separate but peered VPCs
 - Other things! Your ideas are welcome!
