@@ -21,7 +21,7 @@ The key benefits of Reach are:
 
 - **Solve problems faster:** Find missing links in a network path in _seconds_, not hours.
 
-- **Don't compromise on security:** Tighten security without worrying about impacting any required network flows.
+- **Don't compromise on security:** Secure your network without worrying about impacting any required network flows.
 
 - **Learn about your network:** Gain better insight into currently allowed network flows, and discover new consequences of your network design.
 
@@ -48,6 +48,16 @@ $ reach web-instance database-instance
 ```Text
 $ reach web data
 ```
+
+**Note:** Right now, Reach can only analyze the path between two EC2 instances when the instances are **in the same subnet**. Adding support for mulitple subnets is the top priority and is currently in development.
+
+## Initial Setup
+
+If you've never used Reach before, download the latest version for your platform from the [Releases](https://github.com/luhring/reach/releases) page. (Alternatively, if you've installed the [Go tools](https://golang.org/dl/), you can clone this repository and build from source.)
+
+You need to run Reach from somewhere where you've saved AWS credentials for your AWS account. Reach follows the standard process for locating and using AWS credentials, similar to the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-welcome.html) tool and other AWS-capable tools (e.g. Terraform). If you're not sure how to set up AWS credentials, check out [AWS's documentation for setting up credentials](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html).
+
+Once you've set up AWS credentials, you'll need to make sure your IAM user or role has permission to access the necessary resources in your AWS account. Reach only ever needs **read-only** access, it never modifies any resources in your AWS account. Reach makes various requests to the AWS API to describe various network-related resources, such as EC2 instances, VPCs, subnets, security groups, etc.
 
 ## More Features
 
