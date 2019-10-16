@@ -13,3 +13,6 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Build output of any kind
+build/*
