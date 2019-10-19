@@ -6,17 +6,19 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// VectorAnalyzer is the AWS-specific implementation of the VectorAnalyzer interface.
 type VectorAnalyzer struct {
 	resourceCollection *reach.ResourceCollection
 }
 
+// NewVectorAnalyzer creates a new AWS-specific VectorAnalyzer.
 func NewVectorAnalyzer(resourceCollection *reach.ResourceCollection) VectorAnalyzer {
 	return VectorAnalyzer{
 		resourceCollection,
 	}
 }
 
-func (analyzer VectorAnalyzer) FactorsForPerspective(p reach.Perspective) ([]reach.Factor, error) {
+func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]reach.Factor, error) {
 	var factors []reach.Factor
 
 	for _, resourceRef := range p.Self.Lineage {
@@ -24,21 +26,21 @@ func (analyzer VectorAnalyzer) FactorsForPerspective(p reach.Perspective) ([]rea
 			if resourceRef.Kind == ResourceKindEC2Instance {
 				ec2Instance := analyzer.resourceCollection.Get(resourceRef).Properties.(EC2Instance)
 
-				factors = append(factors, ec2Instance.NewInstanceStateFactor())
+				factors = append(factors, ec2Instance.newInstanceStateFactor())
 			}
 
 			if resourceRef.Kind == ResourceKindElasticNetworkInterface {
 				eni := analyzer.resourceCollection.Get(resourceRef).Properties.(ElasticNetworkInterface)
 				targetENI := ElasticNetworkInterfaceFromNetworkPoint(p.Other, analyzer.resourceCollection)
 
-				var awsP Perspective
+				var awsP perspective
 				if p.SelfRole == reach.SubjectRoleSource {
-					awsP = NewPerspectiveSourceOriented()
+					awsP = newPerspectiveSourceOriented()
 				} else {
-					awsP = NewPerspectiveDestinationOriented()
+					awsP = newPerspectiveDestinationOriented()
 				}
 
-				securityGroupRulesFactor, err := eni.NewSecurityGroupRulesFactor(
+				securityGroupRulesFactor, err := eni.newSecurityGroupRulesFactor(
 					analyzer.resourceCollection,
 					p,
 					awsP,
@@ -64,17 +66,18 @@ func (analyzer VectorAnalyzer) FactorsForPerspective(p reach.Perspective) ([]rea
 	return factors, nil
 }
 
+// Factors calculates the analysis factors for the given network vector.
 func (analyzer VectorAnalyzer) Factors(v reach.NetworkVector) ([]reach.Factor, reach.NetworkVector, error) {
 	var factors []reach.Factor
 
 	sourcePerspective := v.SourcePerspective()
-	sourceFactors, err := analyzer.FactorsForPerspective(sourcePerspective)
+	sourceFactors, err := analyzer.factorsForPerspective(sourcePerspective)
 	if err != nil {
 		return nil, reach.NetworkVector{}, err
 	}
 
 	destinationPerspective := v.DestinationPerspective()
-	destinationFactors, err := analyzer.FactorsForPerspective(destinationPerspective)
+	destinationFactors, err := analyzer.factorsForPerspective(destinationPerspective)
 	if err != nil {
 		return nil, reach.NetworkVector{}, err
 	}

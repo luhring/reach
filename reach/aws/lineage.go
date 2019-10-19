@@ -6,6 +6,7 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// GetENIFromLineage returns the ElasticNetworkInterface from the given lineage.
 func GetENIFromLineage(lineage []reach.ResourceReference, collection *reach.ResourceCollection) (*ElasticNetworkInterface, error) {
 	const errPrefix = "unable to get ElasticNetworkInterface from lineage"
 
@@ -24,6 +25,7 @@ func GetENIFromLineage(lineage []reach.ResourceReference, collection *reach.Reso
 	return nil, fmt.Errorf("%s: lineage does not contain an ElasticNetworkInterface", errPrefix)
 }
 
+// GetENIsFromVector returns the ElasticNetworkInterfaces from the specified network vector.
 func GetENIsFromVector(v reach.NetworkVector, collection *reach.ResourceCollection) (*ElasticNetworkInterface, *ElasticNetworkInterface, error) {
 	sourceENI, err := GetENIFromLineage(v.Source.Lineage, collection)
 	if err != nil {
@@ -38,6 +40,7 @@ func GetENIsFromVector(v reach.NetworkVector, collection *reach.ResourceCollecti
 	return sourceENI, destinationENI, nil
 }
 
+// GetEC2InstanceFromLineage returns the EC2 instance from the given lineage.
 func GetEC2InstanceFromLineage(lineage []reach.ResourceReference, collection *reach.ResourceCollection) (*EC2Instance, error) {
 	const errPrefix = "unable to get EC2Instance from lineage"
 

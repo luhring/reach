@@ -2,16 +2,19 @@ package aws
 
 import "github.com/luhring/reach/reach"
 
+// VectorDiscoverer is the AWS-specific implementation of the VectorDiscoverer interface.
 type VectorDiscoverer struct {
 	resourceCollection *reach.ResourceCollection
 }
 
+// NewVectorDiscoverer creates a new AWS-specific VectorDiscoverer.
 func NewVectorDiscoverer(resourceCollection *reach.ResourceCollection) VectorDiscoverer {
 	return VectorDiscoverer{
 		resourceCollection,
 	}
 }
 
+// Discover identifies all of the network vectors that could exist between the given subjects.
 func (d VectorDiscoverer) Discover(subjects []*reach.Subject) ([]reach.NetworkVector, error) {
 	// TODO: Re-evaluate: As non-AWS network points are introduced, we may need to rethink how we divvy up this logic
 
@@ -30,7 +33,7 @@ func (d VectorDiscoverer) Discover(subjects []*reach.Subject) ([]reach.NetworkVe
 						ID:     subject.ID,
 					}).Properties.(EC2Instance)
 
-					sourceNetworkPoints = append(sourceNetworkPoints, ec2Instance.GetNetworkPoints(d.resourceCollection)...)
+					sourceNetworkPoints = append(sourceNetworkPoints, ec2Instance.networkPoints(d.resourceCollection)...)
 				}
 			}
 		} else if subject.Role == reach.SubjectRoleDestination {
@@ -44,7 +47,7 @@ func (d VectorDiscoverer) Discover(subjects []*reach.Subject) ([]reach.NetworkVe
 						ID:     subject.ID,
 					}).Properties.(EC2Instance)
 
-					destinationNetworkPoints = append(destinationNetworkPoints, ec2Instance.GetNetworkPoints(d.resourceCollection)...)
+					destinationNetworkPoints = append(destinationNetworkPoints, ec2Instance.networkPoints(d.resourceCollection)...)
 				}
 			}
 		}

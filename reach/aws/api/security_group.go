@@ -12,6 +12,7 @@ import (
 	"github.com/luhring/reach/reach/set"
 )
 
+// GetSecurityGroup queries the AWS API for a security group matching the given ID.
 func (provider *ResourceProvider) GetSecurityGroup(id string) (*reachAWS.SecurityGroup, error) {
 	input := &ec2.DescribeSecurityGroupsInput{
 		GroupIds: []*string{

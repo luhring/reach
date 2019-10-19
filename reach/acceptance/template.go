@@ -9,13 +9,13 @@ import (
 	"testing"
 )
 
-type SubjectPairForTwoEC2Instances struct {
+type subjectPairForTwoEC2Instances struct {
 	SourceEC2InstanceID      string
 	DestinationEC2InstanceID string
 }
 
-// ProcessTemplate handles injecting data into specified template file.
-func ProcessTemplate(t *testing.T, name string, data interface{}) (string, error) {
+// processTemplate handles injecting data into specified template file.
+func processTemplate(t *testing.T, name string, data interface{}) (string, error) {
 	t.Helper()
 
 	tmpl, err := template.New(name).ParseFiles(path.Join("..", "acceptance", "data", "golden", name)) // TODO: Need a better way to coordinate path construction with CWD of test
@@ -33,11 +33,11 @@ func ProcessTemplate(t *testing.T, name string, data interface{}) (string, error
 	return strings.TrimSpace(b.String()), nil
 }
 
-// ProcessTemplateForSubjectPairForTwoEC2Instances calls ProcessTemplate using the SubjectPairForTwoEC2Instances data type.
+// ProcessTemplateForSubjectPairForTwoEC2Instances calls processTemplate using the subjectPairForTwoEC2Instances data type.
 func ProcessTemplateForSubjectPairForTwoEC2Instances(t *testing.T, name, sourceID, destinationID string) (string, error) {
 	t.Helper()
 
-	return ProcessTemplate(t, name, &SubjectPairForTwoEC2Instances{
+	return processTemplate(t, name, &subjectPairForTwoEC2Instances{
 		SourceEC2InstanceID:      sourceID,
 		DestinationEC2InstanceID: destinationID,
 	})

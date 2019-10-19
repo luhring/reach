@@ -11,6 +11,7 @@ const chunkSize = 64
 const fullChunk = math.MaxUint64
 const numberOfChunksInSet = 1024
 
+// Set provides an implementation of sets of values, where the number space for any given value is 0 through 65,535, suitable for either TCP/UDP ports or ICMP types/codes.
 type Set struct {
 	complete bool // if 'complete' is true, 'chunks' should not be accessed
 	empty    bool // if 'empty' is true, 'chunks' should not be accessed
@@ -119,14 +120,16 @@ func newSetFromRange(low, high uint16) Set {
 	return newSetWithChunks(resultChunks)
 }
 
-func NewSetForSingleValue(val uint16) Set {
+func newSetForSingleValue(val uint16) Set {
 	return newSetFromRange(val, val)
 }
 
+// Complete returns a boolean indicating whether or not the set is complete.
 func (s Set) Complete() bool {
 	return s.complete
 }
 
+// Empty returns a boolean indicating whether or not the set is empty.
 func (s Set) Empty() bool {
 	return s.empty
 }
@@ -221,6 +224,7 @@ func (s Set) ranges() []Range {
 	return result
 }
 
+// String returns the string representation of the set.
 func (s Set) String() string {
 	if s.Empty() {
 		return "[empty]"
@@ -228,6 +232,7 @@ func (s Set) String() string {
 	return strings.Join(s.rangeStrings(), ", ")
 }
 
+// MarshalJSON returns the JSON representation of the set.
 func (s Set) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.rangeStrings())
 }

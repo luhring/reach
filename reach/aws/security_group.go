@@ -6,8 +6,10 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// ResourceKindSecurityGroup specifies the unique name for the security group kind of resource.
 const ResourceKindSecurityGroup = "SecurityGroup"
 
+// A SecurityGroup resource representation.
 type SecurityGroup struct {
 	ID            string
 	NameTag       string
@@ -17,6 +19,7 @@ type SecurityGroup struct {
 	OutboundRules []SecurityGroupRule
 }
 
+// ToResource returns the security group converted to a generalized Reach resource.
 func (sg SecurityGroup) ToResource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindSecurityGroup,
@@ -24,7 +27,8 @@ func (sg SecurityGroup) ToResource() reach.Resource {
 	}
 }
 
-func (sg SecurityGroup) GetDependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+// Dependencies returns a collection of the security group's resource dependencies.
+func (sg SecurityGroup) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	vpc, err := provider.GetVPC(sg.VPCID)
@@ -58,6 +62,7 @@ func (sg SecurityGroup) GetDependencies(provider ResourceProvider) (*reach.Resou
 	return rc, nil
 }
 
+// Name returns the security group's ID, and, if available, its name tag value (or group name).
 func (sg SecurityGroup) Name() string {
 	var name string
 
@@ -74,15 +79,15 @@ func (sg SecurityGroup) Name() string {
 	return sg.ID
 }
 
-func (sg SecurityGroup) GetRule(direction SecurityGroupRuleDirection, ruleIndex int) (*SecurityGroupRule, error) {
+func (sg SecurityGroup) rule(direction securityGroupRuleDirection, ruleIndex int) (*SecurityGroupRule, error) {
 	errNotFound := fmt.Errorf("rule not found for direction '%s' and index '%d'", direction, ruleIndex)
 
 	var rules []SecurityGroupRule
 
 	switch direction {
-	case SecurityGroupRuleDirectionInbound:
+	case securityGroupRuleDirectionInbound:
 		rules = sg.InboundRules
-	case SecurityGroupRuleDirectionOutbound:
+	case securityGroupRuleDirectionOutbound:
 		rules = sg.OutboundRules
 	default:
 		return nil, errNotFound

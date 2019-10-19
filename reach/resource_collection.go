@@ -2,10 +2,12 @@ package reach
 
 import "encoding/json"
 
+// A ResourceCollection is a structure used to store any number of Resources, across potentially multiple "domains" (e.g. AWS, GCP, Azure) and kinds (e.g. EC2 instance, subnet, etc.).
 type ResourceCollection struct {
 	collection map[string]map[string]map[string]Resource
 }
 
+// NewResourceCollection returns a reference to a new, empty ResourceCollection.
 func NewResourceCollection() *ResourceCollection {
 	collection := make(map[string]map[string]map[string]Resource)
 
@@ -14,6 +16,7 @@ func NewResourceCollection() *ResourceCollection {
 	}
 }
 
+// Put adds a new Resource to the ResourceCollection.
 func (rc *ResourceCollection) Put(ref ResourceReference, resource Resource) {
 	rc.ensureResourcePathExists(ref.Domain, ref.Kind)
 
@@ -24,6 +27,7 @@ func (rc *ResourceCollection) Put(ref ResourceReference, resource Resource) {
 	rc.Merge(other)
 }
 
+// Get retrieves a Resource from the ResourceCollection.
 func (rc *ResourceCollection) Get(ref ResourceReference) *Resource {
 	if _, exists := rc.collection[ref.Domain]; !exists {
 		return nil
@@ -33,13 +37,13 @@ func (rc *ResourceCollection) Get(ref ResourceReference) *Resource {
 		return nil
 	}
 
-	if resource, exists := rc.collection[ref.Domain][ref.Kind][ref.ID]; !exists {
-		return nil
-	} else {
+	if resource, exists := rc.collection[ref.Domain][ref.Kind][ref.ID]; exists {
 		return &resource
 	}
+	return nil
 }
 
+// Merge safely merges two ResourceCollections such that any unique resource from either collection is represented in the merged collection. For any case where both collections contain a resource for a given domain, kind, and resource ID, the "other" (input parameter) resource will overwrite the corresponding resource in the first collection.
 func (rc *ResourceCollection) Merge(other *ResourceCollection) {
 	for resourceDomain, resourceKinds := range rc.collection { // e.g. for AWS
 		if _, exists := other.collection[resourceDomain]; !exists { // only A has AWS
@@ -78,6 +82,7 @@ func (rc *ResourceCollection) Merge(other *ResourceCollection) {
 	}
 }
 
+// MarshalJSON returns the JSON representation of the ResourceCollection.
 func (rc *ResourceCollection) MarshalJSON() ([]byte, error) {
 	return json.Marshal(rc.collection)
 }

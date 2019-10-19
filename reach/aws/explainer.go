@@ -12,30 +12,34 @@ import (
 
 const formatResourceMissing = "unable to explain analysis for network point: resource missing from collection: %s"
 
+// Explainer explains an analysis with respect to AWS.
 type Explainer struct {
 	analysis reach.Analysis
 }
 
+// NewExplainer creates a new AWS-specific explainer.
 func NewExplainer(analysis reach.Analysis) *Explainer {
 	return &Explainer{
 		analysis: analysis,
 	}
 }
 
+// NetworkPoint explains the analysis component for the specified network point.
 func (ex *Explainer) NetworkPoint(point reach.NetworkPoint, p reach.Perspective) string {
 	var outputItems []string
 
-	if instanceStateFactor, _ := GetInstanceStateFactor(point.Factors); instanceStateFactor != nil {
+	if instanceStateFactor, _ := getInstanceStateFactor(point.Factors); instanceStateFactor != nil {
 		outputItems = append(outputItems, ex.InstanceState(*instanceStateFactor))
 	}
 
-	if securityGroupRulesFactor, _ := GetSecurityGroupRulesFactor(point.Factors); securityGroupRulesFactor != nil {
+	if securityGroupRulesFactor, _ := getSecurityGroupRulesFactor(point.Factors); securityGroupRulesFactor != nil {
 		outputItems = append(outputItems, ex.SecurityGroupRules(*securityGroupRulesFactor, p))
 	}
 
 	return strings.Join(outputItems, "\n")
 }
 
+// InstanceState explains the analysis component for the specified instance state factor.
 func (ex *Explainer) InstanceState(factor reach.Factor) string {
 	var outputItems []string
 
@@ -54,6 +58,7 @@ func (ex *Explainer) InstanceState(factor reach.Factor) string {
 	return strings.Join(outputItems, "\n")
 }
 
+// SecurityGroupRules explains the analysis component for the specified security group rules factor.
 func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective) string {
 	var outputItems []string
 	header := fmt.Sprintf(
@@ -64,14 +69,14 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective
 	)
 	outputItems = append(outputItems, header)
 
-	props := factor.Properties.(SecurityGroupRulesFactor)
+	props := factor.Properties.(securityGroupRulesFactor)
 
 	var bodyItems []string
 
 	if rules := props.ComponentRules; len(rules) == 0 {
 		bodyItems = append(bodyItems, "no rules that apply to analysis\n")
 	} else {
-		var ruleViewModels []RuleExplanationViewModel
+		var ruleViewModels []ruleExplanationViewModel
 
 		for _, rule := range rules {
 			sgRef := ex.analysis.Resources.Get(rule.SecurityGroup)
@@ -80,7 +85,7 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective
 			}
 
 			sg := sgRef.Properties.(SecurityGroup)
-			originalRule, err := sg.GetRule(rule.RuleDirection, rule.RuleIndex)
+			originalRule, err := sg.rule(rule.RuleDirection, rule.RuleIndex)
 			if err != nil {
 				log.Fatalf(err.Error())
 			}
@@ -88,13 +93,13 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective
 			var inclusionReason string
 
 			switch rule.Match.Basis {
-			case SecurityGroupRuleMatchBasisSGRef:
+			case securityGroupRuleMatchBasisSGRef:
 				inclusionReason = fmt.Sprintf(
 					"This rule specifies a security group \"%s\" that is attached to the %s's network interface.",
 					rule.Match.Value,
 					p.OtherRole,
 				)
-			case SecurityGroupRuleMatchBasisIP:
+			case securityGroupRuleMatchBasisIP:
 				inclusionReason = fmt.Sprintf(
 					"This rule specifies an IP CIDR block \"%s\" that contains the %s's IP address \"%s\".",
 					originalRule.TargetIPNetworks[0], // TODO: This could show a different network than the matched network, which would be wrong. Include this IPNet in the Match struct to ensure we use the right network here.
@@ -105,7 +110,7 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective
 				inclusionReason = fmt.Sprintf("Unknown reason for inclusion. Match basis is '%s'. Please report this.", rule.Match.Basis)
 			}
 
-			ruleViewModel := RuleExplanationViewModel{
+			ruleViewModel := ruleExplanationViewModel{
 				securityGroupName: sg.Name(),
 				inclusionReason:   inclusionReason,
 				allowedTraffic:    originalRule.TrafficContent.String(),
@@ -162,10 +167,12 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective
 	return strings.Join(outputItems, "\n")
 }
 
+// CheckBothInAWS returns a boolean indicating whether both network points in a network vector are AWS resources.
 func (ex Explainer) CheckBothInAWS(v reach.NetworkVector) bool {
 	return IsUsedByNetworkPoint(v.Source) && IsUsedByNetworkPoint(v.Destination)
 }
 
+// CheckBothInSameVPC returns a boolean indicating whether both network points in a network vector reside in the same AWS VPC.
 func (ex Explainer) CheckBothInSameVPC(v reach.NetworkVector) bool {
 	sourceENI, destinationENI, err := GetENIsFromVector(v, ex.analysis.Resources)
 	if err != nil {
@@ -175,6 +182,7 @@ func (ex Explainer) CheckBothInSameVPC(v reach.NetworkVector) bool {
 	return sourceENI.VPCID == destinationENI.VPCID
 }
 
+// CheckBothInSameSubnet returns a boolean indicating whether both network points in a network vector reside in the same AWS subnet.
 func (ex Explainer) CheckBothInSameSubnet(v reach.NetworkVector) bool {
 	sourceENI, destinationENI, err := GetENIsFromVector(v, ex.analysis.Resources)
 	if err != nil {
@@ -184,30 +192,13 @@ func (ex Explainer) CheckBothInSameSubnet(v reach.NetworkVector) bool {
 	return sourceENI.SubnetID == destinationENI.SubnetID
 }
 
-type SecurityGroupViewModel struct {
-	securityGroupName string
-	rules             string
-}
-
-func (vm SecurityGroupViewModel) String() string {
-	securityGroupLine := vm.securityGroupName
-	rulesLines := helper.Indent(vm.rules, 2)
-
-	lines := []string{
-		securityGroupLine,
-		rulesLines,
-	}
-
-	return strings.Join(lines, "\n")
-}
-
-type RuleExplanationViewModel struct {
+type ruleExplanationViewModel struct {
 	securityGroupName string
 	allowedTraffic    string
 	inclusionReason   string
 }
 
-func (vm RuleExplanationViewModel) String() string {
+func (vm ruleExplanationViewModel) String() string {
 	output := "- rule\n"
 
 	allowedTrafficHeader := "network traffic allowed:"

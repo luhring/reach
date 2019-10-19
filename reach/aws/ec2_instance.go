@@ -7,8 +7,10 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// ResourceKindEC2Instance specifies the unique name for the EC2 instance kind of resource.
 const ResourceKindEC2Instance = "EC2Instance"
 
+// An EC2Instance resource representation.
 type EC2Instance struct {
 	ID                          string
 	NameTag                     string `json:"NameTag,omitempty"`
@@ -16,6 +18,7 @@ type EC2Instance struct {
 	NetworkInterfaceAttachments []NetworkInterfaceAttachment
 }
 
+// ToResource returns the EC2 instance converted to a generalized Reach resource.
 func (i EC2Instance) ToResource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindEC2Instance,
@@ -23,6 +26,7 @@ func (i EC2Instance) ToResource() reach.Resource {
 	}
 }
 
+// ToResourceReference returns a resource reference to uniquely identify the EC2 instance.
 func (i EC2Instance) ToResourceReference() reach.ResourceReference {
 	return reach.ResourceReference{
 		Domain: ResourceDomainAWS,
@@ -35,7 +39,7 @@ func (i EC2Instance) isRunning() bool {
 	return i.State == "running"
 }
 
-func (i EC2Instance) getElasticNetworkInterfaceIDs() []string {
+func (i EC2Instance) elasticNetworkInterfaceIDs() []string {
 	var ids []string
 
 	for _, attachment := range i.NetworkInterfaceAttachments {
@@ -45,11 +49,12 @@ func (i EC2Instance) getElasticNetworkInterfaceIDs() []string {
 	return ids
 }
 
-func (i EC2Instance) GetDependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+// Dependencies returns a collection of the EC2 instance's resource dependencies.
+func (i EC2Instance) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	for _, attachment := range i.NetworkInterfaceAttachments {
-		attachmentDependencies, err := getDependenciesForNetworkInterfaceAttachment(attachment, provider)
+		attachmentDependencies, err := dependenciesForNetworkInterfaceAttachment(attachment, provider)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +64,7 @@ func (i EC2Instance) GetDependencies(provider ResourceProvider) (*reach.Resource
 	return rc, nil
 }
 
-func getDependenciesForNetworkInterfaceAttachment(attachment NetworkInterfaceAttachment, provider ResourceProvider) (*reach.ResourceCollection, error) {
+func dependenciesForNetworkInterfaceAttachment(attachment NetworkInterfaceAttachment, provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	eni, err := provider.GetElasticNetworkInterface(attachment.ElasticNetworkInterfaceID)
@@ -72,7 +77,7 @@ func getDependenciesForNetworkInterfaceAttachment(attachment NetworkInterfaceAtt
 		ID:     eni.ID,
 	}, eni.ToResource())
 
-	eniDependencies, err := eni.GetDependencies(provider)
+	eniDependencies, err := eni.Dependencies(provider)
 	if err != nil {
 		return nil, err
 	}
@@ -81,26 +86,26 @@ func getDependenciesForNetworkInterfaceAttachment(attachment NetworkInterfaceAtt
 	return rc, nil
 }
 
-func (i EC2Instance) GetNetworkPoints(rc *reach.ResourceCollection) []reach.NetworkPoint {
+func (i EC2Instance) networkPoints(rc *reach.ResourceCollection) []reach.NetworkPoint {
 	var points []reach.NetworkPoint
 
-	for _, id := range i.getElasticNetworkInterfaceIDs() {
+	for _, id := range i.elasticNetworkInterfaceIDs() {
 		eni := rc.Get(reach.ResourceReference{
 			Domain: ResourceDomainAWS,
 			Kind:   ResourceKindElasticNetworkInterface,
 			ID:     id,
 		}).Properties.(ElasticNetworkInterface)
-		eniNetworkPoints := eni.GetNetworkPoints(i.ToResourceReference())
+		eniNetworkPoints := eni.getNetworkPoints(i.ToResourceReference())
 		points = append(points, eniNetworkPoints...)
 	}
 
 	return points
 }
 
+// Name returns the instance's ID, and, if available, its name tag value.
 func (i EC2Instance) Name() string {
 	if name := strings.TrimSpace(i.NameTag); name != "" {
 		return fmt.Sprintf("\"%s\" (%s)", name, i.ID)
-	} else {
-		return i.ID
 	}
+	return i.ID
 }

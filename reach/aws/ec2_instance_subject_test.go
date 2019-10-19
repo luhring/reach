@@ -11,7 +11,7 @@ func TestNewEC2InstanceSubject(t *testing.T) {
 	cases := []struct {
 		name            string
 		id              string
-		role            string
+		role            reach.SubjectRole
 		expectedSubject *reach.Subject
 		expectedError   error
 	}{

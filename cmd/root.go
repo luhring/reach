@@ -119,6 +119,7 @@ See https://github.com/luhring/reach for documentation.`,
 	},
 }
 
+// Execute runs the root command
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		exitWithError(err)

@@ -9,6 +9,7 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
+// GetElasticNetworkInterface queries the AWS API for an elastic network interface matching the given ID.
 func (provider *ResourceProvider) GetElasticNetworkInterface(id string) (*reachAWS.ElasticNetworkInterface, error) {
 	input := &ec2.DescribeNetworkInterfacesInput{
 		NetworkInterfaceIds: []*string{

@@ -1,5 +1,6 @@
 package aws
 
+// A NetworkInterfaceAttachment resource representation.
 type NetworkInterfaceAttachment struct {
 	ID                        string
 	ElasticNetworkInterfaceID string

@@ -1,6 +1,6 @@
 package aws
 
-type SecurityGroupRuleDirection string
+type securityGroupRuleDirection string
 
-const SecurityGroupRuleDirectionInbound SecurityGroupRuleDirection = "inbound"
-const SecurityGroupRuleDirectionOutbound SecurityGroupRuleDirection = "outbound"
+const securityGroupRuleDirectionInbound securityGroupRuleDirection = "inbound"
+const securityGroupRuleDirectionOutbound securityGroupRuleDirection = "outbound"

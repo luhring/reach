@@ -1,24 +1,24 @@
 package aws
 
-type Perspective struct {
+type perspective struct {
 	getSecurityGroupRules func(sg SecurityGroup) []SecurityGroupRule
-	ruleDirection         SecurityGroupRuleDirection
+	ruleDirection         securityGroupRuleDirection
 }
 
-func NewPerspectiveSourceOriented() Perspective {
-	return Perspective{
+func newPerspectiveSourceOriented() perspective {
+	return perspective{
 		getSecurityGroupRules: func(sg SecurityGroup) []SecurityGroupRule {
 			return sg.OutboundRules
 		},
-		ruleDirection: SecurityGroupRuleDirectionOutbound,
+		ruleDirection: securityGroupRuleDirectionOutbound,
 	}
 }
 
-func NewPerspectiveDestinationOriented() Perspective {
-	return Perspective{
+func newPerspectiveDestinationOriented() perspective {
+	return perspective{
 		getSecurityGroupRules: func(sg SecurityGroup) []SecurityGroupRule {
 			return sg.InboundRules
 		},
-		ruleDirection: SecurityGroupRuleDirectionInbound,
+		ruleDirection: securityGroupRuleDirectionInbound,
 	}
 }

@@ -2,14 +2,17 @@ package aws
 
 import "github.com/luhring/reach/reach"
 
+// ResourceKindRouteTable specifies the unique name for the route table kind of resource.
 const ResourceKindRouteTable = "RouteTable"
 
+// A RouteTable resource representation.
 type RouteTable struct {
 	ID     string
 	VPCID  string
 	Routes []RouteTableRoute
 }
 
+// ToResource returns the route table converted to a generalized Reach resource.
 func (rt RouteTable) ToResource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindRouteTable,
@@ -17,7 +20,8 @@ func (rt RouteTable) ToResource() reach.Resource {
 	}
 }
 
-func (rt RouteTable) GetDependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+// Dependencies returns a collection of the route table's resource dependencies.
+func (rt RouteTable) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	vpc, err := provider.GetVPC(rt.VPCID)

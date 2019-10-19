@@ -7,6 +7,7 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
+// GetSubnet queries the AWS API for a subnet matching the given ID.
 func (provider *ResourceProvider) GetSubnet(id string) (*reachAWS.Subnet, error) {
 	input := &ec2.DescribeSubnetsInput{
 		SubnetIds: []*string{

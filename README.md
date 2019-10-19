@@ -1,6 +1,7 @@
 # reach
 
 [![CircleCI](https://circleci.com/gh/luhring/reach.svg?style=svg)](https://circleci.com/gh/luhring/reach)
+[![Go Report Card](https://goreportcard.com/badge/github.com/luhring/reach)](https://goreportcard.com/report/github.com/luhring/reach)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/luhring/reach/blob/master/LICENSE)
 
 Reach is a tool for discovering the impact your AWS configuration has on the flow of network traffic.

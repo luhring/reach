@@ -8,8 +8,10 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// ResourceKindElasticNetworkInterface specifies the unique name for the elastic network interface kind of resource.
 const ResourceKindElasticNetworkInterface = "ElasticNetworkInterface"
 
+// An ElasticNetworkInterface resource representation.
 type ElasticNetworkInterface struct {
 	ID                   string
 	NameTag              string `json:"NameTag,omitempty"`
@@ -21,6 +23,7 @@ type ElasticNetworkInterface struct {
 	IPv6Addresses        []net.IP `json:"IPv6Addresses,omitempty"`
 }
 
+// ElasticNetworkInterfaceFromNetworkPoint extracts the ElasticNetworkInterface from the lineage of the specified network point.
 func ElasticNetworkInterfaceFromNetworkPoint(point reach.NetworkPoint, rc *reach.ResourceCollection) *ElasticNetworkInterface {
 	for _, ancestor := range point.Lineage { // assumes there will only be one ENI among the ancestors
 		if ancestor.Domain == ResourceDomainAWS && ancestor.Kind == ResourceKindElasticNetworkInterface {
@@ -32,6 +35,7 @@ func ElasticNetworkInterfaceFromNetworkPoint(point reach.NetworkPoint, rc *reach
 	return nil
 }
 
+// ToResource returns the elastic network interface converted to a generalized Reach resource.
 func (eni ElasticNetworkInterface) ToResource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindElasticNetworkInterface,
@@ -39,6 +43,7 @@ func (eni ElasticNetworkInterface) ToResource() reach.Resource {
 	}
 }
 
+// ToResourceReference returns a resource reference to uniquely identify the elastic network interface.
 func (eni ElasticNetworkInterface) ToResourceReference() reach.ResourceReference {
 	return reach.ResourceReference{
 		Domain: ResourceDomainAWS,
@@ -47,7 +52,8 @@ func (eni ElasticNetworkInterface) ToResourceReference() reach.ResourceReference
 	}
 }
 
-func (eni ElasticNetworkInterface) GetDependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+// Dependencies returns a collection of the elastic network interface's resource dependencies.
+func (eni ElasticNetworkInterface) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	subnet, err := provider.GetSubnet(eni.SubnetID)
@@ -81,7 +87,7 @@ func (eni ElasticNetworkInterface) GetDependencies(provider ResourceProvider) (*
 			ID:     sg.ID,
 		}, sg.ToResource())
 
-		sgDependencies, err := sg.GetDependencies(provider)
+		sgDependencies, err := sg.Dependencies(provider)
 		if err != nil {
 			return nil, err
 		}
@@ -91,7 +97,7 @@ func (eni ElasticNetworkInterface) GetDependencies(provider ResourceProvider) (*
 	return rc, nil
 }
 
-func (eni ElasticNetworkInterface) GetNetworkPoints(parent reach.ResourceReference) []reach.NetworkPoint {
+func (eni ElasticNetworkInterface) getNetworkPoints(parent reach.ResourceReference) []reach.NetworkPoint {
 	var networkPoints []reach.NetworkPoint
 
 	lineage := []reach.ResourceReference{
@@ -127,10 +133,10 @@ func (eni ElasticNetworkInterface) GetNetworkPoints(parent reach.ResourceReferen
 	return networkPoints
 }
 
+// Name returns the elastic network interface's ID, and, if available, its name tag value.
 func (eni ElasticNetworkInterface) Name() string {
 	if name := strings.TrimSpace(eni.NameTag); name != "" {
 		return fmt.Sprintf("\"%s\" (%s)", name, eni.ID)
-	} else {
-		return eni.ID
 	}
+	return eni.ID
 }
