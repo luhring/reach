@@ -129,7 +129,7 @@ func TestNewSetForSingleValue(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			s := NewSetForSingleValue(tc.value)
+			s := newSetForSingleValue(tc.value)
 
 			if s.complete != false {
 				t.Error("complete should be false")
@@ -164,7 +164,7 @@ func TestIsComplete(t *testing.T) {
 		},
 		{
 			setDescription: "new set for single value",
-			set:            NewSetForSingleValue(42),
+			set:            newSetForSingleValue(42),
 			expected:       false,
 		},
 	}
@@ -197,7 +197,7 @@ func TestIsEmpty(t *testing.T) {
 		},
 		{
 			setDescription: "new set for single value",
-			set:            NewSetForSingleValue(42),
+			set:            newSetForSingleValue(42),
 			expected:       false,
 		},
 	}
@@ -263,8 +263,8 @@ func TestEquals(t *testing.T) {
 		},
 		{
 			"equivalent single-value sets",
-			NewSetForSingleValue(5555),
-			NewSetForSingleValue(5555),
+			newSetForSingleValue(5555),
+			newSetForSingleValue(5555),
 			true,
 		},
 	}
@@ -498,22 +498,22 @@ func TestString(t *testing.T) {
 		},
 		{
 			"single value (middle)",
-			NewSetForSingleValue(12),
+			newSetForSingleValue(12),
 			"12",
 		},
 		{
 			"upper bound (single value)",
-			NewSetForSingleValue(65535),
+			newSetForSingleValue(65535),
 			"65535",
 		},
 		{
 			"lower bound (single value)",
-			NewSetForSingleValue(0),
+			newSetForSingleValue(0),
 			"0",
 		},
 		{
 			"upper + lower bound (single values)",
-			NewSetForSingleValue(0).merge(NewSetForSingleValue(65535)),
+			newSetForSingleValue(0).merge(newSetForSingleValue(65535)),
 			"0, 65535",
 		},
 	}

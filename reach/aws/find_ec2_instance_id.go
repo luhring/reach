@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// FindEC2InstanceID looks up the instance ID for an EC2 instance using a given resource provider (e.g. an AWS API client) based on the specified search text. The search text can match the entire value or beginning substring for an instance's ID or name tag value, as long as the text matches exactly one EC2 instance.
 func FindEC2InstanceID(searchText string, provider ResourceProvider) (string, error) {
 	instances, err := provider.GetAllEC2Instances()
 	if err != nil {

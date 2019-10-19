@@ -6,6 +6,7 @@ import (
 	"github.com/nu7hatch/gouuid"
 )
 
+// A NetworkVector represents the path between two network points that's able to be analyzed in terms of what kind of network traffic is allowed to flow from point to point.
 type NetworkVector struct {
 	ID          string
 	Source      NetworkPoint
@@ -13,6 +14,7 @@ type NetworkVector struct {
 	Traffic     *TrafficContent
 }
 
+// NewNetworkVector creates a new network vector given a source and a destination network point.
 func NewNetworkVector(source, destination NetworkPoint) (NetworkVector, error) {
 	u, err := uuid.NewV4()
 	if err != nil {
@@ -26,26 +28,7 @@ func NewNetworkVector(source, destination NetworkPoint) (NetworkVector, error) {
 	}, nil
 }
 
-func (v NetworkVector) TrafficComponents() []TrafficContent {
-	var components []TrafficContent
-
-	components = append(components, v.Source.TrafficComponents()...)
-	components = append(components, v.Destination.TrafficComponents()...)
-
-	return components
-}
-
-func (v NetworkVector) NetTraffic() (TrafficContent, error) {
-	vectorTrafficComponents := v.TrafficComponents()
-
-	resultingTraffic, err := NewTrafficContentFromIntersectingMultiple(vectorTrafficComponents)
-	if err != nil {
-		return TrafficContent{}, err
-	}
-
-	return resultingTraffic, nil
-}
-
+// String returns the text representation of a NetworkVector.
 func (v NetworkVector) String() string {
 	output := ""
 	output += fmt.Sprintf("* network vector ID: %s\n", v.ID)
@@ -60,6 +43,7 @@ func (v NetworkVector) String() string {
 	return output
 }
 
+// SourcePerspective returns an analyzable Perspective based on the NetworkVector's source network point.
 func (v NetworkVector) SourcePerspective() Perspective {
 	return Perspective{
 		Self:      v.Source,
@@ -69,6 +53,7 @@ func (v NetworkVector) SourcePerspective() Perspective {
 	}
 }
 
+// DestinationPerspective returns an analyzable Perspective based on the NetworkVector's destination network point.
 func (v NetworkVector) DestinationPerspective() Perspective {
 	return Perspective{
 		Self:      v.Destination,

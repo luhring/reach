@@ -7,6 +7,7 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
+// GetRouteTable queries the AWS API for a route table matching the given ID.
 func (provider *ResourceProvider) GetRouteTable(id string) (*reachAWS.RouteTable, error) {
 	input := &ec2.DescribeRouteTablesInput{
 		RouteTableIds: []*string{

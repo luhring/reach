@@ -2,13 +2,16 @@ package aws
 
 import "github.com/luhring/reach/reach"
 
+// ResourceKindSubnet specifies the unique name for the subnet kind of resource.
 const ResourceKindSubnet = "Subnet"
 
+// A Subnet resource representation.
 type Subnet struct {
 	ID    string
 	VPCID string
 }
 
+// ToResource returns the subnet converted to a generalized Reach resource.
 func (s Subnet) ToResource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindSubnet,
@@ -16,7 +19,8 @@ func (s Subnet) ToResource() reach.Resource {
 	}
 }
 
-func (s Subnet) GetDependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+// Dependencies returns a collection of the subnet's resource dependencies.
+func (s Subnet) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	vpc, err := provider.GetVPC(s.VPCID)

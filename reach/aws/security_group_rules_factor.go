@@ -4,47 +4,49 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// FactorKindSecurityGroupRules specifies the unique name for the security group rules kind of factor.
 const FactorKindSecurityGroupRules = "SecurityGroupRules"
 
-type SecurityGroupRuleMatchBasis string
+type securityGroupRuleMatchBasis string
 
-const SecurityGroupRuleMatchBasisIP SecurityGroupRuleMatchBasis = "IP"
-const SecurityGroupRuleMatchBasisSGRef SecurityGroupRuleMatchBasis = "SecurityGroupReference"
+const securityGroupRuleMatchBasisIP securityGroupRuleMatchBasis = "IP"
+const securityGroupRuleMatchBasisSGRef securityGroupRuleMatchBasis = "SecurityGroupReference"
 
-type SecurityGroupRulesFactor struct {
-	ComponentRules []SecurityGroupRulesFactorComponent
+type securityGroupRulesFactor struct {
+	ComponentRules []securityGroupRulesFactorComponent
 }
 
-type SecurityGroupRulesFactorComponent struct {
+type securityGroupRulesFactorComponent struct {
 	SecurityGroup reach.ResourceReference
-	RuleDirection SecurityGroupRuleDirection
+	RuleDirection securityGroupRuleDirection
 	RuleIndex     int
-	Match         SecurityGroupRuleMatch
+	Match         securityGroupRuleMatch
 }
 
-type SecurityGroupRuleMatch struct {
-	Basis SecurityGroupRuleMatchBasis
+type securityGroupRuleMatch struct {
+	Basis securityGroupRuleMatchBasis
 	Value interface{}
 }
 
-func (basis SecurityGroupRuleMatchBasis) String() string {
+// String returns the string representation of a security group rule match.
+func (basis securityGroupRuleMatchBasis) String() string {
 	switch basis {
-	case SecurityGroupRuleMatchBasisIP:
+	case securityGroupRuleMatchBasisIP:
 		return "IP address"
-	case SecurityGroupRuleMatchBasisSGRef:
+	case securityGroupRuleMatchBasisSGRef:
 		return "attached security group"
 	default:
 		return "[unknown match basis]"
 	}
 }
 
-func (eni ElasticNetworkInterface) NewSecurityGroupRulesFactor(
+func (eni ElasticNetworkInterface) newSecurityGroupRulesFactor(
 	rc *reach.ResourceCollection,
 	p reach.Perspective,
-	awsP Perspective,
+	awsP perspective,
 	targetENI *ElasticNetworkInterface,
 ) (*reach.Factor, error) {
-	var componentRules []SecurityGroupRulesFactorComponent
+	var componentRules []securityGroupRulesFactorComponent
 	var trafficContentSegments []reach.TrafficContent
 
 	for _, id := range eni.SecurityGroupIDs {
@@ -57,18 +59,18 @@ func (eni ElasticNetworkInterface) NewSecurityGroupRulesFactor(
 		sg := rc.Get(ref).Properties.(SecurityGroup)
 
 		for ruleIndex, rule := range awsP.getSecurityGroupRules(sg) {
-			var match *SecurityGroupRuleMatch
+			var match *securityGroupRuleMatch
 
 			// check ip match
-			match = rule.MatchByIP(p.Other.IPAddress)
+			match = rule.matchByIP(p.Other.IPAddress)
 
 			// check SG ref match (only if we don't already have a match)
 			if match == nil {
-				match = rule.MatchBySecurityGroup(targetENI)
+				match = rule.matchBySecurityGroup(targetENI)
 			}
 
 			if match != nil {
-				component := SecurityGroupRulesFactorComponent{
+				component := securityGroupRulesFactorComponent{
 					SecurityGroup: ref,
 					RuleDirection: awsP.ruleDirection,
 					RuleIndex:     ruleIndex,
@@ -86,7 +88,7 @@ func (eni ElasticNetworkInterface) NewSecurityGroupRulesFactor(
 		return nil, err
 	}
 
-	props := SecurityGroupRulesFactor{
+	props := securityGroupRulesFactor{
 		ComponentRules: componentRules,
 	}
 

@@ -6,6 +6,7 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// A SecurityGroupRule resource representation.
 type SecurityGroupRule struct {
 	TrafficContent                        reach.TrafficContent
 	TargetSecurityGroupReferenceID        string       `json:"TargetSecurityGroupReferenceID,omitempty"`
@@ -13,11 +14,11 @@ type SecurityGroupRule struct {
 	TargetIPNetworks                      []*net.IPNet `json:"TargetIPNetworks,omitempty"`
 }
 
-func (rule SecurityGroupRule) MatchByIP(ip net.IP) *SecurityGroupRuleMatch {
+func (rule SecurityGroupRule) matchByIP(ip net.IP) *securityGroupRuleMatch {
 	for _, network := range rule.TargetIPNetworks {
 		if network.Contains(ip) {
-			return &SecurityGroupRuleMatch{
-				Basis: SecurityGroupRuleMatchBasisIP,
+			return &securityGroupRuleMatch{
+				Basis: securityGroupRuleMatchBasisIP,
 				Value: ip,
 			}
 		}
@@ -26,12 +27,12 @@ func (rule SecurityGroupRule) MatchByIP(ip net.IP) *SecurityGroupRuleMatch {
 	return nil
 }
 
-func (rule SecurityGroupRule) MatchBySecurityGroup(eni *ElasticNetworkInterface) *SecurityGroupRuleMatch {
+func (rule SecurityGroupRule) matchBySecurityGroup(eni *ElasticNetworkInterface) *securityGroupRuleMatch {
 	if eni != nil {
 		for _, targetENISecurityGroupID := range eni.SecurityGroupIDs {
 			if rule.TargetSecurityGroupReferenceID == targetENISecurityGroupID { // TODO: Handle SG Account ID
-				return &SecurityGroupRuleMatch{
-					Basis: SecurityGroupRuleMatchBasisSGRef,
+				return &securityGroupRuleMatch{
+					Basis: securityGroupRuleMatchBasisSGRef,
 					Value: targetENISecurityGroupID,
 				}
 			}

@@ -11,6 +11,7 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
+// GetNetworkACL queries the AWS API for a network ACL matching the given ID.
 func (provider *ResourceProvider) GetNetworkACL(id string) (*reachAWS.NetworkACL, error) {
 	input := &ec2.DescribeNetworkAclsInput{
 		NetworkAclIds: []*string{

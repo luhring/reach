@@ -9,6 +9,7 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
+// GetVPC queries the AWS API for a VPC matching the given ID.
 func (provider *ResourceProvider) GetVPC(id string) (*reachAWS.VPC, error) {
 	input := &ec2.DescribeVpcsInput{
 		VpcIds: []*string{

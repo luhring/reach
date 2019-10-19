@@ -1,14 +1,13 @@
 package aws
 
 import (
-	"fmt"
-
 	"github.com/luhring/reach/reach"
 )
 
+// FactorKindInstanceState specifies the unique name for the EC2 instance state of factor.
 const FactorKindInstanceState = "InstanceState"
 
-func (i EC2Instance) NewInstanceStateFactor() reach.Factor {
+func (i EC2Instance) newInstanceStateFactor() reach.Factor {
 	var tc reach.TrafficContent
 
 	if i.isRunning() {
@@ -22,10 +21,4 @@ func (i EC2Instance) NewInstanceStateFactor() reach.Factor {
 		Resource: i.ToResourceReference(),
 		Traffic:  tc,
 	}
-}
-
-func (i EC2Instance) ExplainInstanceState() string {
-	output := fmt.Sprintf("EC2 instance state is '%s'", i.State)
-
-	return output
 }

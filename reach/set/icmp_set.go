@@ -5,32 +5,39 @@ import (
 	"strings"
 )
 
+// Constants to handle ingestion of data that refers to all ICMP types or codes.
 const (
 	AllICMPTypes = -1
 	AllICMPCodes = -1
+)
 
+const (
 	minimumICMPType = 0
 	maximumICMPType = 255
 	minimumICMPCode = 0
 	maximumICMPCode = 255
 )
 
+// ICMPSet is a set of ICMP traffic, expressed as ICMP types and codes. ICMPSet can be used for either ICMPv4 or ICMPv6. For more information on how ICMPv4 and ICMPv6 use types and codes to describe IP traffic, see RFC 792 and RFC 4443, respectively.
 type ICMPSet struct {
 	set Set
 }
 
+// NewEmptyICMPSet returns a new, empty ICMPSet.
 func NewEmptyICMPSet() ICMPSet {
 	return ICMPSet{
 		set: newEmptySet(),
 	}
 }
 
+// NewFullICMPSet returns a new, full ICMPSet.
 func NewFullICMPSet() ICMPSet {
 	return ICMPSet{
 		set: newCompleteSet(),
 	}
 }
 
+// NewICMPSetFromICMPType returns a new ICMPSet containing all codes gor a given type.
 func NewICMPSetFromICMPType(icmpType uint8) (ICMPSet, error) {
 	if err := validateICMPType(icmpType); err != nil {
 		return ICMPSet{}, fmt.Errorf("unable to use icmpType: %v", err)
@@ -46,6 +53,7 @@ func NewICMPSetFromICMPType(icmpType uint8) (ICMPSet, error) {
 	}, nil
 }
 
+// NewICMPSetFromICMPTypeCode returns a new ICMPSet containing the given type and code.
 func NewICMPSetFromICMPTypeCode(icmpType, icmpCode uint8) (ICMPSet, error) {
 	if err := validateICMPType(icmpType); err != nil {
 		return ICMPSet{}, fmt.Errorf("unable to use icmpType: %v", err)
@@ -56,17 +64,19 @@ func NewICMPSetFromICMPTypeCode(icmpType, icmpCode uint8) (ICMPSet, error) {
 	}
 
 	typeCodeIndex := encodeICMPTypeCode(uint(icmpType), uint(icmpCode))
-	set := NewSetForSingleValue(typeCodeIndex)
+	set := newSetForSingleValue(typeCodeIndex)
 
 	return ICMPSet{
 		set: set,
 	}, nil
 }
 
+// Complete returns a boolean indicating whether or not the ICMPSet is complete.
 func (s ICMPSet) Complete() bool {
 	return s.set.Complete()
 }
 
+// Empty returns a boolean indicating whether or not the ICMPSet is empty.
 func (s ICMPSet) Empty() bool {
 	return s.set.Empty()
 }
@@ -115,6 +125,7 @@ func allCodesForOneTypeV6(first, last ICMPTypeCode) (bool, string) {
 	return false, ""
 }
 
+// RangeStringsV4 returns a slice of strings, where each string describes an individual ICMPv4 type component of the ICMPSet.
 func (s ICMPSet) RangeStringsV4() []string {
 	var result []string
 
@@ -138,6 +149,7 @@ func (s ICMPSet) RangeStringsV4() []string {
 	return result
 }
 
+// RangeStringsV6 returns a slice of strings, where each string describes an individual ICMPv6 type component of the ICMPSet.
 func (s ICMPSet) RangeStringsV6() []string {
 	var result []string
 
@@ -161,6 +173,7 @@ func (s ICMPSet) RangeStringsV6() []string {
 	return result
 }
 
+// StringV4 returns the string representation of the ICMPSet, assuming that the set describes ICMPv4 content.
 func (s ICMPSet) StringV4() string {
 	if s.Empty() {
 		return "[empty]"
@@ -168,6 +181,7 @@ func (s ICMPSet) StringV4() string {
 	return strings.Join(s.RangeStringsV4(), ", ")
 }
 
+// StringV6 returns the string representation of the ICMPSet, assuming that the set describes ICMPv6 content.
 func (s ICMPSet) StringV6() string {
 	if s.Empty() {
 		return "[empty]"
@@ -175,18 +189,21 @@ func (s ICMPSet) StringV6() string {
 	return strings.Join(s.RangeStringsV6(), ", ")
 }
 
+// Intersect takes the set intersection of two sets of ICMP traffic and returns the result. Because the ICMPSet type does not specify whether the content is ICMPv4 or ICMPv6, that check must be performed by the consumer.
 func (s ICMPSet) Intersect(other ICMPSet) ICMPSet {
 	return ICMPSet{
 		set: s.set.intersect(other.set),
 	}
 }
 
+// Merge takes the set merging of two sets of ICMP traffic and returns the result. Because the ICMPSet type does not specify whether the content is ICMPv4 or ICMPv6, that check must be performed by the consumer.
 func (s ICMPSet) Merge(other ICMPSet) ICMPSet {
 	return ICMPSet{
 		set: s.set.merge(other.set),
 	}
 }
 
+// Subtract takes the input set and subtracts it from the calling set of ICMP traffic and returns the result. Because the ICMPSet type does not specify whether the content is ICMPv4 or ICMPv6, that check must be performed by the consumer.
 func (s ICMPSet) Subtract(other ICMPSet) ICMPSet {
 	return ICMPSet{
 		set: s.set.subtract(other.set),

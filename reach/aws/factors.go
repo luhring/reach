@@ -6,7 +6,7 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
-func GetInstanceStateFactor(factors []reach.Factor) (*reach.Factor, error) {
+func getInstanceStateFactor(factors []reach.Factor) (*reach.Factor, error) {
 	for _, factor := range factors {
 		if factor.Kind == FactorKindInstanceState {
 			return &factor, nil
@@ -16,7 +16,7 @@ func GetInstanceStateFactor(factors []reach.Factor) (*reach.Factor, error) {
 	return nil, errors.New("no instance state factor found")
 }
 
-func GetSecurityGroupRulesFactor(factors []reach.Factor) (*reach.Factor, error) {
+func getSecurityGroupRulesFactor(factors []reach.Factor) (*reach.Factor, error) {
 	for _, factor := range factors {
 		if factor.Kind == FactorKindSecurityGroupRules {
 			return &factor, nil

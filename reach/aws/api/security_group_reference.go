@@ -4,6 +4,7 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
+// GetSecurityGroupReference queries the AWS API for a security group matching the given ID, but returns a security group reference representation instead of the full security group representation.
 func (provider *ResourceProvider) GetSecurityGroupReference(id, accountID string) (*reachAWS.SecurityGroupReference, error) {
 	// TODO: Incorporate account ID in search.
 	// In the meantime, this will be a known bug, where other accounts are not considered.

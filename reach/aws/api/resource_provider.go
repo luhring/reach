@@ -13,11 +13,13 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// ResourceProvider implements an AWS resource provider using the AWS API (via the AWS SDK).
 type ResourceProvider struct {
 	session *session.Session
 	ec2     *ec2.EC2
 }
 
+// NewResourceProvider returns a reference to a new ResourceProvider for the AWS API.
 func NewResourceProvider() *ResourceProvider {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,

@@ -10,16 +10,19 @@ import (
 	"github.com/luhring/reach/reach/helper"
 )
 
+// An Explainer provides mechanisms to explain the business logic behind analyses to users via natural language.
 type Explainer struct {
 	analysis reach.Analysis
 }
 
+// New returns a reference to a new Explainer.
 func New(analysis reach.Analysis) *Explainer {
 	return &Explainer{
 		analysis: analysis,
 	}
 }
 
+// Explain returns a natural language representation of the logic used during an analysis to compute the final result.
 func (ex *Explainer) Explain() string {
 	var outputItems []string
 	for _, v := range ex.analysis.NetworkVectors {
@@ -32,6 +35,7 @@ func (ex *Explainer) Explain() string {
 	return output
 }
 
+// ExplainNetworkVector returns the part of an analysis explanation that's specific to an individual network vector.
 func (ex *Explainer) ExplainNetworkVector(v reach.NetworkVector) string {
 	var outputSections []string
 
@@ -62,6 +66,7 @@ func (ex *Explainer) ExplainNetworkVector(v reach.NetworkVector) string {
 	return strings.Join(outputSections, "\n")
 }
 
+// ExplainCapabilityChecks returns a report on whether or not Reach's capabilities are sufficient to handle the requested analysis.
 func (ex *Explainer) ExplainCapabilityChecks(v reach.NetworkVector) string {
 	var outputItems []string
 	var checksItems []string
@@ -94,6 +99,7 @@ func (ex *Explainer) ExplainCapabilityChecks(v reach.NetworkVector) string {
 	return strings.Join(outputItems, "\n")
 }
 
+// ExplainNetworkPoint returns the part of an analysis explanation that's specific to an individual network point (within a network vector).
 func (ex *Explainer) ExplainNetworkPoint(point reach.NetworkPoint, p reach.Perspective) string {
 	if aws.IsUsedByNetworkPoint(point) {
 		awsEx := aws.NewExplainer(ex.analysis)
@@ -103,6 +109,7 @@ func (ex *Explainer) ExplainNetworkPoint(point reach.NetworkPoint, p reach.Persp
 	return fmt.Sprintf("unable to explain analysis for network point with IP address '%s'", point.IPAddress)
 }
 
+// NetworkPointName returns an understandable string representation of a network point.
 func (ex *Explainer) NetworkPointName(point reach.NetworkPoint) string {
 	// ignoring errors because it's okay if we can't find a particular kind of AWS resource in the lineage
 	eni, _ := aws.GetENIFromLineage(point.Lineage, ex.analysis.Resources)

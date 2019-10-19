@@ -9,6 +9,7 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
+// GetEC2Instance queries the AWS API for an EC2 instance matching the given ID.
 func (provider *ResourceProvider) GetEC2Instance(id string) (*reachAWS.EC2Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{
@@ -37,6 +38,7 @@ func (provider *ResourceProvider) GetEC2Instance(id string) (*reachAWS.EC2Instan
 	return &instance, nil
 }
 
+// GetAllEC2Instances queries the AWS API for all EC2 instances.
 func (provider *ResourceProvider) GetAllEC2Instances() ([]reachAWS.EC2Instance, error) {
 	const errFormat = "unable to get all EC2 instances: %v"
 

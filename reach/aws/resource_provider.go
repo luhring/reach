@@ -1,5 +1,6 @@
 package aws
 
+// The ResourceProvider interface wraps all of the necessary methods for accessing AWS-specific resources.
 type ResourceProvider interface {
 	GetAllEC2Instances() ([]EC2Instance, error)
 	GetEC2Instance(id string) (*EC2Instance, error)

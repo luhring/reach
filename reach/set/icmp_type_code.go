@@ -57,21 +57,25 @@ var icmpv6TypeNames = map[uint8]string{
 	140: "ICMP node information response",
 }
 
+// ICMPTypeCode represents a particular ICMP type and code. This type corresponds to the byte values from IP packets -- this type itself does not define whether the described network content is part of ICMPv4 or ICMPv6.
 type ICMPTypeCode struct {
 	icmpType uint8
 	icmpCode uint8
 }
 
+// StringV4 returns the string representation of the ICMPTypeCode, using the ICMPv4 definitions of the type and code values.
 func (i ICMPTypeCode) StringV4() string {
 	typeName := GetICMPv4TypeName(i.icmpType)
 	return fmt.Sprintf("%s (code %d)", typeName, i.icmpCode)
 }
 
+// StringV6 returns the string representation of the ICMPTypeCode, using the ICMPv6 definitions of the type and code values.
 func (i ICMPTypeCode) StringV6() string {
 	typeName := GetICMPv6TypeName(i.icmpType)
 	return fmt.Sprintf("%s (code %d)", typeName, i.icmpCode)
 }
 
+// GetICMPv4TypeName returns the ICMPv4 name for the given ICMP type value.
 func GetICMPv4TypeName(icmpType uint8) string {
 	typeName, exists := icmpv4TypeNames[icmpType]
 	if !exists {
@@ -81,6 +85,7 @@ func GetICMPv4TypeName(icmpType uint8) string {
 	return typeName
 }
 
+// GetICMPv6TypeName returns the ICMPv6 name for the given ICMP type value.
 func GetICMPv6TypeName(icmpType uint8) string {
 	typeName, exists := icmpv6TypeNames[icmpType]
 	if !exists {

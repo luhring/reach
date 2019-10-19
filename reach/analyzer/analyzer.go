@@ -9,10 +9,12 @@ import (
 	"github.com/luhring/reach/reach/aws/api"
 )
 
+// Analyzer performs Reach's central network traffic analysis.
 type Analyzer struct {
 	resourceCollection *reach.ResourceCollection
 }
 
+// New creates a new Analyzer that has a new resource collection.
 func New() *Analyzer {
 	rc := reach.NewResourceCollection()
 	return &Analyzer{
@@ -39,7 +41,7 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider a
 						ID:     ec2Instance.ID,
 					}, ec2Instance.ToResource())
 
-					dependencies, err := ec2Instance.GetDependencies(provider)
+					dependencies, err := ec2Instance.Dependencies(provider)
 					if err != nil {
 						return err
 					}
@@ -56,6 +58,7 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider a
 	return nil
 }
 
+// Analyze performs a full analysis of allowed network traffic among the specified subjects.
 func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
 	// TODO: Eventually, this dependency wiring should depend on a passed in config.
 	var provider aws.ResourceProvider = api.NewResourceProvider()
