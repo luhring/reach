@@ -756,7 +756,7 @@ func TestCalculateValueAtPosition(t *testing.T) {
 		chunkSize     int
 		chunkIndex    int
 		chunkSubIndex int
-		expectedValue int
+		expectedValue uint16
 		expectedError bool
 	}{
 		{
