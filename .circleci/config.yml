@@ -9,7 +9,7 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - run: CGO_ENABLED=0 go build -a -o "./build/reach"
+      - run: ./build.sh
 
   unit_tests:
     docker:
@@ -17,7 +17,7 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - run: go test -cover ./reach
+      - run: go test -v -cover ./reach/...
 
   acceptance_tests:
     docker:
@@ -26,7 +26,7 @@ jobs:
     steps:
       - checkout
       - run: curl -sS https://releases.hashicorp.com/terraform/0.12.7/terraform_0.12.7_linux_amd64.zip -o ./terraform.zip && unzip terraform.zip && sudo mv terraform /usr/local/bin/ && which terraform
-      - run: go test -cover ./reach -acceptance -log-tf -test.v
+      - run: go test -cover ./reach/... -test.v
 
 workflows:
   version: 2

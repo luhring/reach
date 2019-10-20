@@ -489,7 +489,7 @@ func TestString(t *testing.T) {
 		{
 			"empty set",
 			newEmptySet(),
-			"<empty>",
+			"[empty]",
 		},
 		{
 			"mixed ranges",
@@ -756,7 +756,7 @@ func TestCalculateValueAtPosition(t *testing.T) {
 		chunkSize     int
 		chunkIndex    int
 		chunkSubIndex int
-		expectedValue int
+		expectedValue uint16
 		expectedError bool
 	}{
 		{
@@ -777,14 +777,14 @@ func TestCalculateValueAtPosition(t *testing.T) {
 			2,
 			2,
 			4,
-			-1,
+			0,
 			true,
 		},
 		{
 			64,
 			1,
 			66,
-			-1,
+			0,
 			true,
 		},
 	}
