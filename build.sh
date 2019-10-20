@@ -1,8 +1,10 @@
 #!/bin/bash
 
+set -ex
+
 export REACH_VERSION=${REACH_VERSION:-"0.0.0"}
 
-set -eux
+set -u
 
 export CGO_ENABLED=0
 export GOARCH=amd64
