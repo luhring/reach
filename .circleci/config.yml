@@ -17,7 +17,7 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - run: go test -cover ./reach
+      - run: go test -v -cover ./reach/...
 
   acceptance_tests:
     docker:
