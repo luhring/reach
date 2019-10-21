@@ -56,7 +56,7 @@ func (eni ElasticNetworkInterface) ToResourceReference() reach.ResourceReference
 func (eni ElasticNetworkInterface) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
-	subnet, err := provider.GetSubnet(eni.SubnetID)
+	subnet, err := provider.Subnet(eni.SubnetID)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (eni ElasticNetworkInterface) Dependencies(provider ResourceProvider) (*rea
 		ID:     subnet.ID,
 	}, subnet.ToResource())
 
-	vpc, err := provider.GetVPC(eni.VPCID)
+	vpc, err := provider.VPC(eni.VPCID)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (eni ElasticNetworkInterface) Dependencies(provider ResourceProvider) (*rea
 	}, vpc.ToResource())
 
 	for _, sgID := range eni.SecurityGroupIDs {
-		sg, err := provider.GetSecurityGroup(sgID)
+		sg, err := provider.SecurityGroup(sgID)
 		if err != nil {
 			return nil, err
 		}

@@ -31,7 +31,7 @@ func (sg SecurityGroup) ToResource() reach.Resource {
 func (sg SecurityGroup) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
-	vpc, err := provider.GetVPC(sg.VPCID)
+	vpc, err := provider.VPC(sg.VPCID)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (sg SecurityGroup) Dependencies(provider ResourceProvider) (*reach.Resource
 		// TODO: sg ref IDs shouldn't be strings, they should be pointers, and this check should be for nil not ""
 
 		if sgRefID := rule.TargetSecurityGroupReferenceID; sgRefID != "" {
-			sgRef, err := provider.GetSecurityGroupReference(sgRefID, rule.TargetSecurityGroupReferenceAccountID)
+			sgRef, err := provider.SecurityGroupReference(sgRefID, rule.TargetSecurityGroupReferenceAccountID)
 			if err != nil {
 				return nil, err
 			}

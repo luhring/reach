@@ -24,7 +24,7 @@ func (rt RouteTable) ToResource() reach.Resource {
 func (rt RouteTable) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
-	vpc, err := provider.GetVPC(rt.VPCID)
+	vpc, err := provider.VPC(rt.VPCID)
 	if err != nil {
 		return nil, err
 	}

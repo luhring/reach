@@ -9,8 +9,8 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-// GetEC2Instance queries the AWS API for an EC2 instance matching the given ID.
-func (provider *ResourceProvider) GetEC2Instance(id string) (*reachAWS.EC2Instance, error) {
+// EC2Instance queries the AWS API for an EC2 instance matching the given ID.
+func (provider *ResourceProvider) EC2Instance(id string) (*reachAWS.EC2Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{
 			aws.String(id),
@@ -38,8 +38,8 @@ func (provider *ResourceProvider) GetEC2Instance(id string) (*reachAWS.EC2Instan
 	return &instance, nil
 }
 
-// GetAllEC2Instances queries the AWS API for all EC2 instances.
-func (provider *ResourceProvider) GetAllEC2Instances() ([]reachAWS.EC2Instance, error) {
+// AllEC2Instances queries the AWS API for all EC2 instances.
+func (provider *ResourceProvider) AllEC2Instances() ([]reachAWS.EC2Instance, error) {
 	const errFormat = "unable to get all EC2 instances: %v"
 
 	describeInstancesOutput, err := provider.ec2.DescribeInstances(nil)
@@ -60,9 +60,9 @@ func (provider *ResourceProvider) GetAllEC2Instances() ([]reachAWS.EC2Instance, 
 func newEC2InstanceFromAPI(instance *ec2.Instance) reachAWS.EC2Instance {
 	return reachAWS.EC2Instance{
 		ID:                          aws.StringValue(instance.InstanceId),
-		NameTag:                     getNameTag(instance.Tags),
+		NameTag:                     nameTag(instance.Tags),
 		State:                       aws.StringValue(instance.State.Name),
-		NetworkInterfaceAttachments: getNetworkInterfaceAttachments(instance),
+		NetworkInterfaceAttachments: networkInterfaceAttachments(instance),
 	}
 }
 
@@ -79,7 +79,7 @@ func extractEC2Instances(reservations []*ec2.Reservation) ([]reachAWS.EC2Instanc
 	return instances, nil
 }
 
-func getNetworkInterfaceAttachments(instance *ec2.Instance) []reachAWS.NetworkInterfaceAttachment {
+func networkInterfaceAttachments(instance *ec2.Instance) []reachAWS.NetworkInterfaceAttachment {
 	var attachments []reachAWS.NetworkInterfaceAttachment
 
 	if instance.NetworkInterfaces != nil && len(instance.NetworkInterfaces) > 0 {

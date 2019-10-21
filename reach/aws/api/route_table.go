@@ -7,8 +7,8 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-// GetRouteTable queries the AWS API for a route table matching the given ID.
-func (provider *ResourceProvider) GetRouteTable(id string) (*reachAWS.RouteTable, error) {
+// RouteTable queries the AWS API for a route table matching the given ID.
+func (provider *ResourceProvider) RouteTable(id string) (*reachAWS.RouteTable, error) {
 	input := &ec2.DescribeRouteTablesInput{
 		RouteTableIds: []*string{
 			aws.String(id),
@@ -37,11 +37,11 @@ func newRouteTableFromAPI(routeTable *ec2.RouteTable) reachAWS.RouteTable {
 	}
 }
 
-func getRouteTableRoutes(routes []*ec2.Route) []reachAWS.RouteTableRoute {
+func routeTableRoutes(routes []*ec2.Route) []reachAWS.RouteTableRoute {
 	return nil // TODO: implement
 }
 
-func getRouteTableRoute(route *ec2.Route) reachAWS.RouteTableRoute {
+func routeTableRoute(route *ec2.Route) reachAWS.RouteTableRoute {
 	if route == nil {
 		return reachAWS.RouteTableRoute{}
 	}

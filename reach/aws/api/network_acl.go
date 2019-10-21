@@ -11,8 +11,8 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-// GetNetworkACL queries the AWS API for a network ACL matching the given ID.
-func (provider *ResourceProvider) GetNetworkACL(id string) (*reachAWS.NetworkACL, error) {
+// NetworkACL queries the AWS API for a network ACL matching the given ID.
+func (provider *ResourceProvider) NetworkACL(id string) (*reachAWS.NetworkACL, error) {
 	input := &ec2.DescribeNetworkAclsInput{
 		NetworkAclIds: []*string{
 			aws.String(id),
@@ -32,8 +32,8 @@ func (provider *ResourceProvider) GetNetworkACL(id string) (*reachAWS.NetworkACL
 }
 
 func newNetworkACLFromAPI(networkACL *ec2.NetworkAcl) reachAWS.NetworkACL {
-	inboundRules := getInboundNetworkACLRules(networkACL.Entries)
-	outboundRules := getOutboundNetworkACLRules(networkACL.Entries)
+	inboundRules := inboundNetworkACLRules(networkACL.Entries)
+	outboundRules := outboundNetworkACLRules(networkACL.Entries)
 
 	return reachAWS.NetworkACL{
 		ID:            aws.StringValue(networkACL.NetworkAclId),
@@ -42,7 +42,7 @@ func newNetworkACLFromAPI(networkACL *ec2.NetworkAcl) reachAWS.NetworkACL {
 	}
 }
 
-func getNetworkACLRulesForSingleDirection(entries []*ec2.NetworkAclEntry, inbound bool) []reachAWS.NetworkACLRule {
+func networkACLRulesForSingleDirection(entries []*ec2.NetworkAclEntry, inbound bool) []reachAWS.NetworkACLRule {
 	if entries == nil {
 		return nil
 	}
@@ -52,7 +52,7 @@ func getNetworkACLRulesForSingleDirection(entries []*ec2.NetworkAclEntry, inboun
 	for i, entry := range entries {
 		if entry != nil {
 			if inbound != aws.BoolValue(entry.Egress) {
-				rules[i] = getNetworkACLRule(entry)
+				rules[i] = networkACLRule(entry)
 			}
 		}
 	}
@@ -60,15 +60,15 @@ func getNetworkACLRulesForSingleDirection(entries []*ec2.NetworkAclEntry, inboun
 	return rules
 }
 
-func getInboundNetworkACLRules(entries []*ec2.NetworkAclEntry) []reachAWS.NetworkACLRule {
-	return getNetworkACLRulesForSingleDirection(entries, true)
+func inboundNetworkACLRules(entries []*ec2.NetworkAclEntry) []reachAWS.NetworkACLRule {
+	return networkACLRulesForSingleDirection(entries, true)
 }
 
-func getOutboundNetworkACLRules(entries []*ec2.NetworkAclEntry) []reachAWS.NetworkACLRule {
-	return getNetworkACLRulesForSingleDirection(entries, false)
+func outboundNetworkACLRules(entries []*ec2.NetworkAclEntry) []reachAWS.NetworkACLRule {
+	return networkACLRulesForSingleDirection(entries, false)
 }
 
-func getNetworkACLRule(entry *ec2.NetworkAclEntry) reachAWS.NetworkACLRule { // note: this function ignores rule direction (inbound vs. outbound)
+func networkACLRule(entry *ec2.NetworkAclEntry) reachAWS.NetworkACLRule { // note: this function ignores rule direction (inbound vs. outbound)
 	if entry == nil {
 		return reachAWS.NetworkACLRule{}
 	}

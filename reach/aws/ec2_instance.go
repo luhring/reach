@@ -67,7 +67,7 @@ func (i EC2Instance) Dependencies(provider ResourceProvider) (*reach.ResourceCol
 func dependenciesForNetworkInterfaceAttachment(attachment NetworkInterfaceAttachment, provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
-	eni, err := provider.GetElasticNetworkInterface(attachment.ElasticNetworkInterfaceID)
+	eni, err := provider.ElasticNetworkInterface(attachment.ElasticNetworkInterfaceID)
 	if err != nil {
 		return nil, err
 	}

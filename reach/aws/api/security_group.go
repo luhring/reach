@@ -12,8 +12,8 @@ import (
 	"github.com/luhring/reach/reach/set"
 )
 
-// GetSecurityGroup queries the AWS API for a security group matching the given ID.
-func (provider *ResourceProvider) GetSecurityGroup(id string) (*reachAWS.SecurityGroup, error) {
+// SecurityGroup queries the AWS API for a security group matching the given ID.
+func (provider *ResourceProvider) SecurityGroup(id string) (*reachAWS.SecurityGroup, error) {
 	input := &ec2.DescribeSecurityGroupsInput{
 		GroupIds: []*string{
 			aws.String(id),
@@ -33,12 +33,12 @@ func (provider *ResourceProvider) GetSecurityGroup(id string) (*reachAWS.Securit
 }
 
 func newSecurityGroupFromAPI(securityGroup *ec2.SecurityGroup) reachAWS.SecurityGroup {
-	inboundRules := getSecurityGroupRules(securityGroup.IpPermissions)
-	outboundRules := getSecurityGroupRules(securityGroup.IpPermissionsEgress)
+	inboundRules := securityGroupRules(securityGroup.IpPermissions)
+	outboundRules := securityGroupRules(securityGroup.IpPermissionsEgress)
 
 	return reachAWS.SecurityGroup{
 		ID:            aws.StringValue(securityGroup.GroupId),
-		NameTag:       getNameTag(securityGroup.Tags),
+		NameTag:       nameTag(securityGroup.Tags),
 		GroupName:     aws.StringValue(securityGroup.GroupName),
 		VPCID:         aws.StringValue(securityGroup.VpcId),
 		InboundRules:  inboundRules,
@@ -46,7 +46,7 @@ func newSecurityGroupFromAPI(securityGroup *ec2.SecurityGroup) reachAWS.Security
 	}
 }
 
-func getSecurityGroupRules(inputRules []*ec2.IpPermission) []reachAWS.SecurityGroupRule {
+func securityGroupRules(inputRules []*ec2.IpPermission) []reachAWS.SecurityGroupRule {
 	if inputRules == nil {
 		return nil
 	}
@@ -55,19 +55,19 @@ func getSecurityGroupRules(inputRules []*ec2.IpPermission) []reachAWS.SecurityGr
 
 	for i, inputRule := range inputRules {
 		if inputRule != nil {
-			rules[i] = getSecurityGroupRule(inputRule)
+			rules[i] = securityGroupRule(inputRule)
 		}
 	}
 
 	return rules
 }
 
-func getSecurityGroupRule(rule *ec2.IpPermission) reachAWS.SecurityGroupRule { // note: this function ignores rule direction (inbound vs. outbound)
+func securityGroupRule(rule *ec2.IpPermission) reachAWS.SecurityGroupRule { // note: this function ignores rule direction (inbound vs. outbound)
 	if rule == nil {
 		return reachAWS.SecurityGroupRule{}
 	}
 
-	tc, err := newTrafficContentFromAWSIPPermission(rule)
+	tc, err := trafficContentFromAWSIPPermission(rule)
 	if err != nil {
 		panic(err) // TODO: Better error handling
 	}
@@ -78,14 +78,14 @@ func getSecurityGroupRule(rule *ec2.IpPermission) reachAWS.SecurityGroupRule { /
 
 	if rule.UserIdGroupPairs != nil {
 		firstPair := rule.UserIdGroupPairs[0] // if panicking, see above to-do...
-		targetSecurityGroupReferenceID = getSecurityGroupReferenceID(firstPair)
-		targetSecurityGroupReferenceAccountID = getSecurityGroupReferenceAccountID(firstPair)
+		targetSecurityGroupReferenceID = securityGroupReferenceID(firstPair)
+		targetSecurityGroupReferenceAccountID = securityGroupReferenceAccountID(firstPair)
 	}
 
 	// TODO: Handle prefix lists (and thus VPC endpoints)
 	// for context: https://docs.aws.amazon.com/vpc/latest/userguide/vpce-gateway.html
 
-	targetIPNetworks := getIPNetworksFromSecurityGroupRule(rule.IpRanges, rule.Ipv6Ranges)
+	targetIPNetworks := ipNetworksFromSecurityGroupRule(rule.IpRanges, rule.Ipv6Ranges)
 
 	return reachAWS.SecurityGroupRule{
 		TrafficContent:                        tc,
@@ -117,7 +117,7 @@ func newPortSetFromAWSIPPermission(permission *ec2.IpPermission) (set.PortSet, e
 	return set.NewPortSetFromRange(uint16(from), uint16(to))
 }
 
-func getSecurityGroupReferenceID(pair *ec2.UserIdGroupPair) string {
+func securityGroupReferenceID(pair *ec2.UserIdGroupPair) string {
 	if pair == nil {
 		return ""
 	}
@@ -125,7 +125,7 @@ func getSecurityGroupReferenceID(pair *ec2.UserIdGroupPair) string {
 	return aws.StringValue(pair.GroupId)
 }
 
-func getSecurityGroupReferenceAccountID(pair *ec2.UserIdGroupPair) string {
+func securityGroupReferenceAccountID(pair *ec2.UserIdGroupPair) string {
 	if pair == nil {
 		return ""
 	}
@@ -133,7 +133,7 @@ func getSecurityGroupReferenceAccountID(pair *ec2.UserIdGroupPair) string {
 	return aws.StringValue(pair.UserId)
 }
 
-func getIPNetworksFromSecurityGroupRule(ipv4Ranges []*ec2.IpRange, ipv6Ranges []*ec2.Ipv6Range) []*net.IPNet {
+func ipNetworksFromSecurityGroupRule(ipv4Ranges []*ec2.IpRange, ipv6Ranges []*ec2.Ipv6Range) []*net.IPNet {
 	networks := make([]*net.IPNet, len(ipv4Ranges)+len(ipv6Ranges))
 
 	for i, block := range ipv4Ranges {
@@ -157,7 +157,7 @@ func getIPNetworksFromSecurityGroupRule(ipv4Ranges []*ec2.IpRange, ipv6Ranges []
 	return networks
 }
 
-func newTrafficContentFromAWSIPPermission(permission *ec2.IpPermission) (reach.TrafficContent, error) {
+func trafficContentFromAWSIPPermission(permission *ec2.IpPermission) (reach.TrafficContent, error) {
 	const errCreation = "unable to create content: %v"
 
 	protocol, err := convertAWSIPProtocolStringToProtocol(permission.IpProtocol)
