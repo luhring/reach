@@ -7,8 +7,9 @@ const ResourceKindSubnet = "Subnet"
 
 // A Subnet resource representation.
 type Subnet struct {
-	ID    string
-	VPCID string
+	ID           string
+	NetworkACLID string
+	VPCID        string
 }
 
 // ToResource returns the subnet converted to a generalized Reach resource.
@@ -23,7 +24,17 @@ func (s Subnet) ToResource() reach.Resource {
 func (s Subnet) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
-	vpc, err := provider.GetVPC(s.VPCID)
+	networkACL, err := provider.NetworkACL(s.NetworkACLID)
+	if err != nil {
+		return nil, err
+	}
+	rc.Put(reach.ResourceReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindNetworkACL,
+		ID:     s.NetworkACLID,
+	}, networkACL.ToResource())
+
+	vpc, err := provider.VPC(s.VPCID)
 	if err != nil {
 		return nil, err
 	}
