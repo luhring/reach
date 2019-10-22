@@ -66,6 +66,12 @@ func (eni ElasticNetworkInterface) Dependencies(provider ResourceProvider) (*rea
 		ID:     subnet.ID,
 	}, subnet.ToResource())
 
+	subnetDependencies, err := subnet.Dependencies(provider)
+	if err != nil {
+		return nil, err
+	}
+	rc.Merge(subnetDependencies)
+
 	vpc, err := provider.VPC(eni.VPCID)
 	if err != nil {
 		return nil, err
