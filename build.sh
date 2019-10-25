@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# This script takes an argument for which OS to build for: darwin, linux, or windows.
+# If no argument is provided, the script builds for all three.
+
+# To build for a specific version, set the `REACH_VERSION` variable to something like "2.0.1" before running the script.
+
 set -e
 
 export REACH_VERSION=${REACH_VERSION:-"0.0.0"}
