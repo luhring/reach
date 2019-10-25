@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 export REACH_VERSION=${REACH_VERSION:-"0.0.0"}
 
@@ -8,28 +8,39 @@ set -u
 
 export CGO_ENABLED=0
 export GOARCH=amd64
-export REACH_DIR_DARWIN=$(printf "reach_%s_darwin_amd64" $REACH_VERSION)
-export REACH_DIR_LINUX=$(printf "reach_%s_linux_amd64" $REACH_VERSION)
-export REACH_DIR_WINDOWS=$(printf "reach_%s_windows_amd64" $REACH_VERSION)
+
+set -x
 
 mkdir -p ./build
 
-GOOS=darwin go build -a -tags netgo -o "./build/$REACH_DIR_DARWIN/reach"
-GOOS=linux go build -a -tags netgo -o "./build/$REACH_DIR_LINUX/reach"
-GOOS=windows go build -a -tags netgo -o "./build/$REACH_DIR_WINDOWS/reach.exe"
-
-cp -nv ./LICENSE ./README.md "./build/$REACH_DIR_DARWIN"
-cp -nv ./LICENSE ./README.md "./build/$REACH_DIR_LINUX"
-cp -nv ./LICENSE ./README.md "./build/$REACH_DIR_WINDOWS"
-
 pushd ./build
-  tar -cvzf $REACH_DIR_DARWIN.tar.gz ./$REACH_DIR_DARWIN/*
-  tar -cvzf $REACH_DIR_LINUX.tar.gz ./$REACH_DIR_LINUX/*
-  tar -cvzf $REACH_DIR_WINDOWS.tar.gz ./$REACH_DIR_WINDOWS/*
+  for CURRENT_OS in "darwin" "linux" "windows"
+  do
+    export GOOS=$CURRENT_OS
 
-  openssl dgst -sha256 ./$REACH_DIR_DARWIN.tar.gz >> ./checksums.txt
-  openssl dgst -sha256 ./$REACH_DIR_LINUX.tar.gz >> ./checksums.txt
-  openssl dgst -sha256 ./$REACH_DIR_WINDOWS.tar.gz >> ./checksums.txt
+    if [ $CURRENT_OS == "windows" ]
+    then
+      REACH_EXECUTABLE="reach.exe"
+    else
+      REACH_EXECUTABLE="reach"
+    fi
+
+    REACH_DIR_FOR_OS=$(printf "reach_%s_%s_amd64" $REACH_VERSION $CURRENT_OS)
+    mkdir -p ./$REACH_DIR_FOR_OS
+
+    go build -a -v -tags netgo -o "./$REACH_DIR_FOR_OS/$REACH_EXECUTABLE" ..
+    cp -nv ../LICENSE ../README.md "./$REACH_DIR_FOR_OS/"
+
+    if [ $CURRENT_OS == "windows" ]
+    then
+      zip $REACH_DIR_FOR_OS.zip ./$REACH_DIR_FOR_OS/*
+      openssl dgst -sha256 ./$REACH_DIR_FOR_OS.zip >> ./checksums.txt
+    else
+      tar -cvzf $REACH_DIR_FOR_OS.tar.gz ./$REACH_DIR_FOR_OS/*
+      openssl dgst -sha256 ./$REACH_DIR_FOR_OS.tar.gz >> ./checksums.txt
+    fi
+
+  done
 
   cat ./checksums.txt
 popd
