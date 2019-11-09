@@ -2,6 +2,7 @@ package reach
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -211,6 +212,30 @@ func (tc *TrafficContent) Intersect(other TrafficContent) (TrafficContent, error
 
 			result.setProtocolContent(p, intersection)
 		}
+	}
+
+	return result, nil
+}
+
+// Subtract performs a set subtraction (self - other) on two TrafficContents.
+func (tc *TrafficContent) Subtract(other TrafficContent) (TrafficContent, error) {
+	if tc.None() || other.All() {
+		return NewTrafficContentForNoTraffic(), nil
+	}
+
+	if other.None() {
+		return *tc, nil
+	}
+
+	result := newTrafficContent()
+
+	for p, pc := range tc.protocols {
+		pcDifference, err := pc.subtract(other.protocol(p))
+		if err != nil {
+			return TrafficContent{}, fmt.Errorf("unable to subtract traffic content: %v", err)
+		}
+
+		result.setProtocolContent(p, pcDifference)
 	}
 
 	return result, nil
