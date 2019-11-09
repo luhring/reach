@@ -16,11 +16,13 @@ import (
 
 const explainFlag = "explain"
 const vectorsFlag = "vectors"
+const jsonFlag = "json"
 const assertReachableFlag = "assert-reachable"
 const assertNotReachableFlag = "assert-not-reachable"
 
 var explain bool
 var showVectors bool
+var outputJSON bool
 var assertReachable bool
 var assertNotReachable bool
 
@@ -58,7 +60,7 @@ See https://github.com/luhring/reach for documentation.`,
 		}
 		destination.SetRoleToDestination()
 
-		if !explain && !showVectors {
+		if !outputJSON && !explain && !showVectors {
 			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
 		}
 
@@ -73,7 +75,9 @@ See https://github.com/luhring/reach for documentation.`,
 			exitWithError(err)
 		}
 
-		if explain {
+		if outputJSON {
+			fmt.Println(analysis.ToJSON())
+		} else if explain {
 			ex := explainer.New(*analysis)
 			fmt.Print(ex.Explain())
 		} else if showVectors {
@@ -95,8 +99,6 @@ See https://github.com/luhring/reach for documentation.`,
 				printMergedResultsWarning()
 			}
 		}
-
-		fmt.Println(analysis.ToJSON()) // for debugging
 
 		const canReach = "source is able to reach destination"
 		const cannotReach = "source is unable to reach destination"
@@ -129,6 +131,7 @@ func Execute() {
 func init() {
 	rootCmd.Flags().BoolVar(&explain, explainFlag, false, "explain how the configuration was analyzed")
 	rootCmd.Flags().BoolVar(&showVectors, vectorsFlag, false, "show allowed traffic in terms of network vectors")
+	rootCmd.Flags().BoolVar(&outputJSON, jsonFlag, false, "output full analysis as JSON (overrides other display flags)")
 	rootCmd.Flags().BoolVar(&assertReachable, assertReachableFlag, false, "exit non-zero if no traffic is allowed from source to destination")
 	rootCmd.Flags().BoolVar(&assertNotReachable, assertNotReachableFlag, false, "exit non-zero if any traffic can reach destination from source")
 }
