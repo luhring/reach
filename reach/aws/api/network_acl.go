@@ -47,12 +47,12 @@ func networkACLRulesForSingleDirection(entries []*ec2.NetworkAclEntry, inbound b
 		return nil
 	}
 
-	rules := make([]reachAWS.NetworkACLRule, len(entries))
+	rules := []reachAWS.NetworkACLRule{}
 
-	for i, entry := range entries {
+	for _, entry := range entries {
 		if entry != nil {
 			if inbound != aws.BoolValue(entry.Egress) {
-				rules[i] = networkACLRule(entry)
+				rules = append(rules, networkACLRule(entry))
 			}
 		}
 	}

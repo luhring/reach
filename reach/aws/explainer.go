@@ -28,12 +28,16 @@ func NewExplainer(analysis reach.Analysis) *Explainer {
 func (ex *Explainer) NetworkPoint(point reach.NetworkPoint, p reach.Perspective) string {
 	var outputItems []string
 
-	if instanceStateFactor, _ := getInstanceStateFactor(point.Factors); instanceStateFactor != nil {
-		outputItems = append(outputItems, ex.InstanceState(*instanceStateFactor))
+	if f, _ := getInstanceStateFactor(point.Factors); f != nil {
+		outputItems = append(outputItems, ex.InstanceState(*f))
 	}
 
-	if securityGroupRulesFactor, _ := getSecurityGroupRulesFactor(point.Factors); securityGroupRulesFactor != nil {
-		outputItems = append(outputItems, ex.SecurityGroupRules(*securityGroupRulesFactor, p))
+	if f, _ := getSecurityGroupRulesFactor(point.Factors); f != nil {
+		outputItems = append(outputItems, ex.SecurityGroupRules(*f, p))
+	}
+
+	if f, _ := getNetworkACLRulesFactor(point.Factors); f != nil {
+		outputItems = append(outputItems, ex.NetworkACLRules(*f, p))
 	}
 
 	return strings.Join(outputItems, "\n")
@@ -73,10 +77,10 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective
 
 	var bodyItems []string
 
-	if rules := props.ComponentRules; len(rules) == 0 {
+	if rules := props.RuleComponents; len(rules) == 0 {
 		bodyItems = append(bodyItems, "no rules that apply to analysis\n")
 	} else {
-		var ruleViewModels []ruleExplanationViewModel
+		var ruleViewModels []securityGroupRuleExplanationViewModel
 
 		for _, rule := range rules {
 			sgRef := ex.analysis.Resources.Get(rule.SecurityGroup)
@@ -96,13 +100,13 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective
 			case securityGroupRuleMatchBasisSGRef:
 				inclusionReason = fmt.Sprintf(
 					"This rule specifies a security group \"%s\" that is attached to the %s's network interface.",
-					rule.Match.Value,
+					rule.Match.Requirement,
 					p.OtherRole,
 				)
 			case securityGroupRuleMatchBasisIP:
 				inclusionReason = fmt.Sprintf(
-					"This rule specifies an IP CIDR block \"%s\" that contains the %s's IP address \"%s\".",
-					originalRule.TargetIPNetworks[0], // TODO: This could show a different network than the matched network, which would be wrong. Include this IPNet in the Match struct to ensure we use the right network here.
+					"This rule specifies an IP CIDR block \"%s\" that contains the %s's IP address (%s).",
+					rule.Match.Requirement,
 					p.OtherRole,
 					p.Other.IPAddress,
 				)
@@ -110,13 +114,13 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective
 				inclusionReason = fmt.Sprintf("Unknown reason for inclusion. Match basis is '%s'. Please report this.", rule.Match.Basis)
 			}
 
-			ruleViewModel := ruleExplanationViewModel{
+			model := securityGroupRuleExplanationViewModel{
 				securityGroupName: sg.Name(),
 				inclusionReason:   inclusionReason,
 				allowedTraffic:    originalRule.TrafficContent.String(),
 			}
 
-			ruleViewModels = append(ruleViewModels, ruleViewModel)
+			ruleViewModels = append(ruleViewModels, model)
 		}
 
 		sort.Slice(ruleViewModels, func(i, j int) bool {
@@ -167,6 +171,55 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective
 	return strings.Join(outputItems, "\n")
 }
 
+// NetworkACLRules explains the analysis component for the specified network ACL rules factor.
+func (ex *Explainer) NetworkACLRules(factor reach.Factor, p reach.Perspective) string {
+	var outputItems []string
+	header := fmt.Sprintf(
+		"%s (including only rules from %s that match %s):",
+		helper.Bold("network ACL rules"),
+		p.SelfRole,
+		p.OtherRole,
+	)
+	outputItems = append(outputItems, header)
+
+	props := factor.Properties.(networkACLRulesFactor)
+
+	var bodyItems []string
+
+	if rules := props.RuleComponentsForwardDirection; len(rules) == 0 {
+		bodyItems = append(bodyItems, "no rules that apply to analysis\n")
+	} else {
+		// forward direction
+		forwardViewModels := networkACLRuleComponentsToViewModels(props.RuleComponentsForwardDirection, p)
+
+		var forwardExplanation string
+		for _, model := range forwardViewModels {
+			forwardExplanation += model.String()
+		}
+		bodyItems = append(bodyItems, forwardExplanation)
+
+		// return direction
+		returnHeader := "rules that affect network traffic returning from destination to source:\n"
+		bodyItems = append(bodyItems, returnHeader)
+
+		returnViewModels := networkACLRuleComponentsToViewModels(props.RuleComponentsReturnDirection, p)
+
+		var returnExplanation string
+		for _, model := range returnViewModels {
+			returnExplanation += model.String()
+		}
+		bodyItems = append(bodyItems, returnExplanation)
+	}
+
+	bodyItems = append(bodyItems, "network traffic allowed based on network ACL rules:")
+	bodyItems = append(bodyItems, helper.Indent(factor.Traffic.ColorString(), 2))
+
+	body := strings.Join(bodyItems, "\n")
+	outputItems = append(outputItems, helper.Indent(body, 2))
+
+	return strings.Join(outputItems, "\n")
+}
+
 // CheckBothInAWS returns a boolean indicating whether both network points in a network vector are AWS resources.
 func (ex Explainer) CheckBothInAWS(v reach.NetworkVector) bool {
 	return IsUsedByNetworkPoint(v.Source) && IsUsedByNetworkPoint(v.Destination)
@@ -190,24 +243,4 @@ func (ex Explainer) CheckBothInSameSubnet(v reach.NetworkVector) bool {
 	}
 
 	return sourceENI.SubnetID == destinationENI.SubnetID
-}
-
-type ruleExplanationViewModel struct {
-	securityGroupName string
-	allowedTraffic    string
-	inclusionReason   string
-}
-
-func (vm ruleExplanationViewModel) String() string {
-	output := "- rule\n"
-
-	allowedTrafficHeader := "network traffic allowed:"
-	allowedTrafficSection := fmt.Sprintf("%s\n%s", allowedTrafficHeader, helper.Indent(vm.allowedTraffic, 2))
-	output += helper.Indent(allowedTrafficSection, 4)
-
-	inclusionReasonHeader := "reason for inclusion:"
-	inclusionReasonSection := fmt.Sprintf("%s\n%s\n", inclusionReasonHeader, helper.Indent(vm.inclusionReason, 2))
-	output += helper.Indent(inclusionReasonSection, 4)
-
-	return output
 }

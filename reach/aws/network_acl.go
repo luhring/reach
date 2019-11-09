@@ -19,3 +19,12 @@ func (nacl NetworkACL) ToResource() reach.Resource {
 		Properties: nacl,
 	}
 }
+
+// ToResourceReference returns a resource reference to uniquely identify the network ACL.
+func (nacl NetworkACL) ToResourceReference() reach.ResourceReference {
+	return reach.ResourceReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindNetworkACL,
+		ID:     nacl.ID,
+	}
+}

@@ -17,8 +17,9 @@ func (i EC2Instance) newInstanceStateFactor() reach.Factor {
 	}
 
 	return reach.Factor{
-		Kind:     FactorKindInstanceState,
-		Resource: i.ToResourceReference(),
-		Traffic:  tc,
+		Kind:          FactorKindInstanceState,
+		Resource:      i.ToResourceReference(),
+		Traffic:       tc,
+		ReturnTraffic: reach.NewTrafficContentForAllTraffic(),
 	}
 }

@@ -30,6 +30,7 @@ func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]rea
 			}
 
 			if resourceRef.Kind == ResourceKindElasticNetworkInterface {
+				// Get ready to evaluate factors
 				eni := analyzer.resourceCollection.Get(resourceRef).Properties.(ElasticNetworkInterface)
 				targetENI := ElasticNetworkInterfaceFromNetworkPoint(p.Other, analyzer.resourceCollection)
 
@@ -40,6 +41,12 @@ func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]rea
 					awsP = newPerspectiveDestinationOriented()
 				}
 
+				// Ensure this is scenario that Reach can analyze
+				if !sameVPC(&eni, targetENI) {
+					return nil, fmt.Errorf("error: reach is not yet able to analyze EC2 instances in different VPCs, but that's coming soon! (VPCs: %s, %s)", eni.VPCID, targetENI.VPCID)
+				}
+
+				// Evaluate factors
 				securityGroupRulesFactor, err := eni.newSecurityGroupRulesFactor(
 					analyzer.resourceCollection,
 					p,
@@ -52,13 +59,24 @@ func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]rea
 
 				factors = append(factors, *securityGroupRulesFactor)
 
-				if !sameVPC(&eni, targetENI) {
-					return nil, fmt.Errorf("error: reach is not yet able to analyze EC2 instances in different VPCs, but that's coming soon! (VPCs: %s, %s)", eni.VPCID, targetENI.VPCID)
+				if sameSubnet(&eni, targetENI) {
+					// There's nothing further to evaluate for this ENI
+					continue
 				}
 
-				if !sameSubnet(&eni, targetENI) {
-					return nil, fmt.Errorf("error: reach is not yet able to analyze EC2 instances in different subnets, but that's coming soon! (subnets: %s, %s)", eni.SubnetID, targetENI.SubnetID)
+				// Different subnets, same VPC
+
+				networkACLRulesFactor, err := eni.newNetworkACLRulesFactor(
+					analyzer.resourceCollection,
+					p,
+					awsP,
+					targetENI,
+				)
+				if err != nil {
+					return nil, err
 				}
+
+				factors = append(factors, *networkACLRulesFactor)
 			}
 		}
 	}
