@@ -36,7 +36,25 @@ func (a *Analysis) MergedTraffic() (TrafficContent, error) {
 
 	for _, v := range a.NetworkVectors {
 		if t := v.Traffic; t != nil {
-			mergedTrafficContent, err := result.Merge(*v.Traffic)
+			mergedTrafficContent, err := result.Merge(*t)
+			if err != nil {
+				return TrafficContent{}, err
+			}
+
+			result = mergedTrafficContent
+		}
+	}
+
+	return result, nil
+}
+
+// MergedReturnTraffic gets the return TrafficContent results of each of the analysis's network vectors and returns them as a merged TrafficContent.
+func (a *Analysis) MergedReturnTraffic() (TrafficContent, error) {
+	result := newTrafficContent()
+
+	for _, v := range a.NetworkVectors {
+		if t := v.ReturnTraffic; t != nil {
+			mergedTrafficContent, err := result.Merge(*t)
 			if err != nil {
 				return TrafficContent{}, err
 			}

@@ -8,10 +8,11 @@ import (
 
 // A NetworkVector represents the path between two network points that's able to be analyzed in terms of what kind of network traffic is allowed to flow from point to point.
 type NetworkVector struct {
-	ID          string
-	Source      NetworkPoint
-	Destination NetworkPoint
-	Traffic     *TrafficContent
+	ID            string
+	Source        NetworkPoint
+	Destination   NetworkPoint
+	Traffic       *TrafficContent
+	ReturnTraffic *TrafficContent
 }
 
 // NewNetworkVector creates a new network vector given a source and a destination network point.
@@ -38,6 +39,9 @@ func (v NetworkVector) String() string {
 		output += "\n"
 		output += v.Traffic.String()
 		output += "\n"
+		output += "network traffic allowed to return from destination to source:\n"
+		output += "\n"
+		output += v.ReturnTraffic.String()
 	}
 
 	return output

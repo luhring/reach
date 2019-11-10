@@ -5,6 +5,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/mgutz/ansi"
+
 	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/helper"
@@ -60,8 +62,11 @@ func (ex *Explainer) ExplainNetworkVector(v reach.NetworkVector) string {
 	outputSections = append(outputSections, helper.Indent(destinationContent, 2))
 
 	// final results
-	results := fmt.Sprintf("%s\n%s", helper.Bold("network traffic allowed from source to destination:"), v.Traffic.ColorStringWithSymbols())
-	outputSections = append(outputSections, results)
+	forwardResults := fmt.Sprintf("%s\n%s", helper.Bold("network traffic allowed from source to destination:"), v.Traffic.ColorStringWithSymbols())
+	outputSections = append(outputSections, forwardResults)
+
+	returnResults := fmt.Sprintf("%s\n%s", helper.Bold("network traffic allowed to return from destination to source:"), v.ReturnTraffic.StringWithSymbols())
+	outputSections = append(outputSections, returnResults)
 
 	return strings.Join(outputSections, "\n")
 }
@@ -126,4 +131,54 @@ func (ex *Explainer) NetworkPointName(point reach.NetworkPoint) string {
 	}
 
 	return output
+}
+
+// WarningsFromRestrictedReturnPath returns a slice of warning strings based on the input slice of restricted protocols.
+func WarningsFromRestrictedReturnPath(restrictedProtocols []reach.RestrictedProtocol) []string {
+	if len(restrictedProtocols) == 0 {
+		return nil
+	}
+
+	var warnings []string
+
+	for _, rp := range restrictedProtocols {
+		var qualifier string
+
+		if rp.NoReturnTraffic {
+			qualifier = "No"
+		} else {
+			qualifier = "Not all"
+		}
+
+		var warningOpening string
+		var warningExplanation string
+
+		const restrictedReturnTrafficWarningFormat = "Warning: %s %s traffic is allowed to travel from the destination back to the source."
+
+		warningOpening = fmt.Sprintf(restrictedReturnTrafficWarningFormat, qualifier, rp.Protocol)
+
+		if rp.Protocol == reach.ProtocolTCP { // We have a specific message based on the knowledge that the protocol is TCP.
+			var connectionAttemptsMessage string
+
+			if rp.NoReturnTraffic {
+				connectionAttemptsMessage = "All TCP connection attempts will be unsuccessful."
+			} else {
+				connectionAttemptsMessage = "Some TCP connection attempts might be unsuccessful."
+			}
+
+			warningExplanation = fmt.Sprintf("%s TCP connections require the ability for TCP segments to flow in both directions.", connectionAttemptsMessage)
+		} else {
+			const genericUnsuccessfulCommunicationExplanationFormat = "Communication attempts by processes that depend on %s might be unsuccessful."
+			warningExplanation = fmt.Sprintf(genericUnsuccessfulCommunicationExplanationFormat, rp.Protocol)
+		}
+
+		warning := fmt.Sprintf("%s %s", warningOpening, warningExplanation)
+
+		// colorize
+		warning = ansi.Color(warning, "yellow+h")
+
+		warnings = append(warnings, warning)
+	}
+
+	return warnings
 }

@@ -40,6 +40,11 @@ func (p Protocol) IsCustomProtocol() bool {
 	return p != ProtocolICMPv4 && p != ProtocolTCP && p != ProtocolUDP && p != ProtocolICMPv6
 }
 
+// String returns the common name of the IP protocol.
+func (p Protocol) String() string {
+	return ProtocolName(p)
+}
+
 // ProtocolName returns the name of an IP protocol given the protocol's assigned number.
 func ProtocolName(protocol Protocol) string {
 	switch protocol {

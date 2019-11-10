@@ -214,6 +214,9 @@ func (ex *Explainer) NetworkACLRules(factor reach.Factor, p reach.Perspective) s
 	bodyItems = append(bodyItems, "network traffic allowed based on network ACL rules:")
 	bodyItems = append(bodyItems, helper.Indent(factor.Traffic.ColorString(), 2))
 
+	bodyItems = append(bodyItems, "return network traffic allowed based on network ACL rules:")
+	bodyItems = append(bodyItems, helper.Indent(factor.ReturnTraffic.String(), 2))
+
 	body := strings.Join(bodyItems, "\n")
 	outputItems = append(outputItems, helper.Indent(body, 2))
 

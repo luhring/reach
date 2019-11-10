@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/analyzer"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/aws/api"
@@ -84,10 +85,7 @@ See https://github.com/luhring/reach for documentation.`,
 			var vectorOutputs []string
 
 			for _, v := range analysis.NetworkVectors {
-				output := ""
-				output += v.String()
-
-				vectorOutputs = append(vectorOutputs, output)
+				vectorOutputs = append(vectorOutputs, v.String())
 			}
 
 			fmt.Print(strings.Join(vectorOutputs, "\n"))
@@ -95,8 +93,22 @@ See https://github.com/luhring/reach for documentation.`,
 			fmt.Print("network traffic allowed from source to destination:" + "\n")
 			fmt.Print(mergedTraffic.ColorStringWithSymbols())
 
-			if len(analysis.NetworkVectors) > 1 {
+			if len(analysis.NetworkVectors) > 1 { // handling this case with care; this view isn't optimized for multi-vector output!
 				printMergedResultsWarning()
+				warnIfAnyVectorHasRestrictedReturnTraffic(analysis.NetworkVectors)
+			} else {
+				// calculate merged return traffic
+				mergedReturnTraffic, err := analysis.MergedReturnTraffic()
+				if err != nil {
+					exitWithError(err)
+				}
+
+				restrictedProtocols := mergedTraffic.ProtocolsWithRestrictedReturnPath(mergedReturnTraffic)
+				if len(restrictedProtocols) > 0 {
+					warnings := explainer.WarningsFromRestrictedReturnPath(restrictedProtocols)
+					warningsBlock := strings.Join(warnings, "\n")
+					fmt.Print("\n" + warningsBlock + "\n")
+				}
 			}
 		}
 
@@ -137,6 +149,17 @@ func init() {
 }
 
 func printMergedResultsWarning() {
-	const mergedResultsWarning = "IMPORTANT: Reach detected more than one network path between the source and destination. Reach calls these paths \"network vectors\". The analysis result shown above is the merging of all network vectors' analysis results. The impact that infrastructure configuration has on actual network reachability might vary based on the way hosts are configured to use their network interfaces, and Reach is unable to access any configuration internal to a host. To see the network reachability across individual network vectors, run the command again with '--vectors'.\n\n"
+	const mergedResultsWarning = "WARNING: Reach detected more than one network path between the source and destination. Reach calls these paths \"network vectors\". The analysis result shown above is the merging of all network vectors' analysis results. The impact that infrastructure configuration has on actual network reachability might vary based on the way hosts are configured to use their network interfaces, and Reach is unable to access any configuration internal to a host. To see the network reachability across individual network vectors, run the command again with '--" + vectorsFlag + "'.\n"
 	_, _ = fmt.Fprint(os.Stderr, "\n"+mergedResultsWarning)
+}
+
+func warnIfAnyVectorHasRestrictedReturnTraffic(vectors []reach.NetworkVector) {
+	for _, v := range vectors {
+		if !v.ReturnTraffic.All() {
+			const restrictedVectorReturnTraffic = "WARNING: One or more of the analyzed network vectors has restrictions on network traffic allowed to return from the destination to the source. For details, run the command again with '--" + vectorsFlag + "'.\n"
+			_, _ = fmt.Fprintf(os.Stderr, "\n"+restrictedVectorReturnTraffic)
+
+			return
+		}
+	}
 }
