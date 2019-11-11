@@ -103,9 +103,10 @@ See https://github.com/luhring/reach for documentation.`,
 
 				restrictedProtocols := mergedTraffic.ProtocolsWithRestrictedReturnPath(mergedReturnTraffic)
 				if len(restrictedProtocols) > 0 {
-					warnings := explainer.WarningsFromRestrictedReturnPath(restrictedProtocols)
-					warningsBlock := strings.Join(warnings, "\n")
-					fmt.Print("\n" + warningsBlock + "\n")
+					found, warnings := explainer.WarningsFromRestrictedReturnPath(restrictedProtocols)
+					if found {
+						fmt.Print("\n" + warnings + "\n")
+					}
 				}
 			}
 		}
