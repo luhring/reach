@@ -9,34 +9,23 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
-const canReach = "source is able to reach destination"
-const cannotReach = "source is unable to reach destination"
-
 func doAssertReachable(analysis reach.Analysis) {
-	if passesAssertReachable(analysis) {
-		exitWithSuccessfulAssertion(canReach)
+	if analysis.PassesAssertReachable() {
+		exitSuccessfulAssertion("source is able to reach destination")
 	} else {
-		exitWithFailedAssertion(cannotReach)
+		exitFailedAssertion("one or more forward or return paths of network traffic is obstructed")
 	}
 }
 
 func doAssertNotReachable(analysis reach.Analysis) {
-	if passesAssertNotReachable(analysis) {
-		exitWithSuccessfulAssertion(cannotReach)
+	if analysis.PassesAssertNotReachable() {
+		exitSuccessfulAssertion("source is unable to reach destination")
 	} else {
-		exitWithFailedAssertion(canReach)
+		exitFailedAssertion("source is able to send network traffic to destination")
 	}
 }
 
-func passesAssertReachable(analysis reach.Analysis) bool {
-	return !forwardTraffic.None()
-}
-
-func passesAssertNotReachable(analysis reach.Analysis) bool {
-	return forwardTraffic.None()
-}
-
-func exitWithFailedAssertion(text string) {
+func exitFailedAssertion(text string) {
 	failedMessage := ansi.Color("assertion failed:", "red+b")
 	secondaryMessage := ansi.Color(text, "red")
 	_, _ = fmt.Fprintf(os.Stderr, "\n%v %v\n", failedMessage, secondaryMessage)
@@ -44,7 +33,7 @@ func exitWithFailedAssertion(text string) {
 	os.Exit(2)
 }
 
-func exitWithSuccessfulAssertion(text string) {
+func exitSuccessfulAssertion(text string) {
 	succeededMessage := ansi.Color("assertion succeeded:", "green+b")
 	secondaryMessage := ansi.Color(text, "green")
 	_, _ = fmt.Fprintf(os.Stderr, "\n%v %v\n", succeededMessage, secondaryMessage)
