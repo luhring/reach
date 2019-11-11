@@ -3,12 +3,10 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
-	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/analyzer"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/aws/api"
@@ -112,23 +110,12 @@ See https://github.com/luhring/reach for documentation.`,
 			}
 		}
 
-		const canReach = "source is able to reach destination"
-		const cannotReach = "source is unable to reach destination"
-
 		if assertReachable {
-			if mergedTraffic.None() {
-				exitWithFailedAssertion(cannotReach)
-			} else {
-				exitWithSuccessfulAssertion(canReach)
-			}
+			doAssertReachable(*analysis)
 		}
 
 		if assertNotReachable {
-			if mergedTraffic.None() {
-				exitWithSuccessfulAssertion(cannotReach)
-			} else {
-				exitWithFailedAssertion(canReach)
-			}
+			doAssertNotReachable(*analysis)
 		}
 	},
 }
@@ -146,20 +133,4 @@ func init() {
 	rootCmd.Flags().BoolVar(&outputJSON, jsonFlag, false, "output full analysis as JSON (overrides other display flags)")
 	rootCmd.Flags().BoolVar(&assertReachable, assertReachableFlag, false, "exit non-zero if no traffic is allowed from source to destination")
 	rootCmd.Flags().BoolVar(&assertNotReachable, assertNotReachableFlag, false, "exit non-zero if any traffic can reach destination from source")
-}
-
-func printMergedResultsWarning() {
-	const mergedResultsWarning = "WARNING: Reach detected more than one network path between the source and destination. Reach calls these paths \"network vectors\". The analysis result shown above is the merging of all network vectors' analysis results. The impact that infrastructure configuration has on actual network reachability might vary based on the way hosts are configured to use their network interfaces, and Reach is unable to access any configuration internal to a host. To see the network reachability across individual network vectors, run the command again with '--" + vectorsFlag + "'.\n"
-	_, _ = fmt.Fprint(os.Stderr, "\n"+mergedResultsWarning)
-}
-
-func warnIfAnyVectorHasRestrictedReturnTraffic(vectors []reach.NetworkVector) {
-	for _, v := range vectors {
-		if !v.ReturnTraffic.All() {
-			const restrictedVectorReturnTraffic = "WARNING: One or more of the analyzed network vectors has restrictions on network traffic allowed to return from the destination to the source. For details, run the command again with '--" + vectorsFlag + "'.\n"
-			_, _ = fmt.Fprintf(os.Stderr, "\n"+restrictedVectorReturnTraffic)
-
-			return
-		}
-	}
 }
