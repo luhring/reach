@@ -8,6 +8,12 @@
 set -e
 
 export REACH_VERSION=${REACH_VERSION:-"0.0.0"}
+export SPECIFIED_OS=""
+
+if [[ -z "$1" ]]
+then
+  export SPECIFIED_OS="$1"
+fi
 
 set -u
 
@@ -16,41 +22,52 @@ export GOARCH=amd64
 
 set -x
 
+function build_for_os {
+  local GOOS="$1"
+  local REACH_EXECUTABLE
+
+  if [[ "$GOOS" == "windows" ]]
+  then
+    REACH_EXECUTABLE="reach.exe"
+  else
+    REACH_EXECUTABLE="reach"
+  fi
+
+  local REACH_DIR_FOR_OS
+  REACH_DIR_FOR_OS=$(printf "reach_%s_%s_amd64" "$REACH_VERSION" "$GOOS")
+
+  mkdir -p "./$REACH_DIR_FOR_OS"
+
+  GOOS=$GOOS go build -a -v -tags netgo -o "./$REACH_DIR_FOR_OS/$REACH_EXECUTABLE" ..
+  cp -nv ../LICENSE ../README.md "./$REACH_DIR_FOR_OS/"
+
+  if [[ "$GOOS" == "windows" ]]
+  then
+    zip "$REACH_DIR_FOR_OS.zip" "./$REACH_DIR_FOR_OS"/*
+    openssl dgst -sha256 "./$REACH_DIR_FOR_OS.zip" >> ./checksums.txt
+  else
+    tar -cvzf "$REACH_DIR_FOR_OS.tar.gz" "./$REACH_DIR_FOR_OS"/*
+    openssl dgst -sha256 "./$REACH_DIR_FOR_OS.tar.gz" >> ./checksums.txt
+  fi
+}
+
+rm -rf ./build
 mkdir -p ./build
 
 pushd ./build
-  for CURRENT_OS in "darwin" "linux" "windows"
-  do
-    if [ -z $1 ] || [ $1 == $CURRENT_OS ]
-    then
-      export GOOS=$CURRENT_OS
+  if [[ ! -z "$SPECIFIED_OS" ]]
+  then
+    build_for_os "$SPECIFIED_OS"
+  else
+    for CURRENT_OS in "darwin" "linux" "windows"
+    do
+        build_for_os "$CURRENT_OS"
+    done
+  fi
 
-      if [ $CURRENT_OS == "windows" ]
-      then
-        REACH_EXECUTABLE="reach.exe"
-      else
-        REACH_EXECUTABLE="reach"
-      fi
-
-      REACH_DIR_FOR_OS=$(printf "reach_%s_%s_amd64" $REACH_VERSION $CURRENT_OS)
-      mkdir -p ./$REACH_DIR_FOR_OS
-
-      go build -a -v -tags netgo -o "./$REACH_DIR_FOR_OS/$REACH_EXECUTABLE" ..
-      cp -nv ../LICENSE ../README.md "./$REACH_DIR_FOR_OS/"
-
-      if [ $CURRENT_OS == "windows" ]
-      then
-        zip $REACH_DIR_FOR_OS.zip ./$REACH_DIR_FOR_OS/*
-        openssl dgst -sha256 ./$REACH_DIR_FOR_OS.zip >> ./checksums.txt
-      else
-        tar -cvzf $REACH_DIR_FOR_OS.tar.gz ./$REACH_DIR_FOR_OS/*
-        openssl dgst -sha256 ./$REACH_DIR_FOR_OS.tar.gz >> ./checksums.txt
-      fi
-    fi
-
-  done
+  set +x
 
   cat ./checksums.txt
 popd
 
-set +eux
+set +eu
