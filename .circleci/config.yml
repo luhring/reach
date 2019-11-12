@@ -19,14 +19,6 @@ jobs:
       - checkout
       - run: go test -v -cover ./reach/...
 
-  lint:
-      docker:
-        - image: circleci/golang:1.13.1
-      working_directory: ~/repo
-      steps:
-        - checkout
-        - run: golint -set_exit_status ./...
-
   acceptance_tests:
     docker:
       - image: circleci/golang:1.13.1
@@ -42,7 +34,6 @@ workflows:
     jobs:
       - build
       - unit_tests
-      - lint
   nightly:
     triggers:
       - schedule:
