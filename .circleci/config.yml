@@ -34,6 +34,7 @@ workflows:
     jobs:
       - build
       - unit_tests
+      - acceptance_tests
   nightly:
     triggers:
       - schedule:
