@@ -73,7 +73,7 @@ func (tf *Terraform) CleanUp() error {
 }
 
 // LoadFilesFromDir calls LoadFile for all specified files within the specified directory.
-func (tf *Terraform) LoadFilesFromDir(dir string, files []string) error {
+func (tf *Terraform) LoadFilesFromDir(dir string, files ...string) error {
 	for _, file := range files {
 		fullPath := path.Join(dir, file)
 		err := tf.LoadFile(fullPath)

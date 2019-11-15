@@ -1,6 +1,7 @@
 resource "aws_instance" "source" {
   ami           = "${data.aws_ami.ubuntu.id}"
   instance_type = "t2.micro"
+  subnet_id = "${aws_subnet.subnet_single.id}"
 
   tags = {
     Name = "source"
@@ -10,6 +11,7 @@ resource "aws_instance" "source" {
 resource "aws_instance" "destination" {
   ami           = "${data.aws_ami.ubuntu.id}"
   instance_type = "t2.micro"
+  subnet_id = "${aws_subnet.subnet_single.id}"
 
   tags = {
     Name = "destination"
