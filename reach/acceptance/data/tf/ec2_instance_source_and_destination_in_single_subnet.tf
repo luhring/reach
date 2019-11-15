@@ -3,8 +3,10 @@ resource "aws_instance" "source" {
   instance_type = "t2.micro"
   subnet_id = "${aws_subnet.subnet_single.id}"
 
+  security_groups = ["${aws_security_group.outbound_allow_all.id}"]
+
   tags = {
-    Name = "source"
+    Name = "aat_source"
   }
 }
 
@@ -13,8 +15,10 @@ resource "aws_instance" "destination" {
   instance_type = "t2.micro"
   subnet_id = "${aws_subnet.subnet_single.id}"
 
+  security_groups = ["${aws_security_group.inbound_allow_all.id}"]
+
   tags = {
-    Name = "destination"
+    Name = "aat_destination"
   }
 }
 

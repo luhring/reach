@@ -4,6 +4,6 @@ resource "aws_subnet" "subnet_single" {
   map_public_ip_on_launch = false
 
   tags = {
-    Name = "subnet_single"
+    Name = "aat_subnet_single"
   }
 }
