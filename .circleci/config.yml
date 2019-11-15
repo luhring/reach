@@ -30,7 +30,7 @@ jobs:
 
 workflows:
   version: 2
-  commit:
+  push:
     jobs:
       - build
       - unit_tests
