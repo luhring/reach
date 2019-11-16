@@ -19,7 +19,7 @@ resource "aws_instance" "destination" {
   subnet_id = aws_subnet.subnet_1_of_1.id
 
   security_groups = [
-    aws_security_group.inbound_allow_all.id
+    aws_security_group.inbound_allow_ssh_from_all_ip_addresses.id
   ]
 
   tags = {
