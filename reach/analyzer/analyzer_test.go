@@ -57,7 +57,7 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_esp.tf",
 						"security_group_inbound_allow_ssh.tf",
 					},
-					trafficSshDnsEsp(),
+					trafficAssorted(),
 					reach.NewTrafficContentForAllTraffic(),
 				},
 				{
@@ -287,7 +287,7 @@ func trafficESP() reach.TrafficContent {
 	return reach.NewTrafficContentForCustomProtocol(50, true)
 }
 
-func trafficSshDnsEsp() reach.TrafficContent {
+func trafficAssorted() reach.TrafficContent {
 	tc, err := reach.NewTrafficContentFromMergingMultiple([]reach.TrafficContent{
 		trafficDNS(),
 		trafficSSH(),

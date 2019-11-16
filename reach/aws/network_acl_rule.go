@@ -41,18 +41,20 @@ type NetworkACLRule struct {
 	Action          NetworkACLRuleAction
 }
 
+// Allows returns a boolean indicating if the rule is allowing traffic.
 func (r NetworkACLRule) Allows() bool {
 	return r.Action == NetworkACLRuleActionAllow
 }
 
+// Denies returns a boolean indicating if the rule is denying traffic.
 func (r NetworkACLRule) Denies() bool {
 	return r.Action == NetworkACLRuleActionDeny
 }
 
-func (rule NetworkACLRule) matchByIP(ip net.IP) *networkACLRuleMatch {
-	if rule.TargetIPNetwork.Contains(ip) {
+func (r NetworkACLRule) matchByIP(ip net.IP) *networkACLRuleMatch {
+	if r.TargetIPNetwork.Contains(ip) {
 		return &networkACLRuleMatch{
-			Requirement: *rule.TargetIPNetwork,
+			Requirement: *r.TargetIPNetwork,
 			Value:       ip,
 		}
 	}

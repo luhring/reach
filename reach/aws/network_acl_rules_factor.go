@@ -80,9 +80,9 @@ func (nacl NetworkACL) effectOnReturnTraffic(p reach.Perspective, awsP perspecti
 func (nacl NetworkACL) rulesForDirection(direction networkACLRuleDirection) []NetworkACLRule {
 	if direction == networkACLRuleDirectionOutbound {
 		return nacl.OutboundRules
-	} else {
-		return nacl.InboundRules
 	}
+
+	return nacl.InboundRules
 }
 
 func (nacl NetworkACL) factorComponents(direction networkACLRuleDirection, p reach.Perspective, awsP perspective) (reach.TrafficContent, []networkACLRulesFactorComponent, error) {
