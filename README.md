@@ -102,7 +102,7 @@ In this case, Reach will provide significantly more detail about the analysis. S
 ## Feature Ideas
 
 - ~~**Same-subnet analysis:** Between two EC2 instances within the same subnet~~ (done!)
-- **Same-VPC analysis:** Between two EC2 instances within the same VPC, including for EC2 instances in separate subnets
+- ~~**Same-VPC analysis:** Between two EC2 instances within the same VPC, including for EC2 instances in separate subnets~~ (done!)
 - **IP address analysis:** Between an EC2 instance and a specified IP address that may be outside of AWS entirely (enhancement idea: provide shortcuts for things like the user's own IP address, a specified hostname's resolved IP address, etc.)
 - **Filtered analysis:** Specify a particular kind of network traffic to analyze (e.g. a single TCP port) and return results only for that filter
 - **Other AWS resources:** Analyze other kinds of AWS resources than just EC2 instances (e.g. ELB, Lambda, VPC endpoints, etc.)
