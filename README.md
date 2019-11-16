@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/luhring/reach)](https://goreportcard.com/report/github.com/luhring/reach)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/luhring/reach/blob/master/LICENSE)
 
-Reach is a tool for discovering the impact your AWS configuration has on the flow of network traffic.
+Reach is a tool for analyzing the network traffic allowed to flow in AWS. Reach doesn't need any access to your network — it simply queries the AWS API for your network configuration.
 
 ## Getting Started
 
@@ -50,7 +50,7 @@ $ reach web-instance database-instance
 $ reach web data
 ```
 
-**Note:** Right now, Reach can only analyze the path between two EC2 instances when the instances are **in the same subnet**. Adding support for multiple subnets is the top priority and is currently in development.
+**Note:** Right now, Reach can analyze the path between two EC2 instances only when the instances are **_in the same VPC_**.
 
 ## Initial Setup
 
@@ -102,7 +102,7 @@ In this case, Reach will provide significantly more detail about the analysis. S
 ## Feature Ideas
 
 - ~~**Same-subnet analysis:** Between two EC2 instances within the same subnet~~ (done!)
-- **Same-VPC analysis:** Between two EC2 instances within the same VPC, including for EC2 instances in separate subnets
+- ~~**Same-VPC analysis:** Between two EC2 instances within the same VPC, including for EC2 instances in separate subnets~~ (done!)
 - **IP address analysis:** Between an EC2 instance and a specified IP address that may be outside of AWS entirely (enhancement idea: provide shortcuts for things like the user's own IP address, a specified hostname's resolved IP address, etc.)
 - **Filtered analysis:** Specify a particular kind of network traffic to analyze (e.g. a single TCP port) and return results only for that filter
 - **Other AWS resources:** Analyze other kinds of AWS resources than just EC2 instances (e.g. ELB, Lambda, VPC endpoints, etc.)

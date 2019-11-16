@@ -1,24 +1,44 @@
 package aws
 
 type perspective struct {
-	getSecurityGroupRules func(sg SecurityGroup) []SecurityGroupRule
-	ruleDirection         securityGroupRuleDirection
+	securityGroupRules                       func(sg SecurityGroup) []SecurityGroupRule
+	securityGroupRuleDirection               securityGroupRuleDirection
+	networkACLRulesForForwardTraffic         func(nacl NetworkACL) []NetworkACLRule
+	networkACLRuleDirectionForForwardTraffic networkACLRuleDirection
+	networkACLRulesForReturnTraffic          func(nacl NetworkACL) []NetworkACLRule
+	networkACLRuleDirectionForReturnTraffic  networkACLRuleDirection
 }
 
 func newPerspectiveSourceOriented() perspective {
 	return perspective{
-		getSecurityGroupRules: func(sg SecurityGroup) []SecurityGroupRule {
+		securityGroupRules: func(sg SecurityGroup) []SecurityGroupRule {
 			return sg.OutboundRules
 		},
-		ruleDirection: securityGroupRuleDirectionOutbound,
+		securityGroupRuleDirection: securityGroupRuleDirectionOutbound,
+		networkACLRulesForForwardTraffic: func(nacl NetworkACL) []NetworkACLRule {
+			return nacl.OutboundRules
+		},
+		networkACLRuleDirectionForForwardTraffic: networkACLRuleDirectionOutbound,
+		networkACLRulesForReturnTraffic: func(nacl NetworkACL) []NetworkACLRule {
+			return nacl.InboundRules
+		},
+		networkACLRuleDirectionForReturnTraffic: networkACLRuleDirectionInbound,
 	}
 }
 
 func newPerspectiveDestinationOriented() perspective {
 	return perspective{
-		getSecurityGroupRules: func(sg SecurityGroup) []SecurityGroupRule {
+		securityGroupRules: func(sg SecurityGroup) []SecurityGroupRule {
 			return sg.InboundRules
 		},
-		ruleDirection: securityGroupRuleDirectionInbound,
+		securityGroupRuleDirection: securityGroupRuleDirectionInbound,
+		networkACLRulesForForwardTraffic: func(nacl NetworkACL) []NetworkACLRule {
+			return nacl.InboundRules
+		},
+		networkACLRuleDirectionForForwardTraffic: networkACLRuleDirectionInbound,
+		networkACLRulesForReturnTraffic: func(nacl NetworkACL) []NetworkACLRule {
+			return nacl.OutboundRules
+		},
+		networkACLRuleDirectionForReturnTraffic: networkACLRuleDirectionOutbound,
 	}
 }

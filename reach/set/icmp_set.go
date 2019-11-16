@@ -245,9 +245,9 @@ func encodeICMPTypeCode(icmpType, icmpCode uint) uint16 {
 func decodeICMPTypeCode(value uint16) ICMPTypeCode {
 	const bitSize = 8
 
-	var icmpType uint8 = uint8((value & 0b1111111100000000) >> bitSize)
+	var icmpType = uint8((value & 0b1111111100000000) >> bitSize)
 
-	var icmpCode uint8 = uint8((value & 0b0000000011111111))
+	var icmpCode = uint8(value & 0b0000000011111111)
 
 	return ICMPTypeCode{icmpType, icmpCode}
 }

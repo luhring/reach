@@ -31,7 +31,7 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider a
 				case aws.SubjectKindEC2Instance:
 					id := subject.ID
 
-					ec2Instance, err := provider.GetEC2Instance(id)
+					ec2Instance, err := provider.EC2Instance(id)
 					if err != nil {
 						log.Fatalf("couldn't get resource: %v", err)
 					}
@@ -88,13 +88,20 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 		}
 
 		trafficContents := reach.TrafficContentsFromFactors(factors)
-
 		trafficContent, err := reach.NewTrafficContentFromIntersectingMultiple(trafficContents)
 		if err != nil {
 			return nil, err
 		}
 
+		returnTrafficContents := reach.ReturnTrafficContentsFromFactors(factors)
+		returnTrafficContent, err := reach.NewTrafficContentFromIntersectingMultiple(returnTrafficContents)
+		if err != nil {
+			return nil, err
+		}
+
 		processedVector.Traffic = &trafficContent
+		processedVector.ReturnTraffic = &returnTrafficContent
+
 		processedNetworkVectors[i] = processedVector
 	}
 

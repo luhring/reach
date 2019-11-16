@@ -25,12 +25,12 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - run: curl -sS https://releases.hashicorp.com/terraform/0.12.7/terraform_0.12.7_linux_amd64.zip -o ./terraform.zip && unzip terraform.zip && sudo mv terraform /usr/local/bin/ && which terraform
-      - run: go test -cover ./reach/... -test.v
+      - run: curl -sS https://releases.hashicorp.com/terraform/0.12.15/terraform_0.12.15_linux_amd64.zip -o ./terraform.zip && unzip terraform.zip && sudo mv terraform /usr/local/bin/ && which terraform
+      - run: go test -cover ./reach/analyzer -test.v -acceptance -log-tf -timeout 60m
 
 workflows:
   version: 2
-  commit:
+  push:
     jobs:
       - build
       - unit_tests

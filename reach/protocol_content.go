@@ -81,6 +81,16 @@ func (pc ProtocolContent) empty() bool {
 	}
 }
 
+func (pc ProtocolContent) complete() bool {
+	if pc.isTCPOrUDP() {
+		return pc.Ports.Complete()
+	} else if pc.isICMPv4OrICMPv6() {
+		return pc.ICMP.Complete()
+	} else {
+		return *pc.CustomProtocolHasContent
+	}
+}
+
 // String returns the string representation of the protocol content.
 func (pc ProtocolContent) String() string {
 	protocolName := ProtocolName(pc.Protocol)

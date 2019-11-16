@@ -54,34 +54,12 @@ func (i EC2Instance) Dependencies(provider ResourceProvider) (*reach.ResourceCol
 	rc := reach.NewResourceCollection()
 
 	for _, attachment := range i.NetworkInterfaceAttachments {
-		attachmentDependencies, err := dependenciesForNetworkInterfaceAttachment(attachment, provider)
+		attachmentDependencies, err := attachment.Dependencies(provider)
 		if err != nil {
 			return nil, err
 		}
 		rc.Merge(attachmentDependencies)
 	}
-
-	return rc, nil
-}
-
-func dependenciesForNetworkInterfaceAttachment(attachment NetworkInterfaceAttachment, provider ResourceProvider) (*reach.ResourceCollection, error) {
-	rc := reach.NewResourceCollection()
-
-	eni, err := provider.GetElasticNetworkInterface(attachment.ElasticNetworkInterfaceID)
-	if err != nil {
-		return nil, err
-	}
-	rc.Put(reach.ResourceReference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindElasticNetworkInterface,
-		ID:     eni.ID,
-	}, eni.ToResource())
-
-	eniDependencies, err := eni.Dependencies(provider)
-	if err != nil {
-		return nil, err
-	}
-	rc.Merge(eniDependencies)
 
 	return rc, nil
 }

@@ -36,7 +36,7 @@ func (a *Analysis) MergedTraffic() (TrafficContent, error) {
 
 	for _, v := range a.NetworkVectors {
 		if t := v.Traffic; t != nil {
-			mergedTrafficContent, err := result.Merge(*v.Traffic)
+			mergedTrafficContent, err := result.Merge(*t)
 			if err != nil {
 				return TrafficContent{}, err
 			}
@@ -46,4 +46,63 @@ func (a *Analysis) MergedTraffic() (TrafficContent, error) {
 	}
 
 	return result, nil
+}
+
+// MergedReturnTraffic gets the return TrafficContent results of each of the analysis's network vectors and returns them as a merged TrafficContent.
+func (a *Analysis) MergedReturnTraffic() (TrafficContent, error) {
+	result := newTrafficContent()
+
+	for _, v := range a.NetworkVectors {
+		if t := v.ReturnTraffic; t != nil {
+			mergedTrafficContent, err := result.Merge(*t)
+			if err != nil {
+				return TrafficContent{}, err
+			}
+
+			result = mergedTrafficContent
+		}
+	}
+
+	return result, nil
+}
+
+// PassesAssertReachable determines if the analysis implies the source can reach the destination over at least one protocol whose return path is unobstructed.
+func (a Analysis) PassesAssertReachable() bool {
+	forwardTrafficCanReach := false
+
+	// For each vector, see if there is an obstructed path
+	for _, vector := range a.NetworkVectors {
+		if !vector.Traffic.None() {
+			forwardTrafficCanReach = true
+
+			for _, p := range vector.Traffic.Protocols() {
+				// is return path obstructed (at all) for this protocol?
+				if protocolReturnTraffic := vector.ReturnTraffic.protocol(p); !protocolReturnTraffic.complete() {
+					return false
+				}
+			}
+		}
+	}
+
+	if !forwardTrafficCanReach {
+		return false
+	}
+
+	return true
+}
+
+// PassesAssertNotReachable determines if the analysis implies the source has no way to send network traffic to the destination.
+func (a Analysis) PassesAssertNotReachable() bool {
+	// Here, we want to be more careful / conservative. If any traffic can get out to destination, fail, regardless of return traffic.
+
+	forwardTraffic, err := a.MergedTraffic()
+	if err != nil {
+		return false
+	}
+
+	if !forwardTraffic.None() {
+		return false
+	}
+
+	return true
 }

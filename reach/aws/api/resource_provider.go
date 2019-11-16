@@ -33,7 +33,7 @@ func NewResourceProvider() *ResourceProvider {
 	}
 }
 
-func getNameTag(tags []*ec2.Tag) string {
+func nameTag(tags []*ec2.Tag) string {
 	if tags != nil && len(tags) > 0 {
 		for _, tag := range tags {
 			if aws.StringValue(tag.Key) == "Name" {

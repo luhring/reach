@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -16,11 +15,13 @@ import (
 
 const explainFlag = "explain"
 const vectorsFlag = "vectors"
+const jsonFlag = "json"
 const assertReachableFlag = "assert-reachable"
 const assertNotReachableFlag = "assert-not-reachable"
 
 var explain bool
 var showVectors bool
+var outputJSON bool
 var assertReachable bool
 var assertNotReachable bool
 
@@ -58,7 +59,7 @@ See https://github.com/luhring/reach for documentation.`,
 		}
 		destination.SetRoleToDestination()
 
-		if !explain && !showVectors {
+		if !outputJSON && !explain && !showVectors {
 			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
 		}
 
@@ -73,17 +74,16 @@ See https://github.com/luhring/reach for documentation.`,
 			exitWithError(err)
 		}
 
-		if explain {
+		if outputJSON {
+			fmt.Println(analysis.ToJSON())
+		} else if explain {
 			ex := explainer.New(*analysis)
 			fmt.Print(ex.Explain())
 		} else if showVectors {
 			var vectorOutputs []string
 
 			for _, v := range analysis.NetworkVectors {
-				output := ""
-				output += v.String()
-
-				vectorOutputs = append(vectorOutputs, output)
+				vectorOutputs = append(vectorOutputs, v.String())
 			}
 
 			fmt.Print(strings.Join(vectorOutputs, "\n"))
@@ -91,30 +91,32 @@ See https://github.com/luhring/reach for documentation.`,
 			fmt.Print("network traffic allowed from source to destination:" + "\n")
 			fmt.Print(mergedTraffic.ColorStringWithSymbols())
 
-			if len(analysis.NetworkVectors) > 1 {
+			if len(analysis.NetworkVectors) > 1 { // handling this case with care; this view isn't optimized for multi-vector output!
 				printMergedResultsWarning()
+				warnIfAnyVectorHasRestrictedReturnTraffic(analysis.NetworkVectors)
+			} else {
+				// calculate merged return traffic
+				mergedReturnTraffic, err := analysis.MergedReturnTraffic()
+				if err != nil {
+					exitWithError(err)
+				}
+
+				restrictedProtocols := mergedTraffic.ProtocolsWithRestrictedReturnPath(mergedReturnTraffic)
+				if len(restrictedProtocols) > 0 {
+					found, warnings := explainer.WarningsFromRestrictedReturnPath(restrictedProtocols)
+					if found {
+						fmt.Print("\n" + warnings + "\n")
+					}
+				}
 			}
 		}
 
-		// fmt.Println(analysis.ToJSON()) // for debugging
-
-		const canReach = "source is able to reach destination"
-		const cannotReach = "source is unable to reach destination"
-
 		if assertReachable {
-			if mergedTraffic.None() {
-				exitWithFailedAssertion(cannotReach)
-			} else {
-				exitWithSuccessfulAssertion(canReach)
-			}
+			doAssertReachable(*analysis)
 		}
 
 		if assertNotReachable {
-			if mergedTraffic.None() {
-				exitWithSuccessfulAssertion(cannotReach)
-			} else {
-				exitWithFailedAssertion(canReach)
-			}
+			doAssertNotReachable(*analysis)
 		}
 	},
 }
@@ -129,11 +131,7 @@ func Execute() {
 func init() {
 	rootCmd.Flags().BoolVar(&explain, explainFlag, false, "explain how the configuration was analyzed")
 	rootCmd.Flags().BoolVar(&showVectors, vectorsFlag, false, "show allowed traffic in terms of network vectors")
+	rootCmd.Flags().BoolVar(&outputJSON, jsonFlag, false, "output full analysis as JSON (overrides other display flags)")
 	rootCmd.Flags().BoolVar(&assertReachable, assertReachableFlag, false, "exit non-zero if no traffic is allowed from source to destination")
 	rootCmd.Flags().BoolVar(&assertNotReachable, assertNotReachableFlag, false, "exit non-zero if any traffic can reach destination from source")
-}
-
-func printMergedResultsWarning() {
-	const mergedResultsWarning = "IMPORTANT: Reach detected more than one network path between the source and destination. Reach calls these paths \"network vectors\". The analysis result shown above is the merging of all network vectors' analysis results. The impact that infrastructure configuration has on actual network reachability might vary based on the way hosts are configured to use their network interfaces, and Reach is unable to access any configuration internal to a host. To see the network reachability across individual network vectors, run the command again with '--vectors'.\n\n"
-	_, _ = fmt.Fprint(os.Stderr, "\n"+mergedResultsWarning)
 }

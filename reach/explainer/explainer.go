@@ -5,6 +5,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/mgutz/ansi"
+
 	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/helper"
@@ -60,8 +62,11 @@ func (ex *Explainer) ExplainNetworkVector(v reach.NetworkVector) string {
 	outputSections = append(outputSections, helper.Indent(destinationContent, 2))
 
 	// final results
-	results := fmt.Sprintf("%s\n%s", helper.Bold("network traffic allowed from source to destination:"), v.Traffic.ColorStringWithSymbols())
-	outputSections = append(outputSections, results)
+	forwardResults := fmt.Sprintf("%s\n%s", helper.Bold("network traffic allowed from source to destination:"), v.Traffic.ColorStringWithSymbols())
+	outputSections = append(outputSections, forwardResults)
+
+	returnResults := fmt.Sprintf("%s\n%s", helper.Bold("network traffic allowed to return from destination to source:"), v.ReturnTraffic.StringWithSymbols())
+	outputSections = append(outputSections, returnResults)
 
 	return strings.Join(outputSections, "\n")
 }
@@ -126,4 +131,41 @@ func (ex *Explainer) NetworkPointName(point reach.NetworkPoint) string {
 	}
 
 	return output
+}
+
+// WarningsFromRestrictedReturnPath returns a slice of warning strings based on the input slice of restricted protocols.
+func WarningsFromRestrictedReturnPath(restrictedProtocols []reach.RestrictedProtocol) (bool, string) {
+	if len(restrictedProtocols) == 0 {
+		return false, ""
+	}
+
+	var warnings []string
+
+	for _, rp := range restrictedProtocols {
+		var warning string
+
+		if rp.Protocol == reach.ProtocolTCP { // We have a specific message based on the knowledge that the protocol is TCP.
+			if rp.NoReturnTraffic {
+				warning = ansi.Color("All TCP connection attempts will be unsuccessful. No TCP traffic is allowed to return to the source.", "red+b")
+			} else {
+				warning = ansi.Color("TCP connection attempts might be unsuccessful. TCP traffic is allowed to return to the source only at particular source ports.", "yellow+b")
+			}
+		} else {
+			firstSentence := fmt.Sprintf("%s-based communication might be unsuccessful.", rp.Protocol)
+
+			var secondSentence string
+
+			if rp.NoReturnTraffic {
+				secondSentence = fmt.Sprintf("No %s traffic is able to return to the source.", rp.Protocol)
+			} else {
+				secondSentence = fmt.Sprintf("Some %s traffic is unable to return to the source.", rp.Protocol)
+			}
+
+			warning = ansi.Color(fmt.Sprintf("%s %s", firstSentence, secondSentence), "yellow+b")
+		}
+
+		warnings = append(warnings, warning)
+	}
+
+	return true, "warnings from return traffic obstructions:\n" + strings.Join(warnings, "\n")
 }

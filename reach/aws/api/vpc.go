@@ -9,8 +9,8 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-// GetVPC queries the AWS API for a VPC matching the given ID.
-func (provider *ResourceProvider) GetVPC(id string) (*reachAWS.VPC, error) {
+// VPC queries the AWS API for a VPC matching the given ID.
+func (provider *ResourceProvider) VPC(id string) (*reachAWS.VPC, error) {
 	input := &ec2.DescribeVpcsInput{
 		VpcIds: []*string{
 			aws.String(id),
@@ -30,8 +30,8 @@ func (provider *ResourceProvider) GetVPC(id string) (*reachAWS.VPC, error) {
 }
 
 func newVPCFromAPI(vpc *ec2.Vpc) reachAWS.VPC {
-	ipv4CIDRs := getCIDRs(vpc.CidrBlockAssociationSet)
-	ipv6CIDRs := getIPv6CIDRs(vpc.Ipv6CidrBlockAssociationSet)
+	ipv4CIDRs := cidrs(vpc.CidrBlockAssociationSet)
+	ipv6CIDRs := ipv6CIDRs(vpc.Ipv6CidrBlockAssociationSet)
 
 	return reachAWS.VPC{
 		ID:        aws.StringValue(vpc.VpcId),
@@ -40,17 +40,17 @@ func newVPCFromAPI(vpc *ec2.Vpc) reachAWS.VPC {
 	}
 }
 
-func getCIDRs(associationSet []*ec2.VpcCidrBlockAssociation) []net.IPNet {
+func cidrs(associationSet []*ec2.VpcCidrBlockAssociation) []net.IPNet {
 	cidrs := make([]net.IPNet, len(associationSet))
 
 	for i, association := range associationSet {
-		cidrs[i] = getCIDR(association)
+		cidrs[i] = cidr(association)
 	}
 
 	return cidrs
 }
 
-func getCIDR(association *ec2.VpcCidrBlockAssociation) net.IPNet {
+func cidr(association *ec2.VpcCidrBlockAssociation) net.IPNet {
 	if association == nil {
 		return net.IPNet{}
 	}
@@ -63,17 +63,17 @@ func getCIDR(association *ec2.VpcCidrBlockAssociation) net.IPNet {
 	return *cidr
 }
 
-func getIPv6CIDRs(associationSet []*ec2.VpcIpv6CidrBlockAssociation) []net.IPNet {
+func ipv6CIDRs(associationSet []*ec2.VpcIpv6CidrBlockAssociation) []net.IPNet {
 	cidrs := make([]net.IPNet, len(associationSet))
 
 	for i, association := range associationSet {
-		cidrs[i] = getIPv6CIDR(association)
+		cidrs[i] = ipv6CIDR(association)
 	}
 
 	return cidrs
 }
 
-func getIPv6CIDR(association *ec2.VpcIpv6CidrBlockAssociation) net.IPNet {
+func ipv6CIDR(association *ec2.VpcIpv6CidrBlockAssociation) net.IPNet {
 	if association == nil {
 		return net.IPNet{}
 	}

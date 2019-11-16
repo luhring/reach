@@ -18,8 +18,9 @@ func (rule SecurityGroupRule) matchByIP(ip net.IP) *securityGroupRuleMatch {
 	for _, network := range rule.TargetIPNetworks {
 		if network.Contains(ip) {
 			return &securityGroupRuleMatch{
-				Basis: securityGroupRuleMatchBasisIP,
-				Value: ip,
+				Basis:       securityGroupRuleMatchBasisIP,
+				Requirement: network,
+				Value:       ip,
 			}
 		}
 	}
@@ -32,8 +33,9 @@ func (rule SecurityGroupRule) matchBySecurityGroup(eni *ElasticNetworkInterface)
 		for _, targetENISecurityGroupID := range eni.SecurityGroupIDs {
 			if rule.TargetSecurityGroupReferenceID == targetENISecurityGroupID { // TODO: Handle SG Account ID
 				return &securityGroupRuleMatch{
-					Basis: securityGroupRuleMatchBasisSGRef,
-					Value: targetENISecurityGroupID,
+					Basis:       securityGroupRuleMatchBasisSGRef,
+					Requirement: rule.TargetSecurityGroupReferenceID,
+					Value:       targetENISecurityGroupID,
 				}
 			}
 		}

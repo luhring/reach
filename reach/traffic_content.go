@@ -2,6 +2,7 @@ package reach
 
 import (
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -139,6 +140,17 @@ func TrafficContentsFromFactors(factors []Factor) []TrafficContent {
 	return result
 }
 
+// ReturnTrafficContentsFromFactors returns distinct TrafficContent representations from the input factors's return traffic.
+func ReturnTrafficContentsFromFactors(factors []Factor) []TrafficContent {
+	var result []TrafficContent
+
+	for _, factor := range factors {
+		result = append(result, factor.ReturnTraffic)
+	}
+
+	return result
+}
+
 // Merge performs a set merge operation on two TrafficContents.
 func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 	if tc.All() || other.All() {
@@ -211,6 +223,30 @@ func (tc *TrafficContent) Intersect(other TrafficContent) (TrafficContent, error
 
 			result.setProtocolContent(p, intersection)
 		}
+	}
+
+	return result, nil
+}
+
+// Subtract performs a set subtraction (self - other) on two TrafficContents.
+func (tc *TrafficContent) Subtract(other TrafficContent) (TrafficContent, error) {
+	if tc.None() || other.All() {
+		return NewTrafficContentForNoTraffic(), nil
+	}
+
+	if other.None() {
+		return *tc, nil
+	}
+
+	result := newTrafficContent()
+
+	for p, pc := range tc.protocols {
+		pcDifference, err := pc.subtract(other.protocol(p))
+		if err != nil {
+			return TrafficContent{}, fmt.Errorf("unable to subtract traffic content: %v", err)
+		}
+
+		result.setProtocolContent(p, pcDifference)
 	}
 
 	return result, nil
@@ -390,6 +426,67 @@ func (tc TrafficContent) All() bool {
 // None returns a boolean indicating whether or not the TrafficContent represents no network traffic.
 func (tc TrafficContent) None() bool {
 	return tc.indicator == trafficContentIndicatorNone || (tc.indicator == trafficContentIndicatorUnset && len(tc.protocols) == 0)
+}
+
+// RestrictedProtocol describes an IP protocol whose return traffic has been restricted
+type RestrictedProtocol struct {
+	Protocol        Protocol
+	NoReturnTraffic bool
+}
+
+// ProtocolsWithRestrictedReturnPath returns a list of IP protocols whose communication would be disrupted if return traffic was restricted.
+func (tc TrafficContent) ProtocolsWithRestrictedReturnPath(returnTraffic TrafficContent) []RestrictedProtocol {
+	var restrictedProtocols []RestrictedProtocol
+	var protocolsToAssess []Protocol
+
+	// if tc specifies all traffic, warn about protocols not listed in returnTraffic
+	if tc.All() {
+		protocolsToAssess = []Protocol{
+			ProtocolTCP,
+			ProtocolUDP,
+			ProtocolICMPv4,
+			ProtocolICMPv6,
+		}
+	} else {
+		for p := range tc.protocols {
+			protocolsToAssess = append(protocolsToAssess, p)
+		}
+	}
+
+	for _, protocol := range protocolsToAssess {
+		returnTrafficProtocolContent := returnTraffic.protocol(protocol)
+
+		if !returnTrafficProtocolContent.complete() {
+
+			noReturnTraffic := false
+
+			if returnTrafficProtocolContent.empty() { // return traffic is completely blocked
+				noReturnTraffic = true
+			}
+
+			restrictedProtocols = append(restrictedProtocols, RestrictedProtocol{
+				Protocol:        protocol,
+				NoReturnTraffic: noReturnTraffic,
+			})
+		}
+	}
+
+	return restrictedProtocols
+}
+
+// Protocols returns a slice of the IP protocols described by the traffic content.
+func (tc TrafficContent) Protocols() []Protocol {
+	if tc.protocols == nil {
+		return nil
+	}
+
+	var result []Protocol
+
+	for protocol := range tc.protocols {
+		result = append(result, protocol)
+	}
+
+	return result
 }
 
 func (tc *TrafficContent) setProtocolContent(p Protocol, content ProtocolContent) {

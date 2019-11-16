@@ -9,8 +9,8 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-// GetElasticNetworkInterface queries the AWS API for an elastic network interface matching the given ID.
-func (provider *ResourceProvider) GetElasticNetworkInterface(id string) (*reachAWS.ElasticNetworkInterface, error) {
+// ElasticNetworkInterface queries the AWS API for an elastic network interface matching the given ID.
+func (provider *ResourceProvider) ElasticNetworkInterface(id string) (*reachAWS.ElasticNetworkInterface, error) {
 	input := &ec2.DescribeNetworkInterfacesInput{
 		NetworkInterfaceIds: []*string{
 			aws.String(id),
@@ -30,23 +30,23 @@ func (provider *ResourceProvider) GetElasticNetworkInterface(id string) (*reachA
 }
 
 func newElasticNetworkInterfaceFromAPI(eni *ec2.NetworkInterface) reachAWS.ElasticNetworkInterface {
-	publicIPv4Address := getPublicIPAddress(eni.Association)
-	privateIPv4Addresses := getPrivateIPAddresses(eni.PrivateIpAddresses)
-	ipv6Addresses := getIPv6Addresses(eni.Ipv6Addresses)
+	publicIPv4Address := publicIPAddress(eni.Association)
+	privateIPv4Addresses := privateIPAddresses(eni.PrivateIpAddresses)
+	ipv6Addresses := ipv6Addresses(eni.Ipv6Addresses)
 
 	return reachAWS.ElasticNetworkInterface{
 		ID:                   aws.StringValue(eni.NetworkInterfaceId),
-		NameTag:              getNameTag(eni.TagSet),
+		NameTag:              nameTag(eni.TagSet),
 		SubnetID:             aws.StringValue(eni.SubnetId),
 		VPCID:                aws.StringValue(eni.VpcId),
-		SecurityGroupIDs:     getSecurityGroupIDs(eni.Groups),
+		SecurityGroupIDs:     securityGroupIDs(eni.Groups),
 		PublicIPv4Address:    publicIPv4Address,
 		PrivateIPv4Addresses: privateIPv4Addresses,
 		IPv6Addresses:        ipv6Addresses,
 	}
 }
 
-func getSecurityGroupID(identifier *ec2.GroupIdentifier) string {
+func securityGroupID(identifier *ec2.GroupIdentifier) string {
 	if identifier == nil {
 		return ""
 	}
@@ -54,17 +54,17 @@ func getSecurityGroupID(identifier *ec2.GroupIdentifier) string {
 	return aws.StringValue(identifier.GroupId)
 }
 
-func getSecurityGroupIDs(identifiers []*ec2.GroupIdentifier) []string {
+func securityGroupIDs(identifiers []*ec2.GroupIdentifier) []string {
 	ids := make([]string, len(identifiers))
 
 	for i, identifier := range identifiers {
-		ids[i] = getSecurityGroupID(identifier)
+		ids[i] = securityGroupID(identifier)
 	}
 
 	return ids
 }
 
-func getPrivateIPAddress(address *ec2.NetworkInterfacePrivateIpAddress) net.IP {
+func privateIPAddress(address *ec2.NetworkInterfacePrivateIpAddress) net.IP {
 	if address == nil {
 		return net.IP{}
 	}
@@ -72,17 +72,17 @@ func getPrivateIPAddress(address *ec2.NetworkInterfacePrivateIpAddress) net.IP {
 	return net.ParseIP(aws.StringValue(address.PrivateIpAddress))
 }
 
-func getPrivateIPAddresses(addresses []*ec2.NetworkInterfacePrivateIpAddress) []net.IP {
+func privateIPAddresses(addresses []*ec2.NetworkInterfacePrivateIpAddress) []net.IP {
 	ips := make([]net.IP, len(addresses))
 
 	for i, address := range addresses {
-		ips[i] = getPrivateIPAddress(address)
+		ips[i] = privateIPAddress(address)
 	}
 
 	return ips
 }
 
-func getIPv6Address(address *ec2.NetworkInterfaceIpv6Address) net.IP {
+func ipv6Address(address *ec2.NetworkInterfaceIpv6Address) net.IP {
 	if address == nil {
 		return net.IP{}
 	}
@@ -90,17 +90,17 @@ func getIPv6Address(address *ec2.NetworkInterfaceIpv6Address) net.IP {
 	return net.ParseIP(aws.StringValue(address.Ipv6Address))
 }
 
-func getIPv6Addresses(addresses []*ec2.NetworkInterfaceIpv6Address) []net.IP {
+func ipv6Addresses(addresses []*ec2.NetworkInterfaceIpv6Address) []net.IP {
 	ips := make([]net.IP, len(addresses))
 
 	for i, address := range addresses {
-		ips[i] = getIPv6Address(address)
+		ips[i] = ipv6Address(address)
 	}
 
 	return ips
 }
 
-func getPublicIPAddress(association *ec2.NetworkInterfaceAssociation) net.IP {
+func publicIPAddress(association *ec2.NetworkInterfaceAssociation) net.IP {
 	if association == nil {
 		return net.IP{}
 	}

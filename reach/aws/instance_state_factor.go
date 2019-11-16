@@ -8,17 +8,21 @@ import (
 const FactorKindInstanceState = "InstanceState"
 
 func (i EC2Instance) newInstanceStateFactor() reach.Factor {
-	var tc reach.TrafficContent
+	var traffic reach.TrafficContent
+	var returnTraffic reach.TrafficContent
 
 	if i.isRunning() {
-		tc = reach.NewTrafficContentForAllTraffic()
+		traffic = reach.NewTrafficContentForAllTraffic()
+		returnTraffic = reach.NewTrafficContentForAllTraffic()
 	} else {
-		tc = reach.NewTrafficContentForNoTraffic()
+		traffic = reach.NewTrafficContentForNoTraffic()
+		returnTraffic = reach.NewTrafficContentForNoTraffic()
 	}
 
 	return reach.Factor{
-		Kind:     FactorKindInstanceState,
-		Resource: i.ToResourceReference(),
-		Traffic:  tc,
+		Kind:          FactorKindInstanceState,
+		Resource:      i.ToResourceReference(),
+		Traffic:       traffic,
+		ReturnTraffic: returnTraffic,
 	}
 }
