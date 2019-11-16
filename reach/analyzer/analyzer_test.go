@@ -136,13 +136,13 @@ func TestAnalyze(t *testing.T) {
 			if forwardTraffic := analysis.NetworkVectors[0].Traffic; forwardTraffic.String() != tc.expectedForwardTraffic.String() { // TODO: consider a better comparison method besides strings
 				t.Errorf("expected: %v\nbut was: %v\n", tc.expectedForwardTraffic, forwardTraffic)
 			} else {
-				log.Print("forward traffic analysis was successful")
+				log.Print("forward traffic content is correct")
 			}
 
 			if returnTraffic := analysis.NetworkVectors[0].ReturnTraffic; returnTraffic.String() != tc.expectedReturnTraffic.String() {
 				t.Errorf("expected: %v\nbut was: %v\n", tc.expectedReturnTraffic, returnTraffic)
 			} else {
-				log.Print("return traffic analysis was successful")
+				log.Print("return traffic content is correct")
 			}
 		})
 	}
