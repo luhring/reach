@@ -1,5 +1,5 @@
 resource "aws_network_acl" "destination_subnet_tightened_postgres" {
-  vpc_id = "${aws_vpc.aat_vpc.id}"
+  vpc_id = aws_vpc.aat_vpc.id
 
   subnet_ids = [
     aws_subnet.subnet_2_of_2.id,
