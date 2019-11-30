@@ -1,70 +1,39 @@
 package aws
 
-import "github.com/luhring/reach/reach"
+import (
+	"fmt"
 
-// VectorDiscoverer is the AWS-specific implementation of the VectorDiscoverer interface.
-type VectorDiscoverer struct {
+	"github.com/luhring/reach/reach"
+)
+
+// PointsDiscoverer is the AWS-specific implementation of the PointsDiscoverer interface.
+type PointsDiscoverer struct {
 	resourceCollection *reach.ResourceCollection
 }
 
-// NewVectorDiscoverer creates a new AWS-specific VectorDiscoverer.
-func NewVectorDiscoverer(resourceCollection *reach.ResourceCollection) VectorDiscoverer {
-	return VectorDiscoverer{
+// NewPointsDiscoverer creates a new AWS-specific PointsDiscoverer.
+func NewPointsDiscoverer(resourceCollection *reach.ResourceCollection) PointsDiscoverer {
+	return PointsDiscoverer{
 		resourceCollection,
 	}
 }
 
-// Discover identifies all of the network vectors that could exist between the given subjects.
-func (d VectorDiscoverer) Discover(subjects []*reach.Subject) ([]reach.NetworkVector, error) {
-	// TODO: Re-evaluate: As non-AWS network points are introduced, we may need to rethink how we divvy up this logic
-
-	var sourceNetworkPoints []reach.NetworkPoint
-	var destinationNetworkPoints []reach.NetworkPoint
-
-	for _, subject := range subjects {
-		if subject.Role == reach.SubjectRoleSource {
-			switch subject.Domain {
-			case ResourceDomainAWS:
-				switch subject.Kind {
-				case SubjectKindEC2Instance:
-					ec2Instance := d.resourceCollection.Get(reach.ResourceReference{
-						Domain: ResourceDomainAWS,
-						Kind:   ResourceKindEC2Instance,
-						ID:     subject.ID,
-					}).Properties.(EC2Instance)
-
-					sourceNetworkPoints = append(sourceNetworkPoints, ec2Instance.networkPoints(d.resourceCollection)...)
-				}
-			}
-		} else if subject.Role == reach.SubjectRoleDestination {
-			switch subject.Domain {
-			case ResourceDomainAWS:
-				switch subject.Kind {
-				case SubjectKindEC2Instance:
-					ec2Instance := d.resourceCollection.Get(reach.ResourceReference{
-						Domain: ResourceDomainAWS,
-						Kind:   ResourceKindEC2Instance,
-						ID:     subject.ID,
-					}).Properties.(EC2Instance)
-
-					destinationNetworkPoints = append(destinationNetworkPoints, ec2Instance.networkPoints(d.resourceCollection)...)
-				}
-			}
-		}
+// Discover identifies and returns all network points for the given subject.
+func (d PointsDiscoverer) Discover(subject reach.Subject) ([]reach.NetworkPoint, error) {
+	if subject.Domain != ResourceDomainAWS {
+		return nil, fmt.Errorf("non-AWS domain subject passed to AWS-specific network points discoverer (domain: %s)", subject.Domain)
 	}
 
-	var networkVectors []reach.NetworkVector
+	switch subject.Kind {
+	case SubjectKindEC2Instance:
+		ec2Instance := d.resourceCollection.Get(reach.ResourceReference{
+			Domain: ResourceDomainAWS,
+			Kind:   ResourceKindEC2Instance,
+			ID:     subject.ID,
+		}).Properties.(EC2Instance)
 
-	for _, source := range sourceNetworkPoints {
-		for _, destination := range destinationNetworkPoints {
-			vector, err := reach.NewNetworkVector(source, destination)
-			if err != nil {
-				return nil, err
-			}
-
-			networkVectors = append(networkVectors, vector)
-		}
+		return ec2Instance.networkPoints(d.resourceCollection), nil
+	default:
+		return nil, fmt.Errorf("unsupported AWS resource kind passed to AWS-specific network points discoverer (kind: %s)", subject.Kind)
 	}
-
-	return networkVectors, nil
 }

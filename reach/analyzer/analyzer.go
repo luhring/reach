@@ -7,6 +7,7 @@ import (
 	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/aws/api"
+	"github.com/luhring/reach/reach/generic"
 )
 
 // Analyzer performs Reach's central network traffic analysis.
@@ -46,6 +47,8 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider a
 						return err
 					}
 					a.resourceCollection.Merge(dependencies)
+				case generic.ResourceDomainGeneric:
+					// No resource to add (but this is a supported subject domain).
 				default:
 					return fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
 				}
@@ -68,8 +71,7 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 		return nil, err
 	}
 
-	// TODO: Eventually, this dependency wiring should depend on a passed in config.
-	var vectorDiscoverer reach.VectorDiscoverer = aws.NewVectorDiscoverer(a.resourceCollection)
+	var vectorDiscoverer reach.VectorDiscoverer = NewVectorDiscoverer(a.resourceCollection)
 
 	networkVectors, err := vectorDiscoverer.Discover(subjects)
 	if err != nil {
