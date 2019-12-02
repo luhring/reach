@@ -6,15 +6,11 @@ import (
 
 const SubjectKindHostname = "Hostname"
 
-func NewHostnameSubject(hostname string, role reach.SubjectRole) (*reach.Subject, error) {
-	if !reach.ValidSubjectRole(role) {
-		return nil, reach.NewSubjectError(reach.ErrSubjectRoleValidation)
-	}
-
+func NewHostnameSubject(hostname string) *reach.Subject {
 	return &reach.Subject{
 		Domain: ResourceDomainGeneric,
 		Kind:   SubjectKindHostname,
 		ID:     hostname,
-		Role:   role,
-	}, nil
+		Role:   reach.SubjectRoleNone,
+	}
 }

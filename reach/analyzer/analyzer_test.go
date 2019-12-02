@@ -216,11 +216,11 @@ func TestAnalyze(t *testing.T) {
 						t.Fatal(err)
 					}
 
-					source, err := aws.NewEC2InstanceSubject(sourceID, reach.SubjectRoleSource)
+					source, err := aws.NewEC2InstanceSubjectWithRole(sourceID, reach.SubjectRoleSource)
 					if err != nil {
 						t.Fatal(err)
 					}
-					destination, err := aws.NewEC2InstanceSubject(destinationID, reach.SubjectRoleDestination)
+					destination, err := aws.NewEC2InstanceSubjectWithRole(destinationID, reach.SubjectRoleDestination)
 					if err != nil {
 						t.Fatal(err)
 					}

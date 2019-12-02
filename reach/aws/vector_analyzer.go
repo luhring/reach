@@ -18,6 +18,31 @@ func NewVectorAnalyzer(resourceCollection *reach.ResourceCollection) VectorAnaly
 	}
 }
 
+// Factors calculates the analysis factors for the given network vector.
+func (analyzer VectorAnalyzer) Factors(v reach.NetworkVector) ([]reach.Factor, reach.NetworkVector, error) {
+	var factors []reach.Factor
+
+	sourcePerspective := v.SourcePerspective()
+	sourceFactors, err := analyzer.factorsForPerspective(sourcePerspective)
+	if err != nil {
+		return nil, reach.NetworkVector{}, err
+	}
+
+	destinationPerspective := v.DestinationPerspective()
+	destinationFactors, err := analyzer.factorsForPerspective(destinationPerspective)
+	if err != nil {
+		return nil, reach.NetworkVector{}, err
+	}
+
+	factors = append(factors, sourceFactors...)
+	factors = append(factors, destinationFactors...)
+
+	v.Source.Factors = sourceFactors
+	v.Destination.Factors = destinationFactors
+
+	return factors, v, nil
+}
+
 func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]reach.Factor, error) {
 	var factors []reach.Factor
 
@@ -82,31 +107,6 @@ func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]rea
 	}
 
 	return factors, nil
-}
-
-// Factors calculates the analysis factors for the given network vector.
-func (analyzer VectorAnalyzer) Factors(v reach.NetworkVector) ([]reach.Factor, reach.NetworkVector, error) {
-	var factors []reach.Factor
-
-	sourcePerspective := v.SourcePerspective()
-	sourceFactors, err := analyzer.factorsForPerspective(sourcePerspective)
-	if err != nil {
-		return nil, reach.NetworkVector{}, err
-	}
-
-	destinationPerspective := v.DestinationPerspective()
-	destinationFactors, err := analyzer.factorsForPerspective(destinationPerspective)
-	if err != nil {
-		return nil, reach.NetworkVector{}, err
-	}
-
-	factors = append(factors, sourceFactors...)
-	factors = append(factors, destinationFactors...)
-
-	v.Source.Factors = sourceFactors
-	v.Destination.Factors = destinationFactors
-
-	return factors, v, nil
 }
 
 func sameSubnet(first, second *ElasticNetworkInterface) bool {

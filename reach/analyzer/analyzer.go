@@ -71,7 +71,7 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 		return nil, err
 	}
 
-	var vectorDiscoverer reach.VectorDiscoverer = NewVectorDiscoverer(a.resourceCollection)
+	var vectorDiscoverer reach.VectorDiscoverer = NewVectorDiscoverer(a.resourceCollection) // TODO: Consider: We might not need an interface for this, since we might never have multiple implementations
 
 	networkVectors, err := vectorDiscoverer.Discover(subjects)
 	if err != nil {

@@ -57,7 +57,7 @@ func TestNewEC2InstanceSubject(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			subj, err := NewEC2InstanceSubject(tc.id, tc.role)
+			subj, err := NewEC2InstanceSubjectWithRole(tc.id, tc.role)
 
 			if !reflect.DeepEqual(tc.expectedSubject, subj) {
 				reach.DiffErrorf(t, "subj", tc.expectedSubject, subj)
