@@ -57,7 +57,8 @@ func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]rea
 			if resourceRef.Kind == ResourceKindElasticNetworkInterface {
 				// Get ready to evaluate factors
 				eni := analyzer.resourceCollection.Get(resourceRef).Properties.(ElasticNetworkInterface)
-				targetENI := ElasticNetworkInterfaceFromNetworkPoint(p.Other, analyzer.resourceCollection)
+				targetENI := ElasticNetworkInterfaceFromNetworkPoint(p.Other, analyzer.resourceCollection) // Keep in mind this can return nil.
+				// TODO: Find a clearer way to express that the other network point might not be in the same domain (AWS, in this case).
 
 				var awsP perspective
 				if p.SelfRole == reach.SubjectRoleSource {
