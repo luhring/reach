@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/luhring/reach/reach"
 )
@@ -68,7 +68,7 @@ func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]rea
 
 				// Ensure this is scenario that Reach can analyze
 				if !sameVPC(&eni, targetENI) {
-					return nil, fmt.Errorf("error: reach is not yet able to analyze EC2 instances in different VPCs, but that's coming soon! (VPCs: %s, %s)", eni.VPCID, targetENI.VPCID)
+					return nil, errors.New("error: reach is not yet able to analyze EC2 instances in different VPCs, but that's coming soon")
 				}
 
 				// Evaluate factors

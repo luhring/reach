@@ -72,6 +72,6 @@ func (d VectorDiscoverer) Discover(subjects []*reach.Subject) ([]reach.NetworkVe
 	return networkVectors, nil
 }
 
-func bothPointsAreGeneric(sourcePoint, destinationPoint reach.NetworkPoint) bool {
-	return sourcePoint.Lineage[0].Domain == generic.ResourceDomainGeneric && destinationPoint.Lineage[0].Domain == generic.ResourceDomainGeneric
+func bothPointsAreGeneric(source, destination reach.NetworkPoint) bool {
+	return generic.IsNetworkPointGeneric(source) && generic.IsNetworkPointGeneric(destination)
 }

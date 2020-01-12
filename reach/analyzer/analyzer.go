@@ -6,29 +6,27 @@ import (
 
 	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/aws"
-	"github.com/luhring/reach/reach/aws/api"
 	"github.com/luhring/reach/reach/generic"
 )
 
 // Analyzer performs Reach's central network traffic analysis.
 type Analyzer struct {
+	providers          map[string]interface{}
 	resourceCollection *reach.ResourceCollection
 }
 
 // New creates a new Analyzer that has a new resource collection.
-func New() *Analyzer {
+func New(providers map[string]interface{}) *Analyzer {
 	rc := reach.NewResourceCollection()
 	return &Analyzer{
+		providers:          providers,
 		resourceCollection: rc,
 	}
 }
 
 // Analyze performs a full analysis of allowed network traffic among the specified subjects.
 func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
-	// TODO: Eventually, this dependency wiring should depend on a passed in config.
-	var provider aws.ResourceProvider = api.NewResourceProvider()
-
-	err := a.buildResourceCollection(subjects, provider)
+	err := a.buildResourceCollection(subjects)
 	if err != nil {
 		return nil, err
 	}
@@ -72,18 +70,20 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 	return reach.NewAnalysis(subjects, a.resourceCollection, processedNetworkVectors), nil
 }
 
-func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider aws.ResourceProvider) error { // TODO: Allow passing any number of providers of various domains
+func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) error { // TODO: Allow passing any number of providers of various domains
 	for _, subject := range subjects {
-		if subject.Role != reach.SubjectRoleNone {
+		if subject.Role != reach.SubjectRoleNone && subject.Domain != generic.ResourceDomainGeneric { // For the generic domain, there are no resources to obtain.
 			switch subject.Domain {
 			case aws.ResourceDomainAWS:
+				provider := a.providers[aws.ResourceDomainAWS].(aws.ResourceProvider)
+
 				switch subject.Kind {
 				case aws.SubjectKindEC2Instance:
 					id := subject.ID
 
 					ec2Instance, err := provider.EC2Instance(id)
 					if err != nil {
-						log.Fatalf("couldn't get resource: %v", err)
+						log.Fatalf("couldn't EC2 instance resource: %v", err)
 					}
 					a.resourceCollection.Put(reach.ResourceReference{
 						Domain: aws.ResourceDomainAWS,
@@ -96,8 +96,26 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider a
 						return err
 					}
 					a.resourceCollection.Merge(dependencies)
-				case generic.ResourceDomainGeneric:
-					// No resource to add (but this is a supported subject domain).
+				default:
+					return fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
+				}
+			case generic.ResourceDomainGeneric:
+				provider := a.providers[generic.ResourceDomainGeneric].(generic.ResourceProvider)
+
+				switch subject.Kind {
+				case generic.ResourceKindHostname:
+					h, err := provider.Hostname(subject.ID)
+					if err != nil {
+						log.Fatalf("couldn't get hostname resource: %v", err)
+					}
+
+					a.resourceCollection.Put(reach.ResourceReference{
+						Domain: generic.ResourceDomainGeneric,
+						Kind:   generic.ResourceKindHostname,
+						ID:     h.Name,
+					}, h.ToResource())
+				case generic.SubjectKindIPAddress:
+					// This is a special case. We don't create resources for IP addresses, but this is a recognized subject kind.
 				default:
 					return fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
 				}

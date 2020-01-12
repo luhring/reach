@@ -26,12 +26,17 @@ func (d PointsDiscoverer) Discover(subject reach.Subject) ([]reach.NetworkPoint,
 
 	switch subject.Kind {
 	case SubjectKindEC2Instance:
-		ec2Instance := d.resourceCollection.Get(reach.ResourceReference{
+		ec2InstanceResource := d.resourceCollection.Get(reach.ResourceReference{
 			Domain: ResourceDomainAWS,
 			Kind:   ResourceKindEC2Instance,
 			ID:     subject.ID,
-		}).Properties.(EC2Instance)
+		})
 
+		if ec2InstanceResource == nil {
+			return nil, fmt.Errorf("resource collection lookup didn't return a resource for %s subject with ID '%s'", SubjectKindEC2Instance, subject.ID)
+		}
+
+		ec2Instance := ec2InstanceResource.Properties.(EC2Instance)
 		return ec2Instance.networkPoints(d.resourceCollection), nil
 	default:
 		return nil, fmt.Errorf("unsupported AWS resource kind passed to AWS-specific network points discoverer (kind: %s)", subject.Kind)

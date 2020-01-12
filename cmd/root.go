@@ -12,6 +12,8 @@ import (
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/aws/api"
 	"github.com/luhring/reach/reach/explainer"
+	"github.com/luhring/reach/reach/generic"
+	"github.com/luhring/reach/reach/generic/standard"
 )
 
 const explainFlag = "explain"
@@ -47,11 +49,13 @@ See https://github.com/luhring/reach for documentation.`,
 		destinationInput := args[1]
 
 		var awsResourceProvider aws.ResourceProvider = api.NewResourceProvider()
+		var genericResourceProvider generic.ResourceProvider = standard.NewResourceProvider()
 
 		// Not sure yet if I like this, but I want to be able to package up a collection of resource providers across arbitrary domains.
 		// This relies on type assertions downstream in the code, of course.
 		providers := map[string]interface{}{
-			aws.ResourceDomainAWS: awsResourceProvider,
+			aws.ResourceDomainAWS:         awsResourceProvider,
+			generic.ResourceDomainGeneric: genericResourceProvider,
 		}
 
 		source, err := resolveSubject(sourceInput, os.Stderr, providers)
@@ -70,7 +74,7 @@ See https://github.com/luhring/reach for documentation.`,
 			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
 		}
 
-		a := analyzer.New()
+		a := analyzer.New(providers)
 		analysis, err := a.Analyze(source, destination)
 		if err != nil {
 			exitWithError(err)

@@ -103,7 +103,7 @@ func (eni ElasticNetworkInterface) Dependencies(provider ResourceProvider) (*rea
 	return rc, nil
 }
 
-func (eni ElasticNetworkInterface) getNetworkPoints(parent reach.ResourceReference) []reach.NetworkPoint {
+func (eni ElasticNetworkInterface) networkPoints(parent reach.ResourceReference) []reach.NetworkPoint {
 	var networkPoints []reach.NetworkPoint
 
 	lineage := []reach.ResourceReference{

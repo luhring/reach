@@ -73,7 +73,7 @@ func (i EC2Instance) networkPoints(rc *reach.ResourceCollection) []reach.Network
 			Kind:   ResourceKindElasticNetworkInterface,
 			ID:     id,
 		}).Properties.(ElasticNetworkInterface)
-		eniNetworkPoints := eni.getNetworkPoints(i.ToResourceReference())
+		eniNetworkPoints := eni.networkPoints(i.ToResourceReference())
 		points = append(points, eniNetworkPoints...)
 	}
 

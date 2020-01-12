@@ -22,7 +22,7 @@ func NewPointsDiscoverer(resourceCollection *reach.ResourceCollection) PointsDis
 // Discover identifies and returns all network points for the given subject.
 func (d PointsDiscoverer) Discover(subject reach.Subject) ([]reach.NetworkPoint, error) {
 	if subject.Domain != ResourceDomainGeneric {
-		return nil, fmt.Errorf("non-generic domain subject passed to generic dmoain network points discoverer (domain: %s)", subject.Domain)
+		return nil, fmt.Errorf("non-generic domain subject passed to generic domain network points discoverer (domain: %s)", subject.Domain)
 	}
 
 	switch subject.Kind {
@@ -40,23 +40,23 @@ func (d PointsDiscoverer) Discover(subject reach.Subject) ([]reach.NetworkPoint,
 			},
 		}, nil
 	case SubjectKindHostname:
-		ips, err := net.LookupIP(subject.ID)
-		if err != nil {
-			return nil, fmt.Errorf("subject of hostname kind had an ID (%s) that could not be resolved to an IP address: %v", subject.ID, err)
+		hostnameResource := d.resourceCollection.Get(reach.ResourceReference{
+			Domain: ResourceDomainGeneric,
+			Kind:   ResourceKindHostname,
+			ID:     subject.ID,
+		})
+
+		if hostnameResource == nil {
+			return nil, fmt.Errorf("resource collection lookup didn't return a resource for %s subject with ID '%s'", SubjectKindHostname, subject.ID)
 		}
 
-		var points []reach.NetworkPoint
-
-		for _, ip := range ips {
-			points = append(points, reach.NetworkPoint{
-				IPAddress: ip,
-				Lineage:   nil,
-				Factors:   nil,
-			})
-		}
-
-		return points, nil
+		h := hostnameResource.Properties.(Hostname)
+		return h.networkPoints(), nil
 	default:
 		return nil, fmt.Errorf("unsupported generic resource kind passed to generic domain network points discoverer (kind: %s)", subject.Kind)
 	}
+}
+
+func IsNetworkPointGeneric(point reach.NetworkPoint) bool {
+	return point.Lineage == nil || len(point.Lineage) == 0 || point.Lineage[0].Domain == ResourceDomainGeneric
 }
