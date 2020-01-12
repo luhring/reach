@@ -29,30 +29,26 @@ func (d VectorDiscoverer) Discover(subjects []*reach.Subject) ([]reach.NetworkVe
 			return nil, errors.New("encountered nil subject during network vector discovery")
 		}
 
+		var pointsDiscoverer reach.PointsDiscoverer
+
+		switch subject.Domain {
+		case aws.ResourceDomainAWS:
+			pointsDiscoverer = aws.NewPointsDiscoverer(d.resourceCollection)
+		case generic.ResourceDomainGeneric:
+			pointsDiscoverer = generic.NewPointsDiscoverer(d.resourceCollection)
+		default:
+			return nil, fmt.Errorf("unable to discover points for subject with unrecognized resource domain: %v", subject)
+		}
+
+		networkPoints, err := pointsDiscoverer.Discover(*subject)
+		if err != nil {
+			return nil, fmt.Errorf("error encountered while discovering network vectors: %v", err)
+		}
+
 		if subject.Role == reach.SubjectRoleSource {
-			switch subject.Domain {
-			case aws.ResourceDomainAWS:
-				pointsDiscoverer := aws.NewPointsDiscoverer(d.resourceCollection)
-
-				networkPoints, err := pointsDiscoverer.Discover(*subject)
-				if err != nil {
-					return nil, fmt.Errorf("error encountered while discovering network vectors: %v", err)
-				}
-
-				sourceNetworkPoints = append(sourceNetworkPoints, networkPoints...)
-			}
+			sourceNetworkPoints = append(sourceNetworkPoints, networkPoints...)
 		} else if subject.Role == reach.SubjectRoleDestination {
-			switch subject.Domain {
-			case aws.ResourceDomainAWS:
-				pointsDiscoverer := aws.NewPointsDiscoverer(d.resourceCollection)
-
-				networkPoints, err := pointsDiscoverer.Discover(*subject)
-				if err != nil {
-					return nil, fmt.Errorf("error encountered while discovering network vectors: %v", err)
-				}
-
-				destinationNetworkPoints = append(destinationNetworkPoints, networkPoints...)
-			}
+			destinationNetworkPoints = append(destinationNetworkPoints, networkPoints...)
 		}
 	}
 

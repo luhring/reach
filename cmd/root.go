@@ -3,18 +3,15 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 
-	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/analyzer"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/aws/api"
 	"github.com/luhring/reach/reach/explainer"
-	"github.com/luhring/reach/reach/generic"
 )
 
 const explainFlag = "explain"
@@ -46,8 +43,8 @@ See https://github.com/luhring/reach for documentation.`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		sourceIdentifier := args[0]
-		destinationIdentifier := args[1]
+		sourceInput := args[0]
+		destinationInput := args[1]
 
 		var awsResourceProvider aws.ResourceProvider = api.NewResourceProvider()
 
@@ -57,19 +54,19 @@ See https://github.com/luhring/reach for documentation.`,
 			aws.ResourceDomainAWS: awsResourceProvider,
 		}
 
-		source, err := resolveSubject(sourceIdentifier, os.Stderr, providers)
+		source, err := resolveSubject(sourceInput, os.Stderr, providers)
 		if err != nil {
 			exitWithError(err)
 		}
 		source.SetRoleToSource()
 
-		destination, err := resolveSubject(destinationIdentifier, os.Stderr, providers)
+		destination, err := resolveSubject(destinationInput, os.Stderr, providers)
 		if err != nil {
 			exitWithError(err)
 		}
 		destination.SetRoleToDestination()
 
-		if !outputJSON && !explain && !showVectors {
+		if !(outputJSON || explain || showVectors) {
 			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
 		}
 
@@ -144,42 +141,4 @@ func init() {
 	rootCmd.Flags().BoolVar(&outputJSON, jsonFlag, false, "output full analysis as JSON (overrides other display flags)")
 	rootCmd.Flags().BoolVar(&assertReachable, assertReachableFlag, false, "exit non-zero if no traffic is allowed from source to destination")
 	rootCmd.Flags().BoolVar(&assertNotReachable, assertNotReachableFlag, false, "exit non-zero if any traffic can reach destination from source")
-}
-
-func resolveSubject(identifier string, progressWriter io.Writer, resourceProviders map[string]interface{}) (*reach.Subject, error) {
-	identifierSegments := strings.SplitN(identifier, ":", 2)
-	if identifierSegments == nil || len(identifierSegments) < 2 { // implicit resolution (subject type was not specified)
-		// 1. Try IP address format.
-		err := generic.CheckIPAddress(identifier)
-		if err == nil {
-			_, _ = fmt.Fprintf(progressWriter, "'%s' is being interpreted as an IP address\n", identifier)
-			return generic.NewIPAddressSubject(identifier), nil
-		}
-
-		// 2. Try hostname format.
-		err = generic.CheckHostname(identifier)
-		if err == nil {
-			_, _ = fmt.Fprintf(progressWriter, "'%s' is being interpreted as a hostname\n", identifier)
-			return generic.NewHostnameSubject(identifier), nil
-		}
-
-		// 3. Try EC2 fuzzy matching.
-		awsResourceProvider := resourceProviders[aws.ResourceDomainAWS].(aws.ResourceProvider)
-		return aws.ResolveEC2InstanceSubject(identifier, awsResourceProvider)
-	} else { // explicit resolution (subject type was specified)
-		prefix := identifierSegments[0]
-		qualifiedIdentifier := identifierSegments[1]
-
-		switch prefix {
-		case "ip":
-			return generic.ResolveIPAddressSubject(qualifiedIdentifier)
-		case "host":
-			return generic.ResolveHostnameSubject(qualifiedIdentifier)
-		case "ec2":
-			awsResourceProvider := resourceProviders[aws.ResourceDomainAWS].(aws.ResourceProvider)
-			return aws.ResolveEC2InstanceSubject(qualifiedIdentifier, awsResourceProvider)
-		default:
-			return nil, fmt.Errorf("unable to resolve subject with identifier '%s' because subject prefix '%s' is not recognized", qualifiedIdentifier, prefix)
-		}
-	}
 }

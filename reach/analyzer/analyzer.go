@@ -23,44 +23,6 @@ func New() *Analyzer {
 	}
 }
 
-func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider aws.ResourceProvider) error { // TODO: Allow passing any number of providers of various domains
-	for _, subject := range subjects {
-		if subject.Role != reach.SubjectRoleNone {
-			switch subject.Domain {
-			case aws.ResourceDomainAWS:
-				switch subject.Kind {
-				case aws.SubjectKindEC2Instance:
-					id := subject.ID
-
-					ec2Instance, err := provider.EC2Instance(id)
-					if err != nil {
-						log.Fatalf("couldn't get resource: %v", err)
-					}
-					a.resourceCollection.Put(reach.ResourceReference{
-						Domain: aws.ResourceDomainAWS,
-						Kind:   aws.ResourceKindEC2Instance,
-						ID:     ec2Instance.ID,
-					}, ec2Instance.ToResource())
-
-					dependencies, err := ec2Instance.Dependencies(provider)
-					if err != nil {
-						return err
-					}
-					a.resourceCollection.Merge(dependencies)
-				case generic.ResourceDomainGeneric:
-					// No resource to add (but this is a supported subject domain).
-				default:
-					return fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
-				}
-			default:
-				return fmt.Errorf("unsupported subject domain: '%s'", subject.Domain)
-			}
-		}
-	}
-
-	return nil
-}
-
 // Analyze performs a full analysis of allowed network traffic among the specified subjects.
 func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
 	// TODO: Eventually, this dependency wiring should depend on a passed in config.
@@ -108,4 +70,42 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 	}
 
 	return reach.NewAnalysis(subjects, a.resourceCollection, processedNetworkVectors), nil
+}
+
+func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject, provider aws.ResourceProvider) error { // TODO: Allow passing any number of providers of various domains
+	for _, subject := range subjects {
+		if subject.Role != reach.SubjectRoleNone {
+			switch subject.Domain {
+			case aws.ResourceDomainAWS:
+				switch subject.Kind {
+				case aws.SubjectKindEC2Instance:
+					id := subject.ID
+
+					ec2Instance, err := provider.EC2Instance(id)
+					if err != nil {
+						log.Fatalf("couldn't get resource: %v", err)
+					}
+					a.resourceCollection.Put(reach.ResourceReference{
+						Domain: aws.ResourceDomainAWS,
+						Kind:   aws.ResourceKindEC2Instance,
+						ID:     ec2Instance.ID,
+					}, ec2Instance.ToResource())
+
+					dependencies, err := ec2Instance.Dependencies(provider)
+					if err != nil {
+						return err
+					}
+					a.resourceCollection.Merge(dependencies)
+				case generic.ResourceDomainGeneric:
+					// No resource to add (but this is a supported subject domain).
+				default:
+					return fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
+				}
+			default:
+				return fmt.Errorf("unsupported subject domain: '%s'", subject.Domain)
+			}
+		}
+	}
+
+	return nil
 }
