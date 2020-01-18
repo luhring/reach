@@ -32,13 +32,11 @@ func (eni ElasticNetworkInterface) newNetworkACLRulesFactor(
 	}
 	subnet := subnetResource.Properties.(Subnet)
 
-	ref := reach.ResourceReference{
+	networkACLResource := rc.Get(reach.ResourceReference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindNetworkACL,
 		ID:     subnet.NetworkACLID,
-	}
-
-	networkACLResource := rc.Get(ref)
+	})
 	if networkACLResource == nil {
 		return nil, fmt.Errorf("couldn't find network ACL: %s", subnet.NetworkACLID)
 	}
@@ -69,11 +67,11 @@ func (eni ElasticNetworkInterface) newNetworkACLRulesFactor(
 }
 
 func (nacl NetworkACL) effectOnForwardTraffic(p reach.Perspective, awsP perspective) (reach.TrafficContent, []networkACLRulesFactorComponent, error) {
-	return nacl.factorComponents(awsP.networkACLRuleDirectionForForwardTraffic, p, awsP)
+	return nacl.factorComponents(awsP.networkACLRuleDirectionForForwardTraffic, p)
 }
 
 func (nacl NetworkACL) effectOnReturnTraffic(p reach.Perspective, awsP perspective) (reach.TrafficContent, []networkACLRulesFactorComponent, error) {
-	return nacl.factorComponents(awsP.networkACLRuleDirectionForReturnTraffic, p, awsP)
+	return nacl.factorComponents(awsP.networkACLRuleDirectionForReturnTraffic, p)
 }
 
 func (nacl NetworkACL) rulesForDirection(direction networkACLRuleDirection) []NetworkACLRule {
@@ -84,7 +82,7 @@ func (nacl NetworkACL) rulesForDirection(direction networkACLRuleDirection) []Ne
 	return nacl.InboundRules
 }
 
-func (nacl NetworkACL) factorComponents(direction networkACLRuleDirection, p reach.Perspective, awsP perspective) (reach.TrafficContent, []networkACLRulesFactorComponent, error) {
+func (nacl NetworkACL) factorComponents(direction networkACLRuleDirection, p reach.Perspective) (reach.TrafficContent, []networkACLRulesFactorComponent, error) {
 	rules := nacl.rulesForDirection(direction)
 
 	sort.Slice(rules, func(i, j int) bool {

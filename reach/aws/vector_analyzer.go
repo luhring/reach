@@ -67,6 +67,7 @@ func (analyzer VectorAnalyzer) factorsFrom(p reach.Perspective) ([]reach.Factor,
 					}
 
 					// Evaluate factors
+
 					securityGroupRulesFactor, err := eni.securityGroupRulesFactorForAWSDomain(
 						analyzer.resourceCollection,
 						awsPerspective,
@@ -83,7 +84,7 @@ func (analyzer VectorAnalyzer) factorsFrom(p reach.Perspective) ([]reach.Factor,
 						continue
 					}
 
-					// Different subnets, same VPC
+					// Same VPC, different subnets
 
 					networkACLRulesFactor, err := eni.newNetworkACLRulesFactor(
 						analyzer.resourceCollection,
@@ -100,6 +101,30 @@ func (analyzer VectorAnalyzer) factorsFrom(p reach.Perspective) ([]reach.Factor,
 					if !p.Other.IPAddressIsInternetAccessible() {
 						return nil, fmt.Errorf("encountered network point with IP address ('%s') that is not Internet accessible (this scenario is not yet supported)", p.Other.IPAddress)
 					}
+
+					// Evaluate factors
+
+					securityGroupRulesFactor, err := eni.securityGroupRulesFactorForInterDomain(
+						analyzer.resourceCollection,
+						awsPerspective,
+						p.Other,
+					)
+					if err != nil {
+						return nil, err
+					}
+
+					factors = append(factors, *securityGroupRulesFactor)
+
+					networkACLRulesFactor, err := eni.newNetworkACLRulesFactor(
+						analyzer.resourceCollection,
+						p,
+						awsPerspective,
+					)
+					if err != nil {
+						return nil, err
+					}
+
+					factors = append(factors, *networkACLRulesFactor)
 				}
 			}
 		}
