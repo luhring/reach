@@ -44,6 +44,7 @@ func (analyzer VectorAnalyzer) Factors(v reach.NetworkVector) ([]reach.Factor, r
 
 func (analyzer VectorAnalyzer) factorsFrom(p reach.Perspective) ([]reach.Factor, error) {
 	var factors []reach.Factor
+	awsPerspective := newPerspective(p)
 
 	for _, selfAncestor := range p.Self.Lineage {
 		if selfAncestor.Domain == ResourceDomainAWS {
@@ -63,13 +64,6 @@ func (analyzer VectorAnalyzer) factorsFrom(p reach.Perspective) ([]reach.Factor,
 
 					if !sameVPC(eni, otherENI) {
 						return nil, fmt.Errorf("error: reach is not yet able to analyze EC2 instances in different VPCs (%s, %s)", eni.VPCID, otherENI.VPCID)
-					}
-
-					var awsPerspective perspective
-					if p.SelfRole == reach.SubjectRoleSource {
-						awsPerspective = newPerspectiveSourceOriented()
-					} else {
-						awsPerspective = newPerspectiveDestinationOriented()
 					}
 
 					// Evaluate factors

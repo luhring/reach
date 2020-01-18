@@ -1,5 +1,7 @@
 package aws
 
+import "github.com/luhring/reach/reach"
+
 type perspective struct {
 	securityGroupRules                       func(sg SecurityGroup) []SecurityGroupRule
 	securityGroupRuleDirection               securityGroupRuleDirection
@@ -7,6 +9,14 @@ type perspective struct {
 	networkACLRuleDirectionForForwardTraffic networkACLRuleDirection
 	networkACLRulesForReturnTraffic          func(nacl NetworkACL) []NetworkACLRule
 	networkACLRuleDirectionForReturnTraffic  networkACLRuleDirection
+}
+
+func newPerspective(p reach.Perspective) perspective {
+	if p.SelfRole == reach.SubjectRoleSource {
+		return newPerspectiveSourceOriented()
+	}
+
+	return newPerspectiveDestinationOriented()
 }
 
 func newPerspectiveSourceOriented() perspective {
