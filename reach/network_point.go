@@ -12,16 +12,6 @@ type NetworkPoint struct {
 	Factors   []Factor
 }
 
-func (point NetworkPoint) trafficContents() []TrafficContent {
-	var components []TrafficContent
-
-	for _, factor := range point.Factors {
-		components = append(components, factor.Traffic)
-	}
-
-	return components
-}
-
 // String returns the text representation of the NetworkPoint
 func (point NetworkPoint) String() string {
 	var generations []string
@@ -33,4 +23,83 @@ func (point NetworkPoint) String() string {
 	generations = append(generations, point.IPAddress.String())
 
 	return strings.Join(generations, " -> ")
+}
+
+// Domain returns the domain of the network point. It determines this by returning the domain of the first resource reference in the point's lineage. If the point has no lineage, an empty string is returned.
+func (point NetworkPoint) Domain() string {
+	for _, resourceRef := range point.Lineage {
+		return resourceRef.Domain
+	}
+
+	return ""
+}
+
+// IPAddressIsInternetAccessible determines if the IP address for this network point can be accessed from the Internet.
+func (point NetworkPoint) IPAddressIsInternetAccessible() bool {
+	ip := point.IPAddress
+
+	if ip.IsLoopback() || ip.IsUnspecified() { // TODO: Figure out other disqualifying criteria for an Internet-accessible IP address.
+		return false
+	}
+
+	// For background on the following networks, see https://en.wikipedia.org/wiki/Private_network
+
+	if cidrBlockContainsIP("10.0.0.0/8", ip) {
+		return false
+	}
+
+	if cidrBlockContainsIP("172.16.0.0/12", ip) {
+		return false
+	}
+
+	if cidrBlockContainsIP("192.168.0.0/16", ip) {
+		return false
+	}
+
+	if cidrBlockContainsIP("100.64.0.0/10", ip) {
+		return false
+	}
+
+	if cidrBlockContainsIP("fd00::/8", ip) {
+		return false
+	}
+
+	if cidrBlockContainsIP("169.254.0.0/16", ip) {
+		return false
+	}
+
+	if cidrBlockContainsIP("fc00::/7", ip) {
+		return false
+	}
+
+	if cidrBlockContainsIP("fe80::/10", ip) {
+		return false
+	}
+
+	return true
+}
+
+// IPv4 determines if the network point's IP address is an IPv4 address. If not, one can assume it's an IPv6 address.
+func (point NetworkPoint) IPv4() bool {
+	return point.IPAddress.To4() != nil
+}
+
+func (point NetworkPoint) trafficContents() []TrafficContent {
+	var components []TrafficContent
+
+	for _, factor := range point.Factors {
+		components = append(components, factor.Traffic)
+	}
+
+	return components
+}
+
+func cidrBlockContainsIP(cidr string, ip net.IP) bool {
+	_, network, _ := net.ParseCIDR(cidr)
+
+	if network == nil {
+		return false
+	}
+
+	return network.Contains(ip)
 }

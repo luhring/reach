@@ -60,6 +60,10 @@ func (d VectorDiscoverer) Discover(subjects []*reach.Subject) ([]reach.NetworkVe
 				return nil, fmt.Errorf("cannot perform analysis if both points in a network vector are generic (e.g. just an IP address or a hostname)")
 			}
 
+			if !sameIPVersion(source, destination) {
+				continue // Don't include IPv4/v6 mismatched pairings in the result
+			}
+
 			vector, err := reach.NewNetworkVector(source, destination)
 			if err != nil {
 				return nil, err
@@ -74,4 +78,8 @@ func (d VectorDiscoverer) Discover(subjects []*reach.Subject) ([]reach.NetworkVe
 
 func bothPointsAreGeneric(source, destination reach.NetworkPoint) bool {
 	return generic.IsNetworkPointGeneric(source) && generic.IsNetworkPointGeneric(destination)
+}
+
+func sameIPVersion(source, destination reach.NetworkPoint) bool {
+	return source.IPv4() == destination.IPv4()
 }
