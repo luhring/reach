@@ -27,6 +27,15 @@ func (sg SecurityGroup) ToResource() reach.Resource {
 	}
 }
 
+// ToResourceReference returns a resource reference to uniquely identify the security group.
+func (sg SecurityGroup) ToResourceReference() reach.ResourceReference {
+	return reach.ResourceReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindSecurityGroup,
+		ID:     sg.ID,
+	}
+}
+
 // Dependencies returns a collection of the security group's resource dependencies.
 func (sg SecurityGroup) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()

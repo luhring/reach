@@ -23,14 +23,12 @@ func NewVectorAnalyzer(resourceCollection *reach.ResourceCollection) VectorAnaly
 func (analyzer VectorAnalyzer) Factors(v reach.NetworkVector) ([]reach.Factor, reach.NetworkVector, error) {
 	var factors []reach.Factor
 
-	sourcePerspective := v.SourcePerspective()
-	sourceFactors, err := analyzer.factorsForPerspective(sourcePerspective)
+	sourceFactors, err := analyzer.factorsFrom(v.SourcePerspective())
 	if err != nil {
 		return nil, reach.NetworkVector{}, err
 	}
 
-	destinationPerspective := v.DestinationPerspective()
-	destinationFactors, err := analyzer.factorsForPerspective(destinationPerspective)
+	destinationFactors, err := analyzer.factorsFrom(v.DestinationPerspective())
 	if err != nil {
 		return nil, reach.NetworkVector{}, err
 	}
@@ -44,46 +42,41 @@ func (analyzer VectorAnalyzer) Factors(v reach.NetworkVector) ([]reach.Factor, r
 	return factors, v, nil
 }
 
-func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]reach.Factor, error) {
+func (analyzer VectorAnalyzer) factorsFrom(p reach.Perspective) ([]reach.Factor, error) {
 	var factors []reach.Factor
 
-	for _, selfResourceRef := range p.Self.Lineage {
-		if selfResourceRef.Domain == ResourceDomainAWS {
-			if selfResourceRef.Kind == ResourceKindEC2Instance {
-				ec2Instance := analyzer.resourceCollection.Get(selfResourceRef).Properties.(EC2Instance)
-
+	for _, selfAncestor := range p.Self.Lineage {
+		if selfAncestor.Domain == ResourceDomainAWS {
+			switch selfAncestor.Kind {
+			case ResourceKindEC2Instance:
+				ec2Instance := analyzer.resourceCollection.Get(selfAncestor).Properties.(EC2Instance)
 				factors = append(factors, ec2Instance.newInstanceStateFactor())
-			}
-
-			if selfResourceRef.Kind == ResourceKindElasticNetworkInterface {
-				eni := analyzer.resourceCollection.Get(selfResourceRef).Properties.(ElasticNetworkInterface)
+			case ResourceKindElasticNetworkInterface:
+				eni := analyzer.resourceCollection.Get(selfAncestor).Properties.(ElasticNetworkInterface)
 
 				if p.Other.Domain() == ResourceDomainAWS {
 					otherENIRef := ElasticNetworkInterfaceFromNetworkPoint(p.Other, analyzer.resourceCollection)
 					if otherENIRef == nil {
 						return nil, errors.New("unable to find elastic network interface for network point within AWS domain")
 					}
-
 					otherENI := *otherENIRef
 
-					// Ensure this is scenario that Reach can analyze
 					if !sameVPC(eni, otherENI) {
-						return nil, errors.New("error: reach is not yet able to analyze EC2 instances in different VPCs, but that's coming soon")
+						return nil, fmt.Errorf("error: reach is not yet able to analyze EC2 instances in different VPCs (%s, %s)", eni.VPCID, otherENI.VPCID)
 					}
 
-					var awsP perspective
+					var awsPerspective perspective
 					if p.SelfRole == reach.SubjectRoleSource {
-						awsP = newPerspectiveSourceOriented()
+						awsPerspective = newPerspectiveSourceOriented()
 					} else {
-						awsP = newPerspectiveDestinationOriented()
+						awsPerspective = newPerspectiveDestinationOriented()
 					}
 
 					// Evaluate factors
-					securityGroupRulesFactor, err := eni.newSecurityGroupRulesFactor(
+					securityGroupRulesFactor, err := eni.securityGroupRulesFactorForAWSDomain(
 						analyzer.resourceCollection,
-						p,
-						awsP,
-						otherENI,
+						awsPerspective,
+						p.Other,
 					)
 					if err != nil {
 						return nil, err
@@ -101,7 +94,7 @@ func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]rea
 					networkACLRulesFactor, err := eni.newNetworkACLRulesFactor(
 						analyzer.resourceCollection,
 						p,
-						awsP,
+						awsPerspective,
 					)
 					if err != nil {
 						return nil, err

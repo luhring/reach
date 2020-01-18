@@ -14,7 +14,7 @@ type SecurityGroupRule struct {
 	TargetIPNetworks                      []*net.IPNet `json:"TargetIPNetworks,omitempty"`
 }
 
-func (rule SecurityGroupRule) matchByIP(ip net.IP) *securityGroupRuleMatch {
+func (rule SecurityGroupRule) matchIP(ip net.IP) *securityGroupRuleMatch {
 	for _, network := range rule.TargetIPNetworks {
 		if network.Contains(ip) {
 			return &securityGroupRuleMatch{
@@ -28,7 +28,7 @@ func (rule SecurityGroupRule) matchByIP(ip net.IP) *securityGroupRuleMatch {
 	return nil
 }
 
-func (rule SecurityGroupRule) matchBySecurityGroup(eni ElasticNetworkInterface) *securityGroupRuleMatch {
+func (rule SecurityGroupRule) matchSecurityGroupAttachedToENI(eni ElasticNetworkInterface) *securityGroupRuleMatch {
 	for _, targetENISecurityGroupID := range eni.SecurityGroupIDs {
 		if rule.TargetSecurityGroupReferenceID == targetENISecurityGroupID { // TODO: Handle SG Account ID
 			return &securityGroupRuleMatch{
