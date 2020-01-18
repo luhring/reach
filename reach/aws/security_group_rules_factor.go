@@ -15,7 +15,7 @@ func (eni ElasticNetworkInterface) newSecurityGroupRulesFactor(
 	rc *reach.ResourceCollection,
 	p reach.Perspective,
 	awsP perspective,
-	targetENI *ElasticNetworkInterface,
+	targetENI ElasticNetworkInterface,
 ) (*reach.Factor, error) {
 	var ruleComponents []securityGroupRulesFactorComponent
 	var trafficContentSegments []reach.TrafficContent

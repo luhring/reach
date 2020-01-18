@@ -21,7 +21,6 @@ func (eni ElasticNetworkInterface) newNetworkACLRulesFactor(
 	rc *reach.ResourceCollection,
 	p reach.Perspective,
 	awsP perspective,
-	targetENI *ElasticNetworkInterface,
 ) (*reach.Factor, error) {
 	subnetResource := rc.Get(reach.ResourceReference{
 		Domain: ResourceDomainAWS,

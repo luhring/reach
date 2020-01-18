@@ -28,15 +28,13 @@ func (rule SecurityGroupRule) matchByIP(ip net.IP) *securityGroupRuleMatch {
 	return nil
 }
 
-func (rule SecurityGroupRule) matchBySecurityGroup(eni *ElasticNetworkInterface) *securityGroupRuleMatch {
-	if eni != nil {
-		for _, targetENISecurityGroupID := range eni.SecurityGroupIDs {
-			if rule.TargetSecurityGroupReferenceID == targetENISecurityGroupID { // TODO: Handle SG Account ID
-				return &securityGroupRuleMatch{
-					Basis:       securityGroupRuleMatchBasisSGRef,
-					Requirement: rule.TargetSecurityGroupReferenceID,
-					Value:       targetENISecurityGroupID,
-				}
+func (rule SecurityGroupRule) matchBySecurityGroup(eni ElasticNetworkInterface) *securityGroupRuleMatch {
+	for _, targetENISecurityGroupID := range eni.SecurityGroupIDs {
+		if rule.TargetSecurityGroupReferenceID == targetENISecurityGroupID { // TODO: Handle SG Account ID
+			return &securityGroupRuleMatch{
+				Basis:       securityGroupRuleMatchBasisSGRef,
+				Requirement: rule.TargetSecurityGroupReferenceID,
+				Value:       targetENISecurityGroupID,
 			}
 		}
 	}

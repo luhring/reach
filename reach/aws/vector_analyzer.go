@@ -2,6 +2,7 @@ package aws
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/luhring/reach/reach"
 )
@@ -46,63 +47,73 @@ func (analyzer VectorAnalyzer) Factors(v reach.NetworkVector) ([]reach.Factor, r
 func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]reach.Factor, error) {
 	var factors []reach.Factor
 
-	for _, resourceRef := range p.Self.Lineage {
-		if resourceRef.Domain == ResourceDomainAWS {
-			if resourceRef.Kind == ResourceKindEC2Instance {
-				ec2Instance := analyzer.resourceCollection.Get(resourceRef).Properties.(EC2Instance)
+	for _, selfResourceRef := range p.Self.Lineage {
+		if selfResourceRef.Domain == ResourceDomainAWS {
+			if selfResourceRef.Kind == ResourceKindEC2Instance {
+				ec2Instance := analyzer.resourceCollection.Get(selfResourceRef).Properties.(EC2Instance)
 
 				factors = append(factors, ec2Instance.newInstanceStateFactor())
 			}
 
-			if resourceRef.Kind == ResourceKindElasticNetworkInterface {
-				// Get ready to evaluate factors
-				eni := analyzer.resourceCollection.Get(resourceRef).Properties.(ElasticNetworkInterface)
-				targetENI := ElasticNetworkInterfaceFromNetworkPoint(p.Other, analyzer.resourceCollection) // Keep in mind this can return nil.
-				// TODO: Find a clearer way to express that the other network point might not be in the same domain (AWS, in this case).
+			if selfResourceRef.Kind == ResourceKindElasticNetworkInterface {
+				eni := analyzer.resourceCollection.Get(selfResourceRef).Properties.(ElasticNetworkInterface)
 
-				var awsP perspective
-				if p.SelfRole == reach.SubjectRoleSource {
-					awsP = newPerspectiveSourceOriented()
+				if p.Other.Domain() == ResourceDomainAWS {
+					otherENIRef := ElasticNetworkInterfaceFromNetworkPoint(p.Other, analyzer.resourceCollection)
+					if otherENIRef == nil {
+						return nil, errors.New("unable to find elastic network interface for network point within AWS domain")
+					}
+
+					otherENI := *otherENIRef
+
+					// Ensure this is scenario that Reach can analyze
+					if !sameVPC(eni, otherENI) {
+						return nil, errors.New("error: reach is not yet able to analyze EC2 instances in different VPCs, but that's coming soon")
+					}
+
+					var awsP perspective
+					if p.SelfRole == reach.SubjectRoleSource {
+						awsP = newPerspectiveSourceOriented()
+					} else {
+						awsP = newPerspectiveDestinationOriented()
+					}
+
+					// Evaluate factors
+					securityGroupRulesFactor, err := eni.newSecurityGroupRulesFactor(
+						analyzer.resourceCollection,
+						p,
+						awsP,
+						otherENI,
+					)
+					if err != nil {
+						return nil, err
+					}
+
+					factors = append(factors, *securityGroupRulesFactor)
+
+					if sameSubnet(eni, otherENI) {
+						// There's nothing further to evaluate for this ENI
+						continue
+					}
+
+					// Different subnets, same VPC
+
+					networkACLRulesFactor, err := eni.newNetworkACLRulesFactor(
+						analyzer.resourceCollection,
+						p,
+						awsP,
+					)
+					if err != nil {
+						return nil, err
+					}
+
+					factors = append(factors, *networkACLRulesFactor)
 				} else {
-					awsP = newPerspectiveDestinationOriented()
+					// Other point is not within AWS. For now, we'll only support the other point having a public IP address that we can connect to.
+					if !p.Other.IPAddressIsInternetAccessible() {
+						return nil, fmt.Errorf("encountered network point with IP address ('%s') that is not Internet accessible (this scenario is not yet supported)", p.Other.IPAddress)
+					}
 				}
-
-				// Ensure this is scenario that Reach can analyze
-				if !sameVPC(&eni, targetENI) {
-					return nil, errors.New("error: reach is not yet able to analyze EC2 instances in different VPCs, but that's coming soon")
-				}
-
-				// Evaluate factors
-				securityGroupRulesFactor, err := eni.newSecurityGroupRulesFactor(
-					analyzer.resourceCollection,
-					p,
-					awsP,
-					targetENI,
-				)
-				if err != nil {
-					return nil, err
-				}
-
-				factors = append(factors, *securityGroupRulesFactor)
-
-				if sameSubnet(&eni, targetENI) {
-					// There's nothing further to evaluate for this ENI
-					continue
-				}
-
-				// Different subnets, same VPC
-
-				networkACLRulesFactor, err := eni.newNetworkACLRulesFactor(
-					analyzer.resourceCollection,
-					p,
-					awsP,
-					targetENI,
-				)
-				if err != nil {
-					return nil, err
-				}
-
-				factors = append(factors, *networkACLRulesFactor)
 			}
 		}
 	}
@@ -110,18 +121,10 @@ func (analyzer VectorAnalyzer) factorsForPerspective(p reach.Perspective) ([]rea
 	return factors, nil
 }
 
-func sameSubnet(first, second *ElasticNetworkInterface) bool {
-	if first == nil || second == nil {
-		return false
-	}
-
+func sameSubnet(first, second ElasticNetworkInterface) bool {
 	return first.SubnetID == second.SubnetID
 }
 
-func sameVPC(first, second *ElasticNetworkInterface) bool {
-	if first == nil || second == nil {
-		return false
-	}
-
+func sameVPC(first, second ElasticNetworkInterface) bool {
 	return first.VPCID == second.VPCID
 }
