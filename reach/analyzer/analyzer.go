@@ -26,7 +26,7 @@ func New(providers map[string]interface{}) *Analyzer {
 
 // Analyze performs a full analysis of allowed network traffic among the specified subjects.
 func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
-	err := a.buildResourceCollection(subjects)
+	err := a.buildResourceCollection(subjects) // TODO: Need to catch and prevent cycles (e.g. with route table rules having instance targets).
 	if err != nil {
 		return nil, err
 	}
