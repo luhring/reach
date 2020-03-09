@@ -11,27 +11,25 @@ import (
 
 // Analyzer performs Reach's central network traffic analysis.
 type Analyzer struct {
-	providers          map[string]interface{}
-	resourceCollection *reach.ResourceCollection
+	providers map[string]interface{}
 }
 
 // New creates a new Analyzer that has a new resource collection.
 func New(providers map[string]interface{}) *Analyzer {
-	rc := reach.NewResourceCollection()
 	return &Analyzer{
-		providers:          providers,
-		resourceCollection: rc,
+		providers: providers,
 	}
 }
 
 // Analyze performs a full analysis of allowed network traffic among the specified subjects.
 func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
-	err := a.buildResourceCollection(subjects) // TODO: Need to catch and prevent cycles (e.g. with route table rules having instance targets).
+	rc, err := a.buildResourceCollection(subjects) // TODO: Need to catch and prevent cycles (e.g. with route table rules having instance targets).
 	if err != nil {
 		return nil, err
 	}
 
-	var vectorDiscoverer reach.VectorDiscoverer = NewVectorDiscoverer(a.resourceCollection)
+	// I think this becomes a network path constructor
+	var vectorDiscoverer reach.VectorDiscoverer = NewVectorDiscoverer(rc)
 
 	networkVectors, err := vectorDiscoverer.Discover(subjects)
 	if err != nil {
@@ -41,7 +39,8 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 	processedNetworkVectors := make([]reach.NetworkVector, len(networkVectors))
 
 	// TODO: Eventually, this dependency wiring should depend on a passed in config.
-	var vectorAnalyzer reach.VectorAnalyzer = aws.NewVectorAnalyzer(a.resourceCollection)
+	// VectorAnalyzer is no more. Vectors become network paths.
+	var vectorAnalyzer reach.VectorAnalyzer = aws.NewVectorAnalyzer(rc)
 
 	for i, v := range networkVectors {
 		factors, processedVector, err := vectorAnalyzer.Factors(v)
@@ -67,10 +66,12 @@ func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) 
 		processedNetworkVectors[i] = processedVector
 	}
 
-	return reach.NewAnalysis(subjects, a.resourceCollection, processedNetworkVectors), nil
+	return reach.NewAnalysis(subjects, rc, processedNetworkVectors), nil
 }
 
-func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) error { // TODO: Allow passing any number of providers of various domains
+func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) (*reach.ResourceCollection, error) { // TODO: Allow passing any number of providers of various domains
+	rc := reach.NewResourceCollection()
+
 	for _, subject := range subjects {
 		if subject.Role != reach.SubjectRoleNone && subject.Domain != generic.ResourceDomainGeneric { // For the generic domain, there are no resources to obtain.
 			switch subject.Domain {
@@ -83,9 +84,9 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) error { //
 
 					ec2Instance, err := provider.EC2Instance(id)
 					if err != nil {
-						log.Fatalf("couldn't EC2 instance resource: %v", err)
+						log.Fatalf("couldn't get EC2 instance resource: %v", err)
 					}
-					a.resourceCollection.Put(reach.ResourceReference{
+					rc.Put(reach.ResourceReference{
 						Domain: aws.ResourceDomainAWS,
 						Kind:   aws.ResourceKindEC2Instance,
 						ID:     ec2Instance.ID,
@@ -93,11 +94,11 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) error { //
 
 					dependencies, err := ec2Instance.Dependencies(provider)
 					if err != nil {
-						return err
+						return nil, err
 					}
-					a.resourceCollection.Merge(dependencies)
+					rc.Merge(dependencies)
 				default:
-					return fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
+					return nil, fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
 				}
 			case generic.ResourceDomainGeneric:
 				provider := a.providers[generic.ResourceDomainGeneric].(generic.ResourceProvider)
@@ -109,7 +110,7 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) error { //
 						log.Fatalf("couldn't get hostname resource: %v", err)
 					}
 
-					a.resourceCollection.Put(reach.ResourceReference{
+					rc.Put(reach.ResourceReference{
 						Domain: generic.ResourceDomainGeneric,
 						Kind:   generic.ResourceKindHostname,
 						ID:     h.Name,
@@ -117,13 +118,13 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) error { //
 				case generic.SubjectKindIPAddress:
 					// This is a special case. We don't create resources for IP addresses, but this is a recognized subject kind.
 				default:
-					return fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
+					return nil, fmt.Errorf("unsupported subject kind: '%s'", subject.Kind)
 				}
 			default:
-				return fmt.Errorf("unsupported subject domain: '%s'", subject.Domain)
+				return nil, fmt.Errorf("unsupported subject domain: '%s'", subject.Domain)
 			}
 		}
 	}
 
-	return nil
+	return rc, nil
 }
