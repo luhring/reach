@@ -35,20 +35,6 @@ func (i EC2Instance) ToResourceReference() reach.ResourceReference {
 	}
 }
 
-func (i EC2Instance) isRunning() bool {
-	return i.State == "running"
-}
-
-func (i EC2Instance) elasticNetworkInterfaceIDs() []string {
-	var ids []string
-
-	for _, attachment := range i.NetworkInterfaceAttachments {
-		ids = append(ids, attachment.ElasticNetworkInterfaceID)
-	}
-
-	return ids
-}
-
 // Dependencies returns a collection of the EC2 instance's resource dependencies.
 func (i EC2Instance) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
@@ -62,6 +48,28 @@ func (i EC2Instance) Dependencies(provider ResourceProvider) (*reach.ResourceCol
 	}
 
 	return rc, nil
+}
+
+// Name returns the instance's ID, and, if available, its name tag value.
+func (i EC2Instance) Name() string {
+	if name := strings.TrimSpace(i.NameTag); name != "" {
+		return fmt.Sprintf("\"%s\" (%s)", name, i.ID)
+	}
+	return i.ID
+}
+
+func (i EC2Instance) isRunning() bool {
+	return i.State == "running"
+}
+
+func (i EC2Instance) elasticNetworkInterfaceIDs() []string {
+	var ids []string
+
+	for _, attachment := range i.NetworkInterfaceAttachments {
+		ids = append(ids, attachment.ElasticNetworkInterfaceID)
+	}
+
+	return ids
 }
 
 func (i EC2Instance) networkPoints(rc *reach.ResourceCollection) []reach.NetworkPoint {
@@ -78,12 +86,4 @@ func (i EC2Instance) networkPoints(rc *reach.ResourceCollection) []reach.Network
 	}
 
 	return points
-}
-
-// Name returns the instance's ID, and, if available, its name tag value.
-func (i EC2Instance) Name() string {
-	if name := strings.TrimSpace(i.NameTag); name != "" {
-		return fmt.Sprintf("\"%s\" (%s)", name, i.ID)
-	}
-	return i.ID
 }
