@@ -5,6 +5,8 @@ type ResourceProvider interface {
 	AllEC2Instances() ([]EC2Instance, error)
 	EC2Instance(id string) (*EC2Instance, error)
 	ElasticNetworkInterface(id string) (*ElasticNetworkInterface, error)
+	InternetGateway(id string) (*InternetGateway, error)
+	NATGateway(id string) (*NATGateway, error)
 	NetworkACL(id string) (*NetworkACL, error)
 	RouteTable(id string) (*RouteTable, error)
 	SecurityGroup(id string) (*SecurityGroup, error)

@@ -9,6 +9,7 @@ const ResourceKindSubnet = "Subnet"
 type Subnet struct {
 	ID           string
 	NetworkACLID string
+	RouteTableID string
 	VPCID        string
 }
 
@@ -33,6 +34,16 @@ func (s Subnet) Dependencies(provider ResourceProvider) (*reach.ResourceCollecti
 		Kind:   ResourceKindNetworkACL,
 		ID:     s.NetworkACLID,
 	}, networkACL.ToResource())
+
+	routeTable, err := provider.RouteTable(s.RouteTableID)
+	if err != nil {
+		return nil, err
+	}
+	rc.Put(reach.ResourceReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindRouteTable,
+		ID:     s.RouteTableID,
+	}, routeTable.ToResource())
 
 	vpc, err := provider.VPC(s.VPCID)
 	if err != nil {

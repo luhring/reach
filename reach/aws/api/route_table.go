@@ -19,32 +19,27 @@ func (provider *ResourceProvider) RouteTable(id string) (*reachAWS.RouteTable, e
 		return nil, err
 	}
 
-	if err = ensureSingleResult(len(result.RouteTables), "security group", id); err != nil {
+	if err = ensureSingleResult(len(result.RouteTables), "route table", id); err != nil {
 		return nil, err
 	}
 
-	routeTable := newRouteTableFromAPI(result.RouteTables[0])
+	routeTable, err := newRouteTableFromAPI(result.RouteTables[0])
+	if err != nil {
+		return nil, err
+	}
+
 	return &routeTable, nil
 }
 
-func newRouteTableFromAPI(routeTable *ec2.RouteTable) reachAWS.RouteTable {
-	routes := []reachAWS.RouteTableRoute{} // TODO: implement
+func newRouteTableFromAPI(routeTable *ec2.RouteTable) (reachAWS.RouteTable, error) {
+	routes, err := routeTableRoutesFromAPI(routeTable.Routes)
+	if err != nil {
+		return reachAWS.RouteTable{}, err
+	}
 
 	return reachAWS.RouteTable{
 		ID:     aws.StringValue(routeTable.RouteTableId),
 		VPCID:  aws.StringValue(routeTable.VpcId),
 		Routes: routes,
-	}
-}
-
-func routeTableRoutes(routes []*ec2.Route) []reachAWS.RouteTableRoute {
-	return nil // TODO: implement
-}
-
-func routeTableRoute(route *ec2.Route) reachAWS.RouteTableRoute {
-	if route == nil {
-		return reachAWS.RouteTableRoute{}
-	}
-
-	panic("need to finish implementing")
+	}, nil
 }

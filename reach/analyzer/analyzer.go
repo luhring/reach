@@ -78,7 +78,7 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) (*reach.Re
 			case aws.ResourceDomainAWS:
 				provider := a.providers[aws.ResourceDomainAWS].(aws.ResourceProvider)
 
-				switch subject.Kind {
+				switch subject.Kind { // An argument could be made that this logic should be pushed into the 'aws' package...
 				case aws.SubjectKindEC2Instance:
 					id := subject.ID
 

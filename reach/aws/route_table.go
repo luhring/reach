@@ -34,7 +34,36 @@ func (rt RouteTable) Dependencies(provider ResourceProvider) (*reach.ResourceCol
 		ID:     vpc.ID,
 	}, vpc.ToResource())
 
-	// TODO: Figure out dependencies from RouteTableRoute (i.e. route targets)
+	for _, route := range rt.Routes {
+		switch route.Target.Type {
+		case RouteTargetTypeInternetGateway:
+			igwID := route.Target.ID
+
+			igw, err := provider.InternetGateway(igwID)
+			if err != nil {
+				return nil, err
+			}
+			rc.Put(reach.ResourceReference{
+				Domain: ResourceDomainAWS,
+				Kind:   ResourceKindInternetGateway,
+				ID:     igwID,
+			}, igw.ToResource())
+		case RouteTargetTypeNATGateway:
+			ngwID := route.Target.ID
+
+			ngw, err := provider.NATGateway(ngwID)
+			if err != nil {
+				return nil, err
+			}
+			rc.Put(reach.ResourceReference{
+				Domain: ResourceDomainAWS,
+				Kind:   ResourceKindNATGateway,
+				ID:     ngwID,
+			}, ngw.ToResource())
+		default:
+			// target type that's not yet supported, ignore for now
+		}
+	}
 
 	return rc, nil
 }
