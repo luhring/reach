@@ -7,17 +7,6 @@ type PathBuilder struct {
 	path reach.Path
 }
 
-func New() *PathBuilder {
-	s := reach.Segment{}
-	path := reach.Path{
-		Segments: []reach.Segment{s},
-	}
-
-	return &PathBuilder{
-		path: path,
-	}
-}
-
 func Resume(path reach.Path) *PathBuilder {
 	return &PathBuilder{
 		path: path,
