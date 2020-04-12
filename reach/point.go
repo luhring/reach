@@ -4,5 +4,4 @@ package reach
 type Point struct {
 	Ref     InfrastructureReference
 	Factors []Factor
-	Tuple   *IPTuple
 }

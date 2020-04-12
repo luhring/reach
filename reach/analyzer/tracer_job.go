@@ -5,6 +5,8 @@ import (
 )
 
 type tracerJob struct {
-	partial        reach.PartialPath
+	ref            reach.InfrastructureReference
+	path           *reach.Path
+	edgeTuple      *reach.IPTuple
 	destinationRef reach.InfrastructureReference
 }

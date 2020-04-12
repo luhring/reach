@@ -59,7 +59,7 @@ func (eni ElasticNetworkInterface) newNetworkACLRulesFactor(
 
 	return &reach.Factor{
 		Kind:          FactorKindNetworkACLRules,
-		Resource:      eni.ToResourceReference(),
+		Resource:      eni.ResourceReference(),
 		Traffic:       forwardTraffic,
 		ReturnTraffic: returnTraffic,
 		Properties:    props,

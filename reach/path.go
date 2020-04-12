@@ -4,8 +4,10 @@ type Path struct {
 	Segments []Segment
 }
 
-func NewPath() Path {
-	s := Segment{}
+func NewPath(firstPoint Point) Path {
+	s := Segment{
+		Points: []Point{firstPoint},
+	}
 	path := Path{
 		Segments: []Segment{s},
 	}
@@ -18,14 +20,25 @@ func (p Path) LastPoint() Point {
 	return lastPoint
 }
 
-func (p Path) Contains(pt Point) bool {
+func (p Path) Contains(ref InfrastructureReference) bool {
 	for _, s := range p.Segments {
-		if s.Contains(pt) {
+		if s.Contains(ref) {
 			return true
 		}
 	}
 
 	return false
+}
+
+func (p Path) Add(tuple *IPTuple, point Point, newSegment bool) Path {
+	if newSegment {
+		p.Segments = append(p.Segments, Segment{})
+	}
+
+	lastSegmentIndex := len(p.Segments) - 1
+	p.Segments[lastSegmentIndex] = p.Segments[lastSegmentIndex].Add(tuple, point)
+
+	return p
 }
 
 func (p Path) Factors() []Factor {

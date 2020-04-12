@@ -21,7 +21,7 @@ func (attachment NetworkInterfaceAttachment) Dependencies(provider ResourceProvi
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindElasticNetworkInterface,
 		ID:     eni.ID,
-	}, eni.ToResource())
+	}, eni.Resource())
 
 	eniDependencies, err := eni.Dependencies(provider)
 	if err != nil {

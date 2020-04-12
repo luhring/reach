@@ -107,6 +107,33 @@ func (i EC2Instance) Next(t *reach.IPTuple, provider reach.InfrastructureGetter)
 	return refs, nil
 }
 
+func (i EC2Instance) ForwardEdges(prev *reach.IPTuple, provider reach.InfrastructureGetter) ([]reach.PathEdge, error) {
+	var edges []reach.PathEdge
+
+	enis, err := i.elasticNetworkInterfaces(provider)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get ENIs: %v", err)
+	}
+
+	// If the EC2 instance is changing the IP tuple from a previous tuple state, we don't have visibility into that change, so we'll have to assume no change.
+	nextTuple := prev
+
+	for _, eni := range enis {
+		for _, ownedIP := range eni.ownedIPs() {
+			// Only include ENIs that own the tuple's src IP
+			if nextTuple == nil || nextTuple.Src.Equal(ownedIP) {
+				edge := reach.PathEdge{
+					Tuple: nextTuple,
+					Ref:   eni.Ref(),
+				}
+				edges = append(edges, edge)
+			}
+		}
+	}
+
+	return edges, nil
+}
+
 func (i EC2Instance) Factors() []reach.Factor {
 	f := i.newInstanceStateFactor()
 	return []reach.Factor{f}

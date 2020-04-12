@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/luhring/reach/reach"
-	"github.com/luhring/reach/reach/analyzer/pathbuilder"
 )
 
 type Tracer struct {
@@ -37,10 +36,7 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 	}
 
 	initialJob := tracerJob{
-		partial: reach.PartialPath{
-			Path:    reach.NewPath(),
-			NextRef: sourceRef,
-		},
+		ref:            sourceRef,
 		destinationRef: destinationRef,
 	}
 
@@ -70,69 +66,61 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 			case <-done:
 				return
 			default:
-				partial := job.partial
-
 				// We need to turn the ref into a Traceable
-				r, err := t.provider.Get(partial.NextRef)
+				resource, err := t.provider.Get(job.ref)
 				if err != nil {
 					results <- traceResult{error: err}
 					return
 				}
-				traceable := r.Properties.(reach.Traceable) // TODO: Make this more type-safe
+				traceable := resource.Properties.(reach.Traceable) // TODO: Make this more type-safe
 
-				factors := traceable.Factors()
-				prevTuple := partial.Path.LastPoint().Tuple
-				newTuple := traceable.Tuple(prevTuple)
-				newPoint := reach.Point{
-					Ref:     partial.NextRef,
-					Factors: factors,
-					Tuple:   newTuple,
-				}
-
-				err = detectLoop(partial, newPoint, traceable)
+				err = detectLoop(job.path, traceable)
 				if err != nil {
 					results <- traceResult{error: fmt.Errorf("tracer detected a loop: %v", err)}
 					return
 				}
 
-				builder := pathbuilder.Resume(partial.Path)
-
-				if traceable.Segments() {
-					builder.AddSegment()
+				factors := traceable.Factors()
+				point := reach.Point{
+					Ref:     job.ref,
+					Factors: factors,
 				}
 
-				builder.Add(newPoint)
-				updatedPath := builder.Path()
+				var path reach.Path
+				if job.path == nil {
+					path = reach.NewPath(point)
+				} else {
+					path = *job.path
+					path.Add(job.edgeTuple, point, traceable.Segments())
+				}
 
 				if traceable.Ref().Equal(job.destinationRef) {
 					// Path is complete!
-					results <- traceResult{path: &updatedPath}
+					results <- traceResult{path: &path}
 					return
 				}
 
 				var wg sync.WaitGroup
 
-				nextRefs, err := traceable.Next(newTuple, t.provider)
+				edges, err := traceable.ForwardEdges(job.edgeTuple, t.provider)
 				if err != nil {
-					results <- traceResult{error: fmt.Errorf("tracer was unable to get next refs: %v", err)}
+					results <- traceResult{error: fmt.Errorf("tracer was unable to get edges for ref (%s): %v", job.ref, err)}
 					return
 				}
-				if len(nextRefs) < 1 {
+				numEdges := len(edges)
+				if numEdges < 1 {
 					err := fmt.Errorf("no next points found when processing job:\n%+v", job)
 					results <- traceResult{error: err}
 					return
 				}
 
-				numNextRefs := len(nextRefs)
-				resultChannels := make([]<-chan traceResult, numNextRefs)
-				wg.Add(numNextRefs)
-				for _, ref := range nextRefs {
-					partial := reach.PartialPath{
-						Path:    updatedPath,
-						NextRef: ref,
-					}
+				resultChannels := make([]<-chan traceResult, numEdges)
+				wg.Add(numEdges)
+				for _, edge := range edges {
 					j := tracerJob{
-						partial:        partial,
+						ref:            edge.Ref,
+						path:           &path,
+						edgeTuple:      edge.Tuple,
 						destinationRef: job.destinationRef,
 					}
 					resultChannels = append(resultChannels, t.tracePoint(done, j))
@@ -154,9 +142,16 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 	return results
 }
 
-func detectLoop(path reach.PartialPath, newPoint reach.Point, traceable reach.Traceable) error {
-	if traceable.Visitable(path.Path.Contains(newPoint)) == false {
-		return fmt.Errorf("cannot visit point again: %v", newPoint)
+func detectLoop(path *reach.Path, traceable reach.Traceable) error {
+	// TODO: (Later) Consider a more intelligent loop detection system that leverages tuples
+
+	if path == nil {
+		return nil
+	}
+
+	ref := traceable.Ref()
+	if traceable.Visitable(path.Contains(ref)) == false {
+		return fmt.Errorf("cannot visit point again: %s", ref)
 	}
 	return nil
 }
