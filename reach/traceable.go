@@ -3,10 +3,10 @@ package reach
 import "net"
 
 type Traceable interface {
-	AllowsVisit(previouslyVisited bool) bool
-	IsDestinationForIP(ips []net.IP) bool
-	UpdatedTuple(prev *IPTuple) IPTuple
-	Factors() []Factor // TODO: Need to determine what context a piece of infrastructure would need to generate this on its own (previously, this was done centrally, and involved Perspectives)
+	Visitable(alreadyVisited bool) bool
+	Destination(ips []net.IP) bool
 	Segments() bool
+	NextTuple(prev *IPTuple) IPTuple
 	Next(t IPTuple) []InfrastructureReference
+	Factors() []Factor // TODO: Need to determine what context a piece of infrastructure would need to generate this on its own (previously, this was done centrally, and involved Perspectives)
 }

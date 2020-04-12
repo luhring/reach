@@ -2,11 +2,11 @@ package analyzer
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"sync"
 
 	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/analyzer/pathbuilder"
 )
 
 type Tracer struct {
@@ -19,7 +19,7 @@ func NewTracer(provider reach.InfrastructureGetter) *Tracer {
 	}
 }
 
-func (t *Tracer) Trace(source, destination reach.Subject) []reach.Path {
+func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) {
 	sourceRef := reach.InfrastructureReference{
 		R: reach.ResourceReference{
 			Domain: source.Domain,
@@ -28,13 +28,26 @@ func (t *Tracer) Trace(source, destination reach.Subject) []reach.Path {
 		},
 	}
 
+	destinationRef := reach.InfrastructureReference{
+		R: reach.ResourceReference{
+			Domain: destination.Domain,
+			Kind:   destination.Kind,
+			ID:     destination.ID,
+		},
+	}
+
+	dest, err := t.provider.Get(destinationRef)
+	if err != nil {
+		return nil, fmt.Errorf("tracer could not get destination: %v", err)
+	}
+	destIPResolver := dest.Properties.(reach.SubjectIPResolver)
+
 	initialJob := tracerJob{
-		source:      source,
-		destination: destination,
 		partial: reach.PartialPath{
 			Path:    reach.NewPath(),
 			NextRef: sourceRef,
 		},
+		destinationIPs: destIPResolver.Resolve(reach.SubjectRoleDestination),
 	}
 
 	done := make(chan interface{})
@@ -50,7 +63,7 @@ func (t *Tracer) Trace(source, destination reach.Subject) []reach.Path {
 		paths = append(paths, *result.path)
 	}
 
-	return paths
+	return paths, nil
 }
 
 func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan traceResult {
@@ -65,7 +78,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 			default:
 				partial := job.partial
 
-				// Turn ref into Traceable
+				// We need to turn the ref into a Traceable
 				r, err := t.provider.Get(partial.NextRef)
 				if err != nil {
 					results <- traceResult{error: err}
@@ -75,7 +88,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 
 				factors := traceable.Factors()
 				prevTuple := partial.Path.LastPoint().Tuple
-				newTuple := traceable.UpdatedTuple(&prevTuple)
+				newTuple := traceable.NextTuple(&prevTuple)
 				newPoint := reach.Point{
 					Ref:     partial.NextRef,
 					Factors: factors,
@@ -88,7 +101,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 					return
 				}
 
-				builder := reach.ResumePathBuilding(partial.Path)
+				builder := pathbuilder.Resume(partial.Path)
 
 				if traceable.Segments() {
 					builder.AddSegment()
@@ -97,8 +110,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 				builder.Add(newPoint)
 				updatedPath := builder.Path()
 
-				var destIPs []net.IP // TODO: Get from destination subject
-				if traceable.IsDestinationForIP(destIPs) {
+				if traceable.Destination(job.destinationIPs) {
 					// Path is complete!
 					results <- traceResult{path: &updatedPath}
 					return
@@ -122,9 +134,8 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 						NextRef: ref,
 					}
 					j := tracerJob{
-						source:      job.source,
-						destination: job.destination,
-						partial:     partial,
+						partial:        partial,
+						destinationIPs: job.destinationIPs,
 					}
 					resultChannels = append(resultChannels, t.tracePoint(done, j))
 				}
@@ -146,7 +157,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 }
 
 func detectLoop(path reach.PartialPath, newPoint reach.Point, traceable reach.Traceable) error {
-	if traceable.AllowsVisit(path.Path.Contains(newPoint)) == false {
+	if traceable.Visitable(path.Path.Contains(newPoint)) == false {
 		return fmt.Errorf("cannot visit point again: %v", newPoint)
 	}
 	return nil
