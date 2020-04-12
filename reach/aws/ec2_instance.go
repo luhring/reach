@@ -107,7 +107,7 @@ func (i EC2Instance) Next(t *reach.IPTuple, provider reach.InfrastructureGetter)
 	return refs, nil
 }
 
-func (i EC2Instance) ForwardEdges(prev *reach.IPTuple, provider reach.InfrastructureGetter) ([]reach.PathEdge, error) {
+func (i EC2Instance) ForwardEdges(latestTuple *reach.IPTuple, dstIPs []net.IP, provider reach.InfrastructureGetter) ([]reach.PathEdge, error) {
 	var edges []reach.PathEdge
 
 	enis, err := i.elasticNetworkInterfaces(provider)
@@ -115,19 +115,35 @@ func (i EC2Instance) ForwardEdges(prev *reach.IPTuple, provider reach.Infrastruc
 		return nil, fmt.Errorf("couldn't get ENIs: %v", err)
 	}
 
-	// If the EC2 instance is changing the IP tuple from a previous tuple state, we don't have visibility into that change, so we'll have to assume no change.
-	nextTuple := prev
+	// Note: If the EC2 instance is changing the IP tuple from a previous tuple state, we don't have visibility into that change, so we'll have to assume no change.
+
+	// If dstIPs is not nil, the generated tuples (and thus, edges) need to exhaust all included dstIPs
+	var tuples []reach.IPTuple
+	if dstIPs != nil {
+		var src net.IP
+		if latestTuple != nil {
+			src = latestTuple.Src
+		}
+
+		for _, dst := range dstIPs {
+			tuples = append(tuples, reach.IPTuple{
+				Src: src,
+				Dst: dst,
+			})
+		}
+	} else {
+		if latestTuple != nil {
+			tuples = []reach.IPTuple{*latestTuple}
+		}
+	}
 
 	for _, eni := range enis {
-		for _, ownedIP := range eni.ownedIPs() {
-			// Only include ENIs that own the tuple's src IP
-			if nextTuple == nil || nextTuple.Src.Equal(ownedIP) {
-				edge := reach.PathEdge{
-					Tuple: nextTuple,
-					Ref:   eni.Ref(),
-				}
-				edges = append(edges, edge)
+		for _, tuple := range tuples {
+			edge := reach.PathEdge{
+				Tuple: &tuple,
+				Ref:   eni.Ref(),
 			}
+			edges = append(edges, edge)
 		}
 	}
 
@@ -137,6 +153,25 @@ func (i EC2Instance) ForwardEdges(prev *reach.IPTuple, provider reach.Infrastruc
 func (i EC2Instance) Factors() []reach.Factor {
 	f := i.newInstanceStateFactor()
 	return []reach.Factor{f}
+}
+
+func (i EC2Instance) IPs(provider reach.InfrastructureGetter) ([]net.IP, error) {
+	var ips []net.IP
+
+	enis, err := i.elasticNetworkInterfaces(provider)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't look up ENIs: %v", err)
+	}
+
+	for _, eni := range enis {
+		eniIPs, err := eni.IPs(provider)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't get IPs for ENI (%s): %v", eni.Ref(), err)
+		}
+		ips = append(ips, eniIPs...)
+	}
+
+	return ips, nil
 }
 
 // FactorKindInstanceState specifies the unique name for the EC2 instance state of factor.
@@ -209,21 +244,6 @@ func (i EC2Instance) ownedIPs(provider reach.InfrastructureGetter) ([]net.IP, er
 
 	for _, eni := range enis {
 		ips = append(ips, eni.ownedIPs()...)
-	}
-
-	return ips, nil
-}
-
-func (i EC2Instance) advertisedIPs(provider reach.InfrastructureGetter) ([]net.IP, error) {
-	var ips []net.IP
-
-	enis, err := i.elasticNetworkInterfaces(provider)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't look up ENIs: %v", err)
-	}
-
-	for _, eni := range enis {
-		ips = append(ips, eni.advertisedIPs()...)
 	}
 
 	return ips, nil

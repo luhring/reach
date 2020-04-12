@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"sync"
 
@@ -35,7 +36,7 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 		},
 	}
 
-	initialJob := tracerJob{
+	initialJob := traceJob{
 		ref:            sourceRef,
 		destinationRef: destinationRef,
 	}
@@ -56,7 +57,7 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 	return paths, nil
 }
 
-func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan traceResult {
+func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceResult {
 	results := make(chan traceResult)
 
 	go func() {
@@ -87,8 +88,23 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 				}
 
 				var path reach.Path
+				var destIPs []net.IP
 				if job.path == nil {
+					// This is the first traced point.
 					path = reach.NewPath(point)
+
+					// TODO: obtain and set dest IPs
+					destResource, err := t.provider.Get(job.destinationRef)
+					if err != nil {
+						results <- traceResult{error: fmt.Errorf("unable to get destination: %v", err)}
+						return
+					}
+					dest := destResource.Properties.(reach.IPAdvertiser)
+					destIPs, err = dest.IPs(t.provider)
+					if err != nil {
+						results <- traceResult{error: fmt.Errorf("unable to get advertised IPs from destination: %v", err)}
+						return
+					}
 				} else {
 					path = *job.path
 					path.Add(job.edgeTuple, point, traceable.Segments())
@@ -100,24 +116,21 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 					return
 				}
 
-				var wg sync.WaitGroup
-
-				edges, err := traceable.ForwardEdges(job.edgeTuple, t.provider)
+				edges, err := traceable.ForwardEdges(job.edgeTuple, destIPs, t.provider)
 				if err != nil {
 					results <- traceResult{error: fmt.Errorf("tracer was unable to get edges for ref (%s): %v", job.ref, err)}
 					return
 				}
 				numEdges := len(edges)
 				if numEdges < 1 {
-					err := fmt.Errorf("no next points found when processing job:\n%+v", job)
+					err := fmt.Errorf("no forward edges found when processing job:\n%+v", job)
 					results <- traceResult{error: err}
 					return
 				}
 
 				resultChannels := make([]<-chan traceResult, numEdges)
-				wg.Add(numEdges)
 				for _, edge := range edges {
-					j := tracerJob{
+					j := traceJob{
 						ref:            edge.Ref,
 						path:           &path,
 						edgeTuple:      edge.Tuple,

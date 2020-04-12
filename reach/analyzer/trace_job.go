@@ -4,7 +4,7 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
-type tracerJob struct {
+type traceJob struct {
 	ref            reach.InfrastructureReference
 	path           *reach.Path
 	edgeTuple      *reach.IPTuple

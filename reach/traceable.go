@@ -1,9 +1,11 @@
 package reach
 
+import "net"
+
 type Traceable interface {
 	Visitable(alreadyVisited bool) bool
 	Ref() InfrastructureReference
 	Segments() bool
-	ForwardEdges(prev *IPTuple, provider InfrastructureGetter) ([]PathEdge, error)
+	ForwardEdges(latestTuple *IPTuple, destIPs []net.IP, provider InfrastructureGetter) ([]PathEdge, error)
 	Factors() []Factor
 }

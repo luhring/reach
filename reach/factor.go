@@ -5,8 +5,8 @@ type Factor struct {
 	Kind          string
 	Resource      ResourceReference
 	Traffic       TrafficContent
-	ReturnTraffic TrafficContent // DEPRECATED
-	Properties    interface{}    `json:"Properties,omitempty"`
+	ReturnTraffic TrafficContent
+	Properties    interface{} `json:"Properties,omitempty"`
 }
 
 func TrafficFromFactors(factors []Factor) []TrafficContent {
