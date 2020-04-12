@@ -206,22 +206,6 @@ func (i EC2Instance) elasticNetworkInterfaces(provider reach.InfrastructureGette
 	return enis, nil
 }
 
-func (i EC2Instance) networkPoints(rc *reach.ResourceCollection) []reach.NetworkPoint {
-	var points []reach.NetworkPoint
-
-	for _, id := range i.elasticNetworkInterfaceIDs() {
-		eni := rc.Get(reach.ResourceReference{
-			Domain: ResourceDomainAWS,
-			Kind:   ResourceKindElasticNetworkInterface,
-			ID:     id,
-		}).Properties.(ElasticNetworkInterface)
-		eniNetworkPoints := eni.networkPoints(i.ToResourceReference())
-		points = append(points, eniNetworkPoints...)
-	}
-
-	return points
-}
-
 func (i EC2Instance) ownedIPs(provider reach.InfrastructureGetter) ([]net.IP, error) {
 	var ips []net.IP
 
