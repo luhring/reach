@@ -14,3 +14,13 @@ func (s Segment) Factors() []Factor {
 
 	return result
 }
+
+func (s Segment) Contains(pt Point) bool {
+	for _, point := range s.Points {
+		if point.Ref.Matches(pt.Ref) { // TODO: (Later) Consider a more intelligent loop detection system that leverages tuples
+			return true
+		}
+	}
+
+	return false
+}

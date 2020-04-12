@@ -18,6 +18,16 @@ func (p Path) LastPoint() Point {
 	return lastPoint
 }
 
+func (p Path) Contains(pt Point) bool {
+	for _, s := range p.Segments {
+		if s.Contains(pt) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (p Path) Factors() []Factor {
 	var factors []Factor
 
@@ -28,7 +38,7 @@ func (p Path) Factors() []Factor {
 	return factors
 }
 
-func (p Path) ForwardTraffic() TrafficContent {
+func (p Path) ForwardTraffic() TrafficContent { // TODO: Consider moving this for analyzer to conclude
 	var tcs []TrafficContent
 
 	for _, factor := range p.Factors() {

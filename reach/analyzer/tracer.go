@@ -26,42 +26,35 @@ func (t *Tracer) Trace(source, destination reach.Subject) []reach.Path {
 			Kind:   source.Kind,
 			ID:     source.ID,
 		},
-		Implicit: false,
 	}
 
-	firstPartialPath := reach.PartialPath{
-		Path:    reach.NewPath(),
-		NextRef: sourceRef,
-	}
-	firstJob := tracerJob{
+	initialJob := tracerJob{
 		source:      source,
 		destination: destination,
-		partialPath: firstPartialPath,
+		partial: reach.PartialPath{
+			Path:    reach.NewPath(),
+			NextRef: sourceRef,
+		},
 	}
 
 	done := make(chan interface{})
 	defer close(done)
 
-	results := t.tracePoint(done, firstJob)
+	results := t.tracePoint(done, initialJob)
 	var paths []reach.Path
 
 	for result := range results {
 		if result.error != nil {
 			_, _ = fmt.Fprintln(os.Stderr, result.error) // TODO: Log more intelligently!
 		}
-		paths = append(paths, *result.complete)
+		paths = append(paths, *result.path)
 	}
 
 	return paths
 }
 
-type result struct {
-	complete *reach.Path
-	error    error
-}
-
-func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan result {
-	results := make(chan result)
+func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan traceResult {
+	results := make(chan traceResult)
 
 	go func() {
 		defer close(results)
@@ -70,29 +63,34 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan resul
 			case <-done:
 				return
 			default:
-				current := job.partialPath
-				ref := current.NextRef
+				partial := job.partial
 
-				// Turn ref into full TraceableInfrastructure
-				r, err := t.provider.Get(ref)
+				// Turn ref into Traceable
+				r, err := t.provider.Get(partial.NextRef)
 				if err != nil {
-					results <- result{error: err}
+					results <- traceResult{error: err}
+					return
 				}
-				infra := r.Properties.(reach.TraceableInfrastructure) // TODO: Make this more type-safe
+				traceable := r.Properties.(reach.Traceable) // TODO: Make this more type-safe
 
-				factors := infra.Factors()
-				prevTuple := current.Path.LastPoint().Tuple
-				newTuple := infra.UpdatedTuple(&prevTuple)
-
+				factors := traceable.Factors()
+				prevTuple := partial.Path.LastPoint().Tuple
+				newTuple := traceable.UpdatedTuple(&prevTuple)
 				newPoint := reach.Point{
-					Ref:     ref,
+					Ref:     partial.NextRef,
 					Factors: factors,
 					Tuple:   newTuple,
 				}
 
-				builder := reach.ResumePathBuilding(current.Path)
+				err = detectLoop(partial, newPoint, traceable)
+				if err != nil {
+					results <- traceResult{error: fmt.Errorf("tracer detected a loop: %v", err)}
+					return
+				}
 
-				if infra.Segments() {
+				builder := reach.ResumePathBuilding(partial.Path)
+
+				if traceable.Segments() {
 					builder.AddSegment()
 				}
 
@@ -100,26 +98,25 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan resul
 				updatedPath := builder.Path()
 
 				var destIPs []net.IP // TODO: Get from destination subject
-				if infra.IsDestinationForIP(destIPs) {
+				if traceable.IsDestinationForIP(destIPs) {
 					// Path is complete!
-					results <- result{complete: &updatedPath}
+					results <- traceResult{path: &updatedPath}
 					return
 				}
 
 				var wg sync.WaitGroup
 
-				nextRefs := infra.Next(newTuple)
+				nextRefs := traceable.Next(newTuple)
 				if len(nextRefs) < 1 {
 					err := fmt.Errorf("no next points found when processing job:\n%+v", job)
-					results <- result{
-						error: err,
-					}
+					results <- traceResult{error: err}
+					return
 				}
 
 				numNextRefs := len(nextRefs)
-				resultChannels := make([]<-chan result, numNextRefs)
+				resultChannels := make([]<-chan traceResult, numNextRefs)
 				wg.Add(numNextRefs)
-				for _, ref := range nextRefs { // TODO: Make sure these can get fired off! Not block! Parent goroutine can stay open, though.
+				for _, ref := range nextRefs {
 					partial := reach.PartialPath{
 						Path:    updatedPath,
 						NextRef: ref,
@@ -127,7 +124,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan resul
 					j := tracerJob{
 						source:      job.source,
 						destination: job.destination,
-						partialPath: partial,
+						partial:     partial,
 					}
 					resultChannels = append(resultChannels, t.tracePoint(done, j))
 				}
@@ -141,8 +138,6 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan resul
 					case results <- r:
 					}
 				}
-
-				return
 			}
 		}
 	}()
@@ -150,14 +145,18 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan resul
 	return results
 }
 
-func fanIn(
-	done <-chan interface{},
-	channels []<-chan result,
-) <-chan result {
-	var wg sync.WaitGroup
-	multiplexedStream := make(chan result)
+func detectLoop(path reach.PartialPath, newPoint reach.Point, traceable reach.Traceable) error {
+	if traceable.AllowsVisit(path.Path.Contains(newPoint)) == false {
+		return fmt.Errorf("cannot visit point again: %v", newPoint)
+	}
+	return nil
+}
 
-	multiplex := func(c <-chan result) {
+func fanIn(done <-chan interface{}, channels []<-chan traceResult) <-chan traceResult {
+	var wg sync.WaitGroup
+	multiplexedStream := make(chan traceResult)
+
+	multiplex := func(c <-chan traceResult) {
 		defer wg.Done()
 		for i := range c {
 			select {

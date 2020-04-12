@@ -7,5 +7,5 @@ import (
 type tracerJob struct {
 	source      reach.Subject
 	destination reach.Subject
-	partialPath reach.PartialPath
+	partial     reach.PartialPath
 }
