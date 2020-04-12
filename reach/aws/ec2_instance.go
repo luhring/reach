@@ -19,8 +19,8 @@ type EC2Instance struct {
 	NetworkInterfaceAttachments []NetworkInterfaceAttachment
 }
 
-// ToResource returns the EC2 instance converted to a generalized Reach resource.
-func (i EC2Instance) ToResource() reach.Resource {
+// Resource returns the EC2 instance converted to a generalized Reach resource.
+func (i EC2Instance) Resource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindEC2Instance,
 		Properties: i,
