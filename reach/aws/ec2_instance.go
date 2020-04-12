@@ -27,8 +27,8 @@ func (i EC2Instance) ToResource() reach.Resource {
 	}
 }
 
-// ToResourceReference returns a resource reference to uniquely identify the EC2 instance.
-func (i EC2Instance) ToResourceReference() reach.ResourceReference {
+// ResourceReference returns a resource reference to uniquely identify the EC2 instance.
+func (i EC2Instance) ResourceReference() reach.ResourceReference {
 	return reach.ResourceReference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindEC2Instance,
@@ -59,55 +59,21 @@ func (i EC2Instance) Name() string {
 	return i.ID
 }
 
-func (i EC2Instance) Resolve(role reach.SubjectRole, provider reach.InfrastructureGetter) ([]net.IP, error) {
-	switch role {
-	case reach.SubjectRoleSource:
-		ips, err := i.ownedIPs(provider)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't look up source IPs: %v", err)
-		}
-		return ips, err
-	case reach.SubjectRoleDestination:
-		ips, err := i.advertisedIPs(provider)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't look up destination IPs: %v", err)
-		}
-		return ips, err
-	default:
-		return nil, fmt.Errorf("cannot look up IPs for subject role: %s", role)
-	}
-}
-
 func (i EC2Instance) Visitable(alreadyVisited bool) bool {
 	return alreadyVisited == false
 }
 
-func (i EC2Instance) Destination(ips []net.IP, provider reach.InfrastructureGetter) bool {
-	if len(ips) == 0 {
-		return false
+func (i EC2Instance) Ref() reach.InfrastructureReference {
+	return reach.InfrastructureReference{
+		R: i.ResourceReference(),
 	}
-
-	ownedIPs, err := i.ownedIPs(provider)
-	if err != nil {
-		return false // TODO: Consider a better way to report the error. For now, adding an error return value seems excessive.
-	}
-
-	for _, ip := range ips {
-		for _, ownedIP := range ownedIPs {
-			if ip.Equal(ownedIP) {
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 func (i EC2Instance) Segments() bool {
 	return false // Note: If this resource can ever perform NAT, this answer would change.
 }
 
-func (i EC2Instance) NextTuple(prev *reach.IPTuple) *reach.IPTuple {
+func (i EC2Instance) Tuple(prev *reach.IPTuple) *reach.IPTuple {
 	// An EC2 Instance doesn't mutate the tuple. (...unless it can perform NAT.)
 	return prev
 }
@@ -163,7 +129,7 @@ func (i EC2Instance) newInstanceStateFactor() reach.Factor {
 
 	return reach.Factor{
 		Kind:          FactorKindInstanceState,
-		Resource:      i.ToResourceReference(),
+		Resource:      i.ResourceReference(),
 		Traffic:       traffic,
 		ReturnTraffic: returnTraffic,
 	}

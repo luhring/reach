@@ -14,6 +14,6 @@ func (r ResourceReference) String() string {
 	return fmt.Sprintf("%s->%s->%s", r.Domain, r.Kind, r.ID)
 }
 
-func (r ResourceReference) Matches(other ResourceReference) bool {
+func (r ResourceReference) Equal(other ResourceReference) bool {
 	return r.Domain == other.Domain && r.Kind == other.Kind && r.ID == other.ID
 }
