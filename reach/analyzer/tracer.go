@@ -41,13 +41,17 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 		return nil, fmt.Errorf("tracer could not get destination: %v", err)
 	}
 	destIPResolver := dest.Properties.(reach.SubjectIPResolver)
+	destIPs, err := destIPResolver.Resolve(reach.SubjectRoleDestination, t.provider)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't resolve IPs for destination (%s): %v", destination, err)
+	}
 
 	initialJob := tracerJob{
 		partial: reach.PartialPath{
 			Path:    reach.NewPath(),
 			NextRef: sourceRef,
 		},
-		destinationIPs: destIPResolver.Resolve(reach.SubjectRoleDestination),
+		destinationIPs: destIPs,
 	}
 
 	done := make(chan interface{})
@@ -88,7 +92,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 
 				factors := traceable.Factors()
 				prevTuple := partial.Path.LastPoint().Tuple
-				newTuple := traceable.NextTuple(&prevTuple)
+				newTuple := traceable.NextTuple(prevTuple)
 				newPoint := reach.Point{
 					Ref:     partial.NextRef,
 					Factors: factors,
@@ -110,7 +114,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 				builder.Add(newPoint)
 				updatedPath := builder.Path()
 
-				if traceable.Destination(job.destinationIPs) {
+				if traceable.Destination(job.destinationIPs, t.provider) {
 					// Path is complete!
 					results <- traceResult{path: &updatedPath}
 					return
@@ -118,7 +122,11 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job tracerJob) <-chan trace
 
 				var wg sync.WaitGroup
 
-				nextRefs := traceable.Next(newTuple)
+				nextRefs, err := traceable.Next(newTuple, t.provider)
+				if err != nil {
+					results <- traceResult{error: fmt.Errorf("tracer was unable to get next refs: %v", err)}
+					return
+				}
 				if len(nextRefs) < 1 {
 					err := fmt.Errorf("no next points found when processing job:\n%+v", job)
 					results <- traceResult{error: err}
