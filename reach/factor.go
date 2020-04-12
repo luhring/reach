@@ -5,6 +5,16 @@ type Factor struct {
 	Kind          string
 	Resource      ResourceReference
 	Traffic       TrafficContent
-	ReturnTraffic TrafficContent
-	Properties    interface{} `json:"Properties,omitempty"`
+	ReturnTraffic TrafficContent // DEPRECATED
+	Properties    interface{}    `json:"Properties,omitempty"`
+}
+
+func TrafficFromFactors(factors []Factor) []TrafficContent {
+	var result []TrafficContent
+
+	for _, factor := range factors {
+		result = append(result, factor.Traffic)
+	}
+
+	return result
 }

@@ -39,9 +39,11 @@ func (s *Subject) SetRoleToDestination() {
 	s.setRole(SubjectRoleDestination)
 }
 
-func (s *Subject) setRole(role SubjectRole) {
-	if ValidSubjectRole(role) {
-		s.Role = role
+func (s *Subject) ResourceReference() ResourceReference {
+	return ResourceReference{
+		Domain: s.Domain,
+		Kind:   s.Kind,
+		ID:     s.ID,
 	}
 }
 
@@ -53,4 +55,10 @@ func ValidSubjectRole(role SubjectRole) bool {
 // NewSubjectError generates a new error related to a subject operation.
 func NewSubjectError(details string) error {
 	return fmt.Errorf("%s: %s", ErrSubjectPrefix, details)
+}
+
+func (s *Subject) setRole(role SubjectRole) {
+	if ValidSubjectRole(role) {
+		s.Role = role
+	}
 }

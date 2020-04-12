@@ -129,6 +129,11 @@ func NewTrafficContentFromIntersectingMultiple(contents []TrafficContent) (Traff
 	return result, nil
 }
 
+// MergeTraffic returns the result of merging all input traffic contents. (MergeTraffic is a shortcut for NewTrafficContentFromIntersectingMultiple.)
+func MergeTraffic(tcs ...TrafficContent) (TrafficContent, error) {
+	return NewTrafficContentFromIntersectingMultiple(tcs)
+}
+
 // TrafficContentsFromFactors returns distinct TrafficContent representations from the input factors.
 func TrafficContentsFromFactors(factors []Factor) []TrafficContent {
 	var result []TrafficContent
@@ -426,6 +431,16 @@ func (tc TrafficContent) All() bool {
 // None returns a boolean indicating whether or not the TrafficContent represents no network traffic.
 func (tc TrafficContent) None() bool {
 	return tc.indicator == trafficContentIndicatorNone || (tc.indicator == trafficContentIndicatorUnset && len(tc.protocols) == 0)
+}
+
+func TrafficContentsFromPaths(paths []Path) []TrafficContent {
+	var result []TrafficContent
+
+	for _, p := range paths {
+		result = append(result, p.ForwardTraffic())
+	}
+
+	return result
 }
 
 // RestrictedProtocol describes an IP protocol whose return traffic has been restricted
