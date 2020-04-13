@@ -73,40 +73,6 @@ func (i EC2Instance) Segments() bool {
 	return false // Note: If this resource can ever perform NAT, this answer would change.
 }
 
-func (i EC2Instance) Tuple(prev *reach.IPTuple) *reach.IPTuple {
-	// An EC2 Instance doesn't mutate the tuple. (...unless it can perform NAT.)
-	return prev
-}
-
-func (i EC2Instance) Next(t *reach.IPTuple, provider reach.InfrastructureGetter) ([]reach.InfrastructureReference, error) {
-	var refs []reach.InfrastructureReference
-
-	for _, id := range i.elasticNetworkInterfaceIDs() {
-		ref := reach.NewInfrastructureReference(
-			ResourceDomainAWS,
-			ResourceKindElasticNetworkInterface,
-			id,
-			false,
-		)
-
-		eniResource, err := provider.Get(ref)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't get ENI (%s): %v", ref, err)
-		}
-		eni := eniResource.Properties.(ElasticNetworkInterface)
-
-		// Only include ENIs that own the tuple's src IP
-		for _, ownedIP := range eni.ownedIPs() {
-			if t == nil || t.Src.Equal(ownedIP) {
-				refs = append(refs, ref)
-				break
-			}
-		}
-	}
-
-	return refs, nil
-}
-
 func (i EC2Instance) ForwardEdges(latestTuple *reach.IPTuple, provider reach.InfrastructureGetter) ([]reach.PathEdge, error) {
 	// Note: If the EC2 instance is changing the IP tuple from a previous tuple state, we don't have visibility into that change, so we'll have to assume no change.
 
@@ -145,6 +111,21 @@ func (i EC2Instance) IPs(provider reach.InfrastructureGetter) ([]net.IP, error) 
 			return nil, fmt.Errorf("couldn't get IPs for ENI (%s): %v", eni.Ref(), err)
 		}
 		ips = append(ips, eniIPs...)
+	}
+
+	return ips, nil
+}
+
+func (i EC2Instance) InterfaceIPs(provider reach.InfrastructureGetter) ([]net.IP, error) {
+	var ips []net.IP
+
+	enis, err := i.elasticNetworkInterfaces(provider)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't look up ENIs: %v", err)
+	}
+
+	for _, eni := range enis {
+		ips = append(ips, eni.ownedIPs()...)
 	}
 
 	return ips, nil
@@ -208,19 +189,4 @@ func (i EC2Instance) elasticNetworkInterfaces(provider reach.InfrastructureGette
 	}
 
 	return enis, nil
-}
-
-func (i EC2Instance) ownedIPs(provider reach.InfrastructureGetter) ([]net.IP, error) {
-	var ips []net.IP
-
-	enis, err := i.elasticNetworkInterfaces(provider)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't look up ENIs: %v", err)
-	}
-
-	for _, eni := range enis {
-		ips = append(ips, eni.ownedIPs()...)
-	}
-
-	return ips, nil
 }

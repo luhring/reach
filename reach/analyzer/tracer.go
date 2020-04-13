@@ -2,7 +2,6 @@ package analyzer
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"sync"
 
@@ -87,10 +86,9 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					Factors: factors,
 				}
 
+				firstTraceJob := job.path == nil
 				var path reach.Path
-				var destIPs []net.IP
-				firstTrace := job.path == nil
-				if firstTrace {
+				if firstTraceJob {
 					// This is the first traced point.
 					path = reach.NewPath(point)
 				} else {
@@ -104,27 +102,12 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					return
 				}
 
-				// TODO: Maybe this is where we should account for multiple dstIPs
-
 				var edgeTuples []reach.IPTuple
-
-				if firstTrace {
-					destResource, err := t.provider.Get(job.destinationRef)
+				if firstTraceJob {
+					edgeTuples, err = t.initialTuples(job.sourceRef, job.destinationRef)
 					if err != nil {
-						results <- traceResult{error: fmt.Errorf("unable to get destination: %v", err)}
+						results <- traceResult{error: fmt.Errorf("unable to determine initial IP tuple states for trace: %v", err)}
 						return
-					}
-					dest := destResource.Properties.(reach.IPAdvertiser)
-					destIPs, err = dest.IPs(t.provider)
-					if err != nil {
-						results <- traceResult{error: fmt.Errorf("unable to get advertised IPs from destination: %v", err)}
-						return
-					}
-					for _, dst := range destIPs {
-						edgeTuples = append(edgeTuples, reach.IPTuple{
-							Src: nil, // TODO: There are plenty of cases where this isn't nil (such as generic domain IP address as source)
-							Dst: dst,
-						})
 					}
 				} else {
 					if job.edgeTuple != nil {
@@ -174,6 +157,42 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 	}()
 
 	return results
+}
+
+func (t *Tracer) initialTuples(srcRef, dstRef reach.InfrastructureReference) ([]reach.IPTuple, error) {
+	// Source
+	srcResource, err := t.provider.Get(srcRef)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get source: %v", err)
+	}
+	src := srcResource.Properties.(reach.IPAddressable)
+	srcIPs, err := src.InterfaceIPs(t.provider)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get advertised IPs from source: %v", err)
+	}
+
+	// Destination
+	dstResource, err := t.provider.Get(dstRef)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get destination: %v", err)
+	}
+	dst := dstResource.Properties.(reach.IPAddressable)
+	dstIPs, err := dst.IPs(t.provider)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get advertised IPs from destination: %v", err)
+	}
+
+	// Source and Destination combinations
+	var tuples []reach.IPTuple
+	for _, src := range srcIPs {
+		for _, dst := range dstIPs {
+			tuples = append(tuples, reach.IPTuple{
+				Src: src,
+				Dst: dst,
+			})
+		}
+	}
+	return tuples, nil
 }
 
 func detectLoop(path *reach.Path, traceable reach.Traceable) error {
