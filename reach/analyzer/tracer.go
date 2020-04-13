@@ -89,22 +89,10 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 
 				var path reach.Path
 				var destIPs []net.IP
-				if job.path == nil {
+				firstTrace := job.path == nil
+				if firstTrace {
 					// This is the first traced point.
 					path = reach.NewPath(point)
-
-					// TODO: obtain and set dest IPs
-					destResource, err := t.provider.Get(job.destinationRef)
-					if err != nil {
-						results <- traceResult{error: fmt.Errorf("unable to get destination: %v", err)}
-						return
-					}
-					dest := destResource.Properties.(reach.IPAdvertiser)
-					destIPs, err = dest.IPs(t.provider)
-					if err != nil {
-						results <- traceResult{error: fmt.Errorf("unable to get advertised IPs from destination: %v", err)}
-						return
-					}
 				} else {
 					path = *job.path
 					path.Add(job.edgeTuple, point, traceable.Segments())
@@ -116,11 +104,44 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					return
 				}
 
-				edges, err := traceable.ForwardEdges(job.edgeTuple, destIPs, t.provider)
-				if err != nil {
-					results <- traceResult{error: fmt.Errorf("tracer was unable to get edges for ref (%s): %v", job.ref, err)}
-					return
+				// TODO: Maybe this is where we should account for multiple dstIPs
+
+				var edgeTuples []reach.IPTuple
+
+				if firstTrace {
+					destResource, err := t.provider.Get(job.destinationRef)
+					if err != nil {
+						results <- traceResult{error: fmt.Errorf("unable to get destination: %v", err)}
+						return
+					}
+					dest := destResource.Properties.(reach.IPAdvertiser)
+					destIPs, err = dest.IPs(t.provider)
+					if err != nil {
+						results <- traceResult{error: fmt.Errorf("unable to get advertised IPs from destination: %v", err)}
+						return
+					}
+					for _, dst := range destIPs {
+						edgeTuples = append(edgeTuples, reach.IPTuple{
+							Src: nil, // TODO: There are plenty of cases where this isn't nil (such as generic domain IP address as source)
+							Dst: dst,
+						})
+					}
+				} else {
+					if job.edgeTuple != nil {
+						edgeTuples = []reach.IPTuple{*job.edgeTuple}
+					}
 				}
+
+				var edges []reach.PathEdge
+				for _, tuple := range edgeTuples {
+					tupleEdges, err := traceable.ForwardEdges(&tuple, t.provider)
+					if err != nil {
+						results <- traceResult{error: fmt.Errorf("tracer was unable to get edges for ref (%s): %v", job.ref, err)}
+						return
+					}
+					edges = append(edges, tupleEdges...)
+				}
+
 				numEdges := len(edges)
 				if numEdges < 1 {
 					err := fmt.Errorf("no forward edges found when processing job:\n%+v", job)

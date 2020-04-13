@@ -107,44 +107,20 @@ func (i EC2Instance) Next(t *reach.IPTuple, provider reach.InfrastructureGetter)
 	return refs, nil
 }
 
-func (i EC2Instance) ForwardEdges(latestTuple *reach.IPTuple, dstIPs []net.IP, provider reach.InfrastructureGetter) ([]reach.PathEdge, error) {
-	var edges []reach.PathEdge
+func (i EC2Instance) ForwardEdges(latestTuple *reach.IPTuple, provider reach.InfrastructureGetter) ([]reach.PathEdge, error) {
+	// Note: If the EC2 instance is changing the IP tuple from a previous tuple state, we don't have visibility into that change, so we'll have to assume no change.
 
 	enis, err := i.elasticNetworkInterfaces(provider)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get ENIs: %v", err)
 	}
-
-	// Note: If the EC2 instance is changing the IP tuple from a previous tuple state, we don't have visibility into that change, so we'll have to assume no change.
-
-	// If dstIPs is not nil, the generated tuples (and thus, edges) need to exhaust all included dstIPs
-	var tuples []reach.IPTuple
-	if dstIPs != nil {
-		var src net.IP
-		if latestTuple != nil {
-			src = latestTuple.Src
-		}
-
-		for _, dst := range dstIPs {
-			tuples = append(tuples, reach.IPTuple{
-				Src: src,
-				Dst: dst,
-			})
-		}
-	} else {
-		if latestTuple != nil {
-			tuples = []reach.IPTuple{*latestTuple}
-		}
-	}
-
+	var edges []reach.PathEdge
 	for _, eni := range enis {
-		for _, tuple := range tuples {
-			edge := reach.PathEdge{
-				Tuple: &tuple,
-				Ref:   eni.Ref(),
-			}
-			edges = append(edges, edge)
+		edge := reach.PathEdge{
+			Tuple: latestTuple,
+			Ref:   eni.Ref(),
 		}
+		edges = append(edges, edge)
 	}
 
 	return edges, nil
