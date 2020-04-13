@@ -168,7 +168,7 @@ func (t *Tracer) initialTuples(srcRef, dstRef reach.InfrastructureReference) ([]
 	src := srcResource.Properties.(reach.IPAddressable)
 	srcIPs, err := src.InterfaceIPs(t.provider)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get advertised IPs from source: %v", err)
+		return nil, fmt.Errorf("unable to get interface IPs from source: %v", err)
 	}
 
 	// Destination
