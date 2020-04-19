@@ -70,17 +70,27 @@ func (i EC2Instance) Ref() reach.InfrastructureReference {
 }
 
 func (i EC2Instance) Segments() bool {
-	return false // Note: If this resource can ever perform NAT, this answer would change.
+	return false // TODO: If this resource can ever perform NAT, this answer would change.
 }
 
 func (i EC2Instance) ForwardEdges(
-	previousEdge reach.Edge,
-	domain reach.DomainProvider,
+	previousEdge *reach.Edge,
+	domains reach.DomainProvider,
+	destinationIPs []net.IP,
 ) ([]reach.Edge, error) {
-	// Note: If the EC2 instance is changing the IP tuple from a previous tuple state, we don't have visibility into that change, so we'll have to assume no change.
-	tuple := previousEdge.Tuple
+	var tuples []reach.IPTuple
+	if previousEdge == nil { // This is the first point in the path.
+		t, err := i.firstPointTuples(domains, destinationIPs)
+		if err != nil {
+			return nil, fmt.Errorf("cannot generate tuples for first point: %v", err)
+		}
+		tuples = t
+	} else {
+		// Note: If the EC2 instance is changing the IP tuple from a previous tuple state, we don't have visibility into that change, so we'll have to assume no change.
+		tuples = []reach.IPTuple{previousEdge.Tuple}
+	}
 
-	resources, err := unpackResourceGetter(domain)
+	resources, err := unpackResourceGetter(domains)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get resources: %v", err)
 	}
@@ -91,15 +101,41 @@ func (i EC2Instance) ForwardEdges(
 	}
 	var edges []reach.Edge
 	for _, eni := range enis {
-		edge := reach.Edge{
-			Tuple:             tuple,
-			EndRef:            eni.Ref(),
-			ConnectsInterface: true,
+		for _, tuple := range tuples {
+			edge := reach.Edge{
+				Tuple:             tuple,
+				EndRef:            eni.Ref(),
+				ConnectsInterface: true,
+			}
+			edges = append(edges, edge)
 		}
-		edges = append(edges, edge)
 	}
 
 	return edges, nil
+}
+
+func (i EC2Instance) firstPointTuples(
+	domains reach.DomainProvider,
+	destinationIPs []net.IP,
+) ([]reach.IPTuple, error) {
+	// If the traffic originates from this EC2 instance, any of its owned IP addresses could be used as source.
+	// (Technically, any IP address could be used as source, as long as src/dst check is off, but currently we have no way to inform the Tracer about scenarios like this.)
+
+	srcIPs, err := i.InterfaceIPs(domains)
+	if err != nil {
+		return nil, fmt.Errorf("cannot determine possible src IPs: %v", err)
+	}
+	// TODO: We need some mechanism to confirm destination addresses are valid in the context of source's network.
+	var tuples []reach.IPTuple
+	for _, src := range srcIPs {
+		for _, dst := range destinationIPs {
+			tuples = append(tuples, reach.IPTuple{
+				Src: src,
+				Dst: dst,
+			})
+		}
+	}
+	return tuples, nil
 }
 
 func (i EC2Instance) Factors() []reach.Factor {

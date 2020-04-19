@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -127,9 +128,14 @@ func (eni ElasticNetworkInterface) Segments() bool {
 }
 
 func (eni ElasticNetworkInterface) ForwardEdges(
-	previousEdge reach.Edge,
+	previousEdge *reach.Edge,
 	domains reach.DomainProvider,
+	_ []net.IP,
 ) ([]reach.Edge, error) {
+	if previousEdge == nil {
+		return nil, errors.New("reach does not currently support an Elastic Network Interface being the first point in a path")
+	}
+
 	// Elastic Network Interfaces don't mutate the IP tuple
 	tuple := previousEdge.Tuple
 
