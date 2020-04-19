@@ -3,7 +3,7 @@ package reach
 // A Segment is a series of Points in a Path for which it is known that no NAT/PAT has occurred between any two consecutive points in the series. By definition, once NAT/PAT occurs in a Path, a new Segment begins.
 type Segment struct {
 	Points []Point
-	Tuples []*IPTuple
+	Edges  []Edge
 }
 
 func (s Segment) Factors() []Factor {
@@ -26,9 +26,9 @@ func (s Segment) Contains(ref InfrastructureReference) bool {
 	return false
 }
 
-func (s Segment) Add(tuple *IPTuple, point Point) Segment {
+func (s Segment) Add(edge Edge, point Point) Segment {
 	return Segment{
-		Tuples: append(s.Tuples, tuple),
+		Edges:  append(s.Edges, edge),
 		Points: append(s.Points, point),
 	}
 }

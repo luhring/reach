@@ -23,3 +23,11 @@ func (vpc VPC) ToResource() reach.Resource {
 		Properties: vpc,
 	}
 }
+
+func (vpc VPC) ResourceRef() reach.ResourceReference {
+	return reach.ResourceReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindVPC,
+		ID:     vpc.ID,
+	}
+}

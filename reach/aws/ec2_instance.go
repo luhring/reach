@@ -37,7 +37,7 @@ func (i EC2Instance) ResourceReference() reach.ResourceReference {
 }
 
 // Dependencies returns a collection of the EC2 instance's resource dependencies.
-func (i EC2Instance) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+func (i EC2Instance) Dependencies(provider ResourceGetter) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	for _, attachment := range i.NetworkInterfaceAttachments {
@@ -73,18 +73,28 @@ func (i EC2Instance) Segments() bool {
 	return false // Note: If this resource can ever perform NAT, this answer would change.
 }
 
-func (i EC2Instance) ForwardEdges(latestTuple *reach.IPTuple, provider reach.InfrastructureGetter) ([]reach.PathEdge, error) {
+func (i EC2Instance) ForwardEdges(
+	previousEdge reach.Edge,
+	domain reach.DomainProvider,
+) ([]reach.Edge, error) {
 	// Note: If the EC2 instance is changing the IP tuple from a previous tuple state, we don't have visibility into that change, so we'll have to assume no change.
+	tuple := previousEdge.Tuple
 
-	enis, err := i.elasticNetworkInterfaces(provider)
+	resources, err := unpackResourceGetter(domain)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get resources: %v", err)
+	}
+
+	enis, err := i.elasticNetworkInterfaces(resources)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get ENIs: %v", err)
 	}
-	var edges []reach.PathEdge
+	var edges []reach.Edge
 	for _, eni := range enis {
-		edge := reach.PathEdge{
-			Tuple: latestTuple,
-			Ref:   eni.Ref(),
+		edge := reach.Edge{
+			Tuple:             tuple,
+			EndRef:            eni.Ref(),
+			ConnectsInterface: true,
 		}
 		edges = append(edges, edge)
 	}
@@ -97,16 +107,20 @@ func (i EC2Instance) Factors() []reach.Factor {
 	return []reach.Factor{f}
 }
 
-func (i EC2Instance) IPs(provider reach.InfrastructureGetter) ([]net.IP, error) {
-	var ips []net.IP
+func (i EC2Instance) IPs(domains reach.DomainProvider) ([]net.IP, error) {
+	resources, err := unpackResourceGetter(domains)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get resources: %v", err)
+	}
 
-	enis, err := i.elasticNetworkInterfaces(provider)
+	enis, err := i.elasticNetworkInterfaces(resources)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't look up ENIs: %v", err)
 	}
 
+	var ips []net.IP
 	for _, eni := range enis {
-		eniIPs, err := eni.IPs(provider)
+		eniIPs, err := eni.IPs(domains)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't get IPs for ENI (%s): %v", eni.Ref(), err)
 		}
@@ -116,14 +130,18 @@ func (i EC2Instance) IPs(provider reach.InfrastructureGetter) ([]net.IP, error) 
 	return ips, nil
 }
 
-func (i EC2Instance) InterfaceIPs(provider reach.InfrastructureGetter) ([]net.IP, error) {
-	var ips []net.IP
+func (i EC2Instance) InterfaceIPs(domains reach.DomainProvider) ([]net.IP, error) {
+	resources, err := unpackResourceGetter(domains)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get resources: %v", err)
+	}
 
-	enis, err := i.elasticNetworkInterfaces(provider)
+	enis, err := i.elasticNetworkInterfaces(resources)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't look up ENIs: %v", err)
 	}
 
+	var ips []net.IP
 	for _, eni := range enis {
 		ips = append(ips, eni.ownedIPs()...)
 	}
@@ -168,24 +186,17 @@ func (i EC2Instance) elasticNetworkInterfaceIDs() []string {
 	return ids
 }
 
-func (i EC2Instance) elasticNetworkInterfaces(provider reach.InfrastructureGetter) ([]ElasticNetworkInterface, error) {
+func (i EC2Instance) elasticNetworkInterfaces(resources ResourceGetter) ([]ElasticNetworkInterface, error) {
 	eniIDs := i.elasticNetworkInterfaceIDs()
 	enis := make([]ElasticNetworkInterface, len(eniIDs))
 
 	for _, id := range eniIDs {
-		ref := reach.NewInfrastructureReference(
-			ResourceDomainAWS,
-			ResourceKindElasticNetworkInterface,
-			id,
-			false,
-		)
-		r, err := provider.Get(ref)
+		eni, err := resources.ElasticNetworkInterface(id)
 		if err != nil {
-			return nil, fmt.Errorf("couldn't get ENI (%s): %v", ref, err)
+			return nil, fmt.Errorf("couldn't get ENI (%s): %v", id, err)
 		}
-		eni := r.Properties.(ElasticNetworkInterface)
 
-		enis = append(enis, eni)
+		enis = append(enis, *eni)
 	}
 
 	return enis, nil

@@ -29,6 +29,17 @@ type Subject struct {
 	Role   SubjectRole
 }
 
+func (s Subject) Ref() InfrastructureReference {
+	return InfrastructureReference{
+		Implicit: false,
+		R: ResourceReference{
+			Domain: s.Domain,
+			Kind:   s.Kind,
+			ID:     s.ID,
+		},
+	}
+}
+
 // SetRoleToSource sets the subject's role to "source".
 func (s *Subject) SetRoleToSource() {
 	s.setRole(SubjectRoleSource)

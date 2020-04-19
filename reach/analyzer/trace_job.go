@@ -5,9 +5,9 @@ import (
 )
 
 type traceJob struct {
-	ref            reach.InfrastructureReference
-	path           *reach.Path
-	edgeTuple      *reach.IPTuple
-	sourceRef      reach.InfrastructureReference
-	destinationRef reach.InfrastructureReference
+	ref            reach.InfrastructureReference // The ref point to focus on during the trace
+	path           *reach.Path                   // The state of the path being traced
+	edge           reach.Edge                    // The edge following the furthest point in the path under construction
+	sourceRef      reach.InfrastructureReference // The ref of the source for the original query
+	destinationRef reach.InfrastructureReference // The ref of the destination for the original query
 }

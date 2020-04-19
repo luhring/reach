@@ -9,34 +9,27 @@ import (
 )
 
 type Tracer struct {
-	provider reach.InfrastructureGetter
+	infrastructure reach.InfrastructureGetter
+	domain         reach.DomainProvider
 }
 
-func NewTracer(provider reach.InfrastructureGetter) *Tracer {
+func NewTracer(
+	infrastructure reach.InfrastructureGetter,
+	domain reach.DomainProvider,
+) *Tracer {
 	return &Tracer{
-		provider: provider,
+		infrastructure: infrastructure,
+		domain:         domain,
 	}
 }
 
 func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) {
-	sourceRef := reach.InfrastructureReference{
-		R: reach.ResourceReference{
-			Domain: source.Domain,
-			Kind:   source.Kind,
-			ID:     source.ID,
-		},
-	}
-
-	destinationRef := reach.InfrastructureReference{
-		R: reach.ResourceReference{
-			Domain: destination.Domain,
-			Kind:   destination.Kind,
-			ID:     destination.ID,
-		},
-	}
+	sourceRef := source.Ref()
+	destinationRef := destination.Ref()
 
 	initialJob := traceJob{
 		ref:            sourceRef,
+		sourceRef:      sourceRef,
 		destinationRef: destinationRef,
 	}
 
@@ -53,6 +46,8 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 		paths = append(paths, *result.path)
 	}
 
+	// TODO: Backtrace all paths to fill in return factors
+
 	return paths, nil
 }
 
@@ -67,12 +62,18 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 				return
 			default:
 				// We need to turn the ref into a Traceable
-				resource, err := t.provider.Get(job.ref)
+				resource, err := t.infrastructure.Get(job.ref)
 				if err != nil {
 					results <- traceResult{error: err}
 					return
 				}
-				traceable := resource.Properties.(reach.Traceable) // TODO: Make this more type-safe
+				traceable, ok := resource.Properties.(reach.Traceable)
+				if !ok {
+					results <- traceResult{
+						error: fmt.Errorf("obtained infrastructure that is not Traceable"),
+					}
+					return
+				}
 
 				err = detectLoop(job.path, traceable)
 				if err != nil {
@@ -88,12 +89,14 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 
 				firstTraceJob := job.path == nil
 				var path reach.Path
+				previousEdgeConnectsInterface := false
 				if firstTraceJob {
 					// This is the first traced point.
 					path = reach.NewPath(point)
 				} else {
 					path = *job.path
-					path.Add(job.edgeTuple, point, traceable.Segments())
+					previousEdgeConnectsInterface = path.LastEdge().ConnectsInterface
+					path.Add(job.edge, point, traceable.Segments())
 				}
 
 				if traceable.Ref().Equal(job.destinationRef) {
@@ -110,14 +113,12 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 						return
 					}
 				} else {
-					if job.edgeTuple != nil {
-						edgeTuples = []reach.IPTuple{*job.edgeTuple}
-					}
+					edgeTuples = []reach.IPTuple{job.edge.Tuple}
 				}
 
-				var edges []reach.PathEdge
+				var edges []reach.Edge
 				for _, tuple := range edgeTuples {
-					tupleEdges, err := traceable.ForwardEdges(&tuple, t.provider)
+					tupleEdges, err := traceable.ForwardEdges(tuple, previousEdgeConnectsInterface, t.infrastructure, nil)
 					if err != nil {
 						results <- traceResult{error: fmt.Errorf("tracer was unable to get edges for ref (%s): %v", job.ref, err)}
 						return
@@ -135,9 +136,10 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 				resultChannels := make([]<-chan traceResult, numEdges)
 				for _, edge := range edges {
 					j := traceJob{
-						ref:            edge.Ref,
+						ref:            edge.EndRef,
 						path:           &path,
-						edgeTuple:      edge.Tuple,
+						edge:           edge,
+						sourceRef:      job.sourceRef,
 						destinationRef: job.destinationRef,
 					}
 					resultChannels = append(resultChannels, t.tracePoint(done, j))
@@ -161,23 +163,23 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 
 func (t *Tracer) initialTuples(srcRef, dstRef reach.InfrastructureReference) ([]reach.IPTuple, error) {
 	// Source
-	srcResource, err := t.provider.Get(srcRef)
+	srcResource, err := t.infrastructure.Get(srcRef)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get source: %v", err)
 	}
 	src := srcResource.Properties.(reach.IPAddressable)
-	srcIPs, err := src.InterfaceIPs(t.provider)
+	srcIPs, err := src.InterfaceIPs(t.infrastructure)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get interface IPs from source: %v", err)
 	}
 
 	// Destination
-	dstResource, err := t.provider.Get(dstRef)
+	dstResource, err := t.infrastructure.Get(dstRef)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get destination: %v", err)
 	}
 	dst := dstResource.Properties.(reach.IPAddressable)
-	dstIPs, err := dst.IPs(t.provider)
+	dstIPs, err := dst.IPs(t.infrastructure)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get advertised IPs from destination: %v", err)
 	}

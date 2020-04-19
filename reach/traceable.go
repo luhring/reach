@@ -4,6 +4,6 @@ type Traceable interface {
 	Visitable(alreadyVisited bool) bool
 	Ref() InfrastructureReference
 	Segments() bool
-	ForwardEdges(latestTuple *IPTuple, provider InfrastructureGetter) ([]PathEdge, error)
+	ForwardEdges(previousEdge Edge, domains DomainProvider) ([]Edge, error)
 	Factors() []Factor
 }

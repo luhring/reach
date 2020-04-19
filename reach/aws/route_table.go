@@ -21,7 +21,7 @@ func (rt RouteTable) ToResource() reach.Resource {
 }
 
 // Dependencies returns a collection of the route table's resource dependencies.
-func (rt RouteTable) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+func (rt RouteTable) Dependencies(provider ResourceGetter) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	vpc, err := provider.VPC(rt.VPCID)

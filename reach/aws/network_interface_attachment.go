@@ -10,7 +10,7 @@ type NetworkInterfaceAttachment struct {
 }
 
 // Dependencies returns a collection of the network interface attachment's resource dependencies.
-func (attachment NetworkInterfaceAttachment) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+func (attachment NetworkInterfaceAttachment) Dependencies(provider ResourceGetter) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	eni, err := provider.ElasticNetworkInterface(attachment.ElasticNetworkInterfaceID)

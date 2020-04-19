@@ -27,7 +27,7 @@ func (ngw NATGateway) ToResource() reach.Resource {
 }
 
 // Dependencies returns a collection of the NAT gateway's resource dependencies.
-func (ngw NATGateway) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+func (ngw NATGateway) Dependencies(provider ResourceGetter) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	subnet, err := provider.Subnet(ngw.SubnetID)

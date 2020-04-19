@@ -20,6 +20,12 @@ func (p Path) LastPoint() Point {
 	return lastPoint
 }
 
+func (p Path) LastEdge() Edge {
+	lastSegment := p.Segments[len(p.Segments)-1]
+	lastEdge := lastSegment.Edges[len(lastSegment.Edges)-1]
+	return lastEdge
+}
+
 func (p Path) Contains(ref InfrastructureReference) bool {
 	for _, s := range p.Segments {
 		if s.Contains(ref) {
@@ -30,13 +36,13 @@ func (p Path) Contains(ref InfrastructureReference) bool {
 	return false
 }
 
-func (p Path) Add(tuple *IPTuple, point Point, newSegment bool) Path {
+func (p Path) Add(edge Edge, point Point, newSegment bool) Path {
 	if newSegment {
 		p.Segments = append(p.Segments, Segment{})
 	}
 
 	lastSegmentIndex := len(p.Segments) - 1
-	p.Segments[lastSegmentIndex] = p.Segments[lastSegmentIndex].Add(tuple, point)
+	p.Segments[lastSegmentIndex] = p.Segments[lastSegmentIndex].Add(edge, point)
 
 	return p
 }

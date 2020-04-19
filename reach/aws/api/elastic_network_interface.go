@@ -43,6 +43,7 @@ func newElasticNetworkInterfaceFromAPI(eni *ec2.NetworkInterface) reachAWS.Elast
 		PublicIPv4Address:    publicIPv4Address,
 		PrivateIPv4Addresses: privateIPv4Addresses,
 		IPv6Addresses:        ipv6Addresses,
+		SrcDstCheck:          aws.BoolValue(eni.SourceDestCheck),
 	}
 }
 

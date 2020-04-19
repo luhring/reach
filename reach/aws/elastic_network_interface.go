@@ -21,6 +21,7 @@ type ElasticNetworkInterface struct {
 	PublicIPv4Address    net.IP   `json:"PublicIPv4Address,omitempty"`
 	PrivateIPv4Addresses []net.IP `json:"PrivateIPv4Addresses,omitempty"`
 	IPv6Addresses        []net.IP `json:"IPv6Addresses,omitempty"`
+	SrcDstCheck          bool
 }
 
 // ElasticNetworkInterfaceFromNetworkPoint extracts the ElasticNetworkInterface from the lineage of the specified network point.
@@ -35,16 +36,24 @@ func ElasticNetworkInterfaceFromNetworkPoint(point reach.NetworkPoint, rc *reach
 	return nil
 }
 
-// ToResource returns the elastic network interface converted to a generalized Reach resource.
-func (eni ElasticNetworkInterface) ToResource() reach.Resource {
+// Name returns the elastic network interface's ID, and, if available, its name tag value.
+func (eni ElasticNetworkInterface) Name() string {
+	if name := strings.TrimSpace(eni.NameTag); name != "" {
+		return fmt.Sprintf("\"%s\" (%s)", name, eni.ID)
+	}
+	return eni.ID
+}
+
+// Resource returns the elastic network interface converted to a generalized Reach resource.
+func (eni ElasticNetworkInterface) Resource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindElasticNetworkInterface,
 		Properties: eni,
 	}
 }
 
-// ToResourceReference returns a resource reference to uniquely identify the elastic network interface.
-func (eni ElasticNetworkInterface) ToResourceReference() reach.ResourceReference {
+// ResourceReference returns a resource reference to uniquely identify the elastic network interface.
+func (eni ElasticNetworkInterface) ResourceReference() reach.ResourceReference {
 	return reach.ResourceReference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindElasticNetworkInterface,
@@ -53,7 +62,7 @@ func (eni ElasticNetworkInterface) ToResourceReference() reach.ResourceReference
 }
 
 // Dependencies returns a collection of the elastic network interface's resource dependencies.
-func (eni ElasticNetworkInterface) Dependencies(provider ResourceProvider) (*reach.ResourceCollection, error) {
+func (eni ElasticNetworkInterface) Dependencies(provider ResourceGetter) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	subnet, err := provider.Subnet(eni.SubnetID)
@@ -103,46 +112,124 @@ func (eni ElasticNetworkInterface) Dependencies(provider ResourceProvider) (*rea
 	return rc, nil
 }
 
-func (eni ElasticNetworkInterface) networkPoints(parent reach.ResourceReference) []reach.NetworkPoint {
-	var networkPoints []reach.NetworkPoint
-
-	lineage := []reach.ResourceReference{
-		eni.ToResourceReference(),
-		parent,
-	}
-
-	for _, privateIPv4Address := range eni.PrivateIPv4Addresses {
-		point := reach.NetworkPoint{
-			IPAddress: privateIPv4Address,
-			Lineage:   lineage,
-		}
-
-		networkPoints = append(networkPoints, point)
-	}
-
-	if !eni.PublicIPv4Address.Equal(nil) {
-		networkPoints = append(networkPoints, reach.NetworkPoint{
-			IPAddress: eni.PublicIPv4Address,
-			Lineage:   lineage,
-		})
-	}
-
-	for _, ipv6Address := range eni.IPv6Addresses {
-		point := reach.NetworkPoint{
-			IPAddress: ipv6Address,
-			Lineage:   lineage,
-		}
-
-		networkPoints = append(networkPoints, point)
-	}
-
-	return networkPoints
+func (eni ElasticNetworkInterface) Visitable(alreadyVisited bool) bool {
+	return alreadyVisited == false
 }
 
-// Name returns the elastic network interface's ID, and, if available, its name tag value.
-func (eni ElasticNetworkInterface) Name() string {
-	if name := strings.TrimSpace(eni.NameTag); name != "" {
-		return fmt.Sprintf("\"%s\" (%s)", name, eni.ID)
+func (eni ElasticNetworkInterface) Ref() reach.InfrastructureReference {
+	return reach.InfrastructureReference{
+		R: eni.ResourceReference(),
 	}
-	return eni.ID
+}
+
+func (eni ElasticNetworkInterface) Segments() bool {
+	return false
+}
+
+func (eni ElasticNetworkInterface) ForwardEdges(
+	previousEdge reach.Edge,
+	domains reach.DomainProvider,
+) ([]reach.Edge, error) {
+	// Elastic Network Interfaces don't mutate the IP tuple
+	tuple := previousEdge.Tuple
+
+	resources, err := unpackResourceGetter(domains)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get resources: %v", err)
+	}
+
+	if eni.owns(tuple.Dst) {
+		return eni.handleEdgeForEC2Instance(tuple, resources)
+	}
+
+	if eni.owns(tuple.Src) {
+		return eni.handleEdgeForVPCRouter(tuple, resources)
+	}
+
+	if eni.SrcDstCheck == false {
+		if previousEdge.ConnectsInterface {
+			return eni.handleEdgeForVPCRouter(tuple, resources)
+		}
+
+		return eni.handleEdgeForEC2Instance(tuple, resources)
+	}
+
+	// SrcDstCheck is on, but neither of the IPs in the tuple belongs to this ENI.
+	// This traffic would be dropped by the ENI.
+	// Thus, no forward edges.
+	return nil, nil
+}
+
+func (eni ElasticNetworkInterface) handleEdgeForVPCRouter(lastTuple reach.IPTuple, resources ResourceGetter) ([]reach.Edge, error) {
+	router, err := eni.connectedVPCRouter(resources)
+	if err != nil {
+		return nil, fmt.Errorf("cannot produce forward edge: %v", err)
+	}
+	edge := reach.Edge{
+		Tuple:             lastTuple,
+		EndRef:            router.Ref(),
+		ConnectsInterface: false,
+	}
+	return []reach.Edge{edge}, nil
+}
+
+func (eni ElasticNetworkInterface) handleEdgeForEC2Instance(lastTuple reach.IPTuple, resources ResourceGetter) ([]reach.Edge, error) {
+	ec2, err := eni.connectedEC2Instance(resources)
+	if err != nil {
+		return nil, fmt.Errorf("cannot produce forward edge: %v", err)
+	}
+	edge := reach.Edge{
+		Tuple:             lastTuple,
+		EndRef:            ec2.Ref(),
+		ConnectsInterface: true,
+	}
+	return []reach.Edge{edge}, nil
+}
+
+func (eni ElasticNetworkInterface) Factors() []reach.Factor {
+	panic("implement me")
+}
+
+func (eni ElasticNetworkInterface) IPs(_ reach.DomainProvider) ([]net.IP, error) {
+	var ips []net.IP
+
+	ips = append(ips, eni.ownedIPs()...)
+	ips = append(ips, eni.PublicIPv4Address)
+
+	return ips, nil
+}
+
+func (eni ElasticNetworkInterface) ownedIPs() []net.IP {
+	var ips []net.IP
+
+	ips = append(ips, eni.PrivateIPv4Addresses...)
+	ips = append(ips, eni.IPv6Addresses...)
+
+	return ips
+}
+
+func (eni ElasticNetworkInterface) owns(ip net.IP) bool {
+	for _, ownedIP := range eni.ownedIPs() {
+		if ownedIP.Equal(ip) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (eni ElasticNetworkInterface) connectedEC2Instance(resources ResourceGetter) (*EC2Instance, error) {
+	ec2, err := resources.EC2InstanceByENI(eni.ID)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get ref of connected EC2 instance: %v", err)
+	}
+	return ec2, nil
+}
+
+func (eni ElasticNetworkInterface) connectedVPCRouter(resources ResourceGetter) (*VPCRouter, error) {
+	router, err := NewVPCRouter(resources)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get VPC router: %v", err)
+	}
+	return router, nil
 }

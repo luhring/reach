@@ -3,6 +3,6 @@ package reach
 import "net"
 
 type IPAddressable interface {
-	IPs(provider InfrastructureGetter) ([]net.IP, error)
-	InterfaceIPs(provider InfrastructureGetter) ([]net.IP, error)
+	IPs(domains DomainProvider) ([]net.IP, error)
+	InterfaceIPs(domains DomainProvider) ([]net.IP, error)
 }
