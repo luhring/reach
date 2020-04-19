@@ -54,7 +54,7 @@ func resolveSubjectImplicitly(input string, progressWriter io.Writer, resourcePr
 	}
 
 	// 3. Try EC2 fuzzy matching.
-	awsResourceProvider := resourceProviders[aws.ResourceDomainAWS].(aws.ResourceProvider)
+	awsResourceProvider := resourceProviders[aws.ResourceDomainAWS].(aws.ResourceGetter)
 	return aws.ResolveEC2InstanceSubject(input, awsResourceProvider)
 }
 
@@ -65,7 +65,7 @@ func resolveSubjectExplicitly(qualifiedSubject qualifiedSubject, resourceProvide
 	case "host":
 		return generic.ResolveHostnameSubject(qualifiedSubject.identifier)
 	case "ec2":
-		awsResourceProvider := resourceProviders[aws.ResourceDomainAWS].(aws.ResourceProvider)
+		awsResourceProvider := resourceProviders[aws.ResourceDomainAWS].(aws.ResourceGetter)
 		return aws.ResolveEC2InstanceSubject(qualifiedSubject.identifier, awsResourceProvider)
 	default:
 		return nil, fmt.Errorf("unable to resolve subject with identifier '%s' because subject type prefix '%s' is not recognized", qualifiedSubject.identifier, qualifiedSubject.typePrefix)
