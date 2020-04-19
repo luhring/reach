@@ -7,17 +7,17 @@ import (
 
 // Analysis is the central structure of a Reach analysis. It describes what subjects were analyzed, what resources were retrieved, and a collection of network vectors between all source-to-destination pairings of subjects.
 type Analysis struct {
-	Subjects       []*Subject
-	Resources      *ResourceCollection
-	NetworkVectors []NetworkVector
+	Subjects  []Subject
+	Resources *ResourceCollection
+	Paths     []Path
 }
 
 // NewAnalysis simply creates a new Analysis struct.
-func NewAnalysis(subjects []*Subject, resources *ResourceCollection, networkVectors []NetworkVector) *Analysis {
+func NewAnalysis(subjects []Subject, resources *ResourceCollection, paths []Path) *Analysis {
 	return &Analysis{
-		Subjects:       subjects,
-		Resources:      resources,
-		NetworkVectors: networkVectors,
+		Subjects:  subjects,
+		Resources: resources,
+		Paths:     paths,
 	}
 }
 
@@ -34,15 +34,14 @@ func (a *Analysis) ToJSON() string {
 func (a *Analysis) MergedTraffic() (TrafficContent, error) {
 	result := newTrafficContent()
 
-	for _, v := range a.NetworkVectors {
-		if t := v.Traffic; t != nil {
-			mergedTrafficContent, err := result.Merge(*t)
-			if err != nil {
-				return TrafficContent{}, err
-			}
-
-			result = mergedTrafficContent
+	for _, path := range a.Paths {
+		t := path.ForwardTraffic()
+		mergedTrafficContent, err := result.Merge(t)
+		if err != nil {
+			return TrafficContent{}, err
 		}
+
+		result = mergedTrafficContent
 	}
 
 	return result, nil
@@ -50,20 +49,21 @@ func (a *Analysis) MergedTraffic() (TrafficContent, error) {
 
 // MergedReturnTraffic gets the return TrafficContent results of each of the analysis's network vectors and returns them as a merged TrafficContent.
 func (a *Analysis) MergedReturnTraffic() (TrafficContent, error) {
-	result := newTrafficContent()
+	// result := newTrafficContent()
+	//
+	// for _, path := range a.Paths {
+	// 	if t := path.ReturnTraffic; t != nil { // TODO: Need to figure out return traffic!
+	// 		mergedTrafficContent, err := result.Merge(*t)
+	// 		if err != nil {
+	// 			return TrafficContent{}, err
+	// 		}
+	//
+	// 		result = mergedTrafficContent
+	// 	}
+	// }
 
-	for _, v := range a.NetworkVectors {
-		if t := v.ReturnTraffic; t != nil {
-			mergedTrafficContent, err := result.Merge(*t)
-			if err != nil {
-				return TrafficContent{}, err
-			}
-
-			result = mergedTrafficContent
-		}
-	}
-
-	return result, nil
+	panic("not implemented currently!") // TODO: Don't panic! (Come back and fix implementation)
+	// return result, nil
 }
 
 // PassesAssertReachable determines if the analysis implies the source can reach the destination over at least one protocol whose return path is unobstructed.

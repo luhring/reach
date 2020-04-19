@@ -22,51 +22,40 @@ func New(providers map[string]interface{}) *Analyzer {
 }
 
 // Analyze performs a full analysis of allowed network traffic among the specified subjects.
-func (a *Analyzer) Analyze(subjects ...*reach.Subject) (*reach.Analysis, error) {
-	rc, err := a.buildResourceCollection(subjects) // TODO: Need to catch and prevent cycles (e.g. with route table rules having instance targets).
+func (a *Analyzer) Analyze(source, destination reach.Subject) (*reach.Analysis, error) {
+	rc, err := a.buildResourceCollection([]*reach.Subject{&source, &destination}) // TODO: Need to catch and prevent cycles (e.g. with route table rules having instance targets).
 	if err != nil {
 		return nil, err
 	}
 
-	// I think this becomes a network path constructor
-	var vectorDiscoverer reach.VectorDiscoverer = NewVectorDiscoverer(rc)
+	provider := reach.NewRCProvider(rc)
 
-	networkVectors, err := vectorDiscoverer.Discover(subjects)
+	var tracer reach.Tracer = NewTracer(provider)
+	paths, err := tracer.Trace(source, destination)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to complete trace: %v", err)
 	}
 
-	processedNetworkVectors := make([]reach.NetworkVector, len(networkVectors))
+	var analyzedPaths []analyzedPath
 
-	// TODO: Eventually, this dependency wiring should depend on a passed in config.
-	// VectorAnalyzer is no more. Vectors become network paths.
-	var vectorAnalyzer reach.VectorAnalyzer = aws.NewVectorAnalyzer(rc)
+	var pa interface{} // path analyzer
 
-	for i, v := range networkVectors {
-		factors, processedVector, err := vectorAnalyzer.Factors(v)
-		if err != nil {
-			return nil, err
-		}
+	for _, path := range paths {
+		ft := pa.ForwardTraffic(path)
+		rt := pa.ReturnTraffic(path)
 
-		trafficContents := reach.TrafficContentsFromFactors(factors)
-		trafficContent, err := reach.NewTrafficContentFromIntersectingMultiple(trafficContents)
-		if err != nil {
-			return nil, err
-		}
-
-		returnTrafficContents := reach.ReturnTrafficContentsFromFactors(factors)
-		returnTrafficContent, err := reach.NewTrafficContentFromIntersectingMultiple(returnTrafficContents)
-		if err != nil {
-			return nil, err
-		}
-
-		processedVector.Traffic = &trafficContent
-		processedVector.ReturnTraffic = &returnTrafficContent
-
-		processedNetworkVectors[i] = processedVector
+		analyzedPaths = append(analyzedPaths, analyzedPath{
+			path:           &path,
+			forwardTraffic: ft,
+			returnTraffic:  rt,
+		})
 	}
 
-	return reach.NewAnalysis(subjects, rc, processedNetworkVectors), nil
+	return reach.NewAnalysis(
+		[]reach.Subject{source, destination},
+		rc,
+		paths,
+	), nil
 }
 
 func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) (*reach.ResourceCollection, error) { // TODO: Allow passing any number of providers of various domains
@@ -76,7 +65,7 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) (*reach.Re
 		if subject.Role != reach.SubjectRoleNone && subject.Domain != generic.ResourceDomainGeneric { // For the generic domain, there are no resources to obtain.
 			switch subject.Domain {
 			case aws.ResourceDomainAWS:
-				provider := a.providers[aws.ResourceDomainAWS].(aws.ResourceProvider)
+				provider := a.providers[aws.ResourceDomainAWS].(aws.ResourceGetter)
 
 				switch subject.Kind { // An argument could be made that this logic should be pushed into the 'aws' package...
 				case aws.SubjectKindEC2Instance:
@@ -90,7 +79,7 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) (*reach.Re
 						Domain: aws.ResourceDomainAWS,
 						Kind:   aws.ResourceKindEC2Instance,
 						ID:     ec2Instance.ID,
-					}, ec2Instance.ToResource())
+					}, ec2Instance.Resource())
 
 					dependencies, err := ec2Instance.Dependencies(provider)
 					if err != nil {
@@ -127,4 +116,33 @@ func (a *Analyzer) buildResourceCollection(subjects []*reach.Subject) (*reach.Re
 	}
 
 	return rc, nil
+}
+
+func (a *Analyzer) determineSubjectPoints(role reach.SubjectRole, subjects []*reach.Subject, rc *reach.ResourceCollection) ([]reach.SubjectPoint, error) {
+	var points []reach.SubjectPoint
+	var g reach.SubjectPointsGenerator
+
+	for _, subject := range subjects {
+		if subject.Role == role {
+			switch subject.Domain {
+			case aws.ResourceDomainAWS:
+				g = aws.NewSubjectPointsGenerator(rc)
+			default:
+				return nil, fmt.Errorf("unable to determine subject points for subject with domain '%s'", subject.Domain)
+			}
+
+			newPoints, err := g.SubjectPoints(*subject)
+			if err != nil {
+				return nil, err
+			}
+
+			points = append(points, newPoints...)
+		}
+	}
+
+	return points, nil
+}
+
+func (a *Analyzer) analyzePath(p reach.Path) AnalyzedPath {
+
 }

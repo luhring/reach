@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/analyzer"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/aws/api"
@@ -48,7 +49,7 @@ See https://github.com/luhring/reach for documentation.`,
 		sourceInput := args[0]
 		destinationInput := args[1]
 
-		var awsResourceProvider aws.ResourceProvider = api.NewResourceProvider()
+		var awsResourceProvider aws.ResourceGetter = api.NewResourceProvider()
 		var genericResourceProvider generic.ResourceProvider = standard.NewResourceProvider()
 
 		// Not sure yet if I like this, but I want to be able to package up a collection of resource providers across arbitrary domains.
@@ -80,17 +81,12 @@ See https://github.com/luhring/reach for documentation.`,
 			exitWithError(err)
 		}
 
-		mergedTraffic, err := analysis.MergedTraffic()
-		if err != nil {
-			exitWithError(err)
-		}
-
 		if outputJSON {
 			fmt.Println(analysis.ToJSON())
 		} else if explain {
 			ex := explainer.New(*analysis)
 			fmt.Print(ex.Explain())
-		} else if showVectors {
+		} else if showVectors { // TODO: This probably becomes "showPaths" or something
 			var vectorOutputs []string
 
 			for _, v := range analysis.NetworkVectors {
@@ -99,6 +95,13 @@ See https://github.com/luhring/reach for documentation.`,
 
 			fmt.Print(strings.Join(vectorOutputs, "\n"))
 		} else {
+			paths := analysis.Paths
+			tcs := reach.TrafficContentsFromPaths(paths)
+			mergedTraffic, err := reach.MergeTraffic(tcs...)
+			if err != nil {
+				exitWithError(err)
+			}
+
 			fmt.Print("network traffic allowed from source to destination:" + "\n")
 			fmt.Print(mergedTraffic.ColorStringWithSymbols())
 
