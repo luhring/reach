@@ -10,13 +10,13 @@ import (
 	"github.com/luhring/reach/reach/generic"
 )
 
-func resolveSubject(input string, progressWriter io.Writer, resourceProviders map[string]interface{}) (*reach.Subject, error) {
+func resolveSubject(input string, progressWriter io.Writer, domains reach.DomainProvider) (*reach.Subject, error) {
 	q := getQualifiedSubject(input)
 
 	if q != nil {
-		return resolveSubjectExplicitly(*q, resourceProviders)
+		return resolveSubjectExplicitly(*q, domains)
 	} else {
-		return resolveSubjectImplicitly(input, progressWriter, resourceProviders)
+		return resolveSubjectImplicitly(input, progressWriter, domains)
 	}
 }
 
@@ -38,7 +38,7 @@ type qualifiedSubject struct {
 	identifier string
 }
 
-func resolveSubjectImplicitly(input string, progressWriter io.Writer, resourceProviders map[string]interface{}) (*reach.Subject, error) {
+func resolveSubjectImplicitly(input string, progressWriter io.Writer, domains reach.DomainProvider) (*reach.Subject, error) {
 	// 1. Try IP address format.
 	err := generic.CheckIPAddress(input)
 	if err == nil {
@@ -54,19 +54,17 @@ func resolveSubjectImplicitly(input string, progressWriter io.Writer, resourcePr
 	}
 
 	// 3. Try EC2 fuzzy matching.
-	awsResourceProvider := resourceProviders[aws.ResourceDomainAWS].(aws.ResourceGetter)
-	return aws.ResolveEC2InstanceSubject(input, awsResourceProvider)
+	return aws.ResolveEC2InstanceSubject(input, domains)
 }
 
-func resolveSubjectExplicitly(qualifiedSubject qualifiedSubject, resourceProviders map[string]interface{}) (*reach.Subject, error) {
+func resolveSubjectExplicitly(qualifiedSubject qualifiedSubject, domains reach.DomainProvider) (*reach.Subject, error) {
 	switch qualifiedSubject.typePrefix {
 	case "ip":
 		return generic.ResolveIPAddressSubject(qualifiedSubject.identifier)
 	case "host":
 		return generic.ResolveHostnameSubject(qualifiedSubject.identifier)
 	case "ec2":
-		awsResourceProvider := resourceProviders[aws.ResourceDomainAWS].(aws.ResourceGetter)
-		return aws.ResolveEC2InstanceSubject(qualifiedSubject.identifier, awsResourceProvider)
+		return aws.ResolveEC2InstanceSubject(qualifiedSubject.identifier, domains)
 	default:
 		return nil, fmt.Errorf("unable to resolve subject with identifier '%s' because subject type prefix '%s' is not recognized", qualifiedSubject.identifier, qualifiedSubject.typePrefix)
 	}

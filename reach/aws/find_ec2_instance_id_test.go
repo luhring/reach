@@ -35,7 +35,7 @@ func TestFindEC2InstanceID(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.searchText, func(t *testing.T) {
-			id, err := FindEC2InstanceID(tc.searchText, nil)
+			id, err := findEC2InstanceID(tc.searchText, nil)
 
 			if tc.expectedID != id {
 				reach.DiffErrorf(t, "id", tc.expectedID, id)

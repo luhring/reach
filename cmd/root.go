@@ -49,23 +49,17 @@ See https://github.com/luhring/reach for documentation.`,
 		sourceInput := args[0]
 		destinationInput := args[1]
 
-		var awsResourceProvider aws.ResourceGetter = api.NewResourceProvider()
-		var genericResourceProvider generic.ResourceProvider = standard.NewResourceProvider()
+		domains := &ConfigurationDomainProvider{}
+		domains.Load(aws.ResourceDomainAWS, api.NewResourceProvider())
+		domains.Load(generic.ResourceDomainGeneric, standard.NewResourceProvider())
 
-		// Not sure yet if I like this, but I want to be able to package up a collection of resource providers across arbitrary domains.
-		// This relies on type assertions downstream in the code, of course.
-		providers := map[string]interface{}{
-			aws.ResourceDomainAWS:         awsResourceProvider,
-			generic.ResourceDomainGeneric: genericResourceProvider,
-		}
-
-		source, err := resolveSubject(sourceInput, os.Stderr, providers)
+		source, err := resolveSubject(sourceInput, os.Stderr, domains)
 		if err != nil {
 			exitWithError(err)
 		}
 		source.SetRoleToSource()
 
-		destination, err := resolveSubject(destinationInput, os.Stderr, providers)
+		destination, err := resolveSubject(destinationInput, os.Stderr, domains)
 		if err != nil {
 			exitWithError(err)
 		}
@@ -75,8 +69,8 @@ See https://github.com/luhring/reach for documentation.`,
 			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
 		}
 
-		a := analyzer.New(providers)
-		analysis, err := a.Analyze(source, destination)
+		a := analyzer.New(nil, domains) // TODO: Pass in InfrastructureGetter
+		analysis, err := a.Analyze(*source, *destination)
 		if err != nil {
 			exitWithError(err)
 		}
