@@ -7,7 +7,7 @@ import (
 )
 
 // ResourceKindSecurityGroup specifies the unique name for the security group kind of resource.
-const ResourceKindSecurityGroup = "SecurityGroup"
+const ResourceKindSecurityGroup reach.Kind = "SecurityGroup"
 
 // A SecurityGroup resource representation.
 type SecurityGroup struct {
@@ -19,56 +19,21 @@ type SecurityGroup struct {
 	OutboundRules []SecurityGroupRule
 }
 
-// ToResource returns the security group converted to a generalized Reach resource.
-func (sg SecurityGroup) ToResource() reach.Resource {
+// Resource returns the security group converted to a generalized Reach resource.
+func (sg SecurityGroup) Resource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindSecurityGroup,
 		Properties: sg,
 	}
 }
 
-// ToResourceReference returns a resource reference to uniquely identify the security group.
-func (sg SecurityGroup) ToResourceReference() reach.ResourceReference {
+// ResourceReference returns a resource reference to uniquely identify the security group.
+func (sg SecurityGroup) ResourceReference() reach.ResourceReference {
 	return reach.ResourceReference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindSecurityGroup,
 		ID:     sg.ID,
 	}
-}
-
-// Dependencies returns a collection of the security group's resource dependencies.
-func (sg SecurityGroup) Dependencies(provider DomainClient) (*reach.ResourceCollection, error) {
-	rc := reach.NewResourceCollection()
-
-	vpc, err := provider.VPC(sg.VPCID)
-	if err != nil {
-		return nil, err
-	}
-	rc.Put(reach.ResourceReference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindVPC,
-		ID:     vpc.ID,
-	}, vpc.ToResource())
-
-	allRules := append(sg.InboundRules, sg.OutboundRules...)
-
-	for _, rule := range allRules {
-		// TODO: sg ref IDs shouldn't be strings, they should be pointers, and this check should be for nil not ""
-
-		if sgRefID := rule.TargetSecurityGroupReferenceID; sgRefID != "" {
-			sgRef, err := provider.SecurityGroupReference(sgRefID, rule.TargetSecurityGroupReferenceAccountID)
-			if err != nil {
-				return nil, err
-			}
-			rc.Put(reach.ResourceReference{
-				Domain: ResourceDomainAWS,
-				Kind:   ResourceKindSecurityGroupReference,
-				ID:     sgRef.ID,
-			}, sgRef.ToResource())
-		}
-	}
-
-	return rc, nil
 }
 
 // Name returns the security group's ID, and, if available, its name tag value (or group name).

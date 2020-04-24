@@ -10,11 +10,11 @@ import (
 )
 
 // NATGateway queries the AWS API for a NAT gateway matching the given ID.
-func (provider *ResourceProvider) NATGateway(id string) (*reachAWS.NATGateway, error) {
+func (client *DomainClient) NATGateway(id string) (*reachAWS.NATGateway, error) {
 	input := &ec2.DescribeNatGatewaysInput{
 		NatGatewayIds: []*string{aws.String(id)},
 	}
-	result, err := provider.ec2.DescribeNatGateways(input)
+	result, err := client.ec2.DescribeNatGateways(input)
 	if err != nil {
 		return nil, err
 	}

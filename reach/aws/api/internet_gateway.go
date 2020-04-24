@@ -8,11 +8,11 @@ import (
 )
 
 // InternetGateway queries the AWS API for an Internet gateway matching the given ID.
-func (provider *ResourceProvider) InternetGateway(id string) (*reachAWS.InternetGateway, error) {
+func (client *DomainClient) InternetGateway(id string) (*reachAWS.InternetGateway, error) {
 	input := &ec2.DescribeInternetGatewaysInput{
 		InternetGatewayIds: []*string{aws.String(id)},
 	}
-	result, err := provider.ec2.DescribeInternetGateways(input)
+	result, err := client.ec2.DescribeInternetGateways(input)
 	if err != nil {
 		return nil, err
 	}

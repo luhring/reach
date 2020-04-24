@@ -10,13 +10,13 @@ import (
 )
 
 // VPC queries the AWS API for a VPC matching the given ID.
-func (provider *ResourceProvider) VPC(id string) (*reachAWS.VPC, error) {
+func (client *DomainClient) VPC(id string) (*reachAWS.VPC, error) {
 	input := &ec2.DescribeVpcsInput{
 		VpcIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := provider.ec2.DescribeVpcs(input)
+	result, err := client.ec2.DescribeVpcs(input)
 	if err != nil {
 		return nil, err
 	}

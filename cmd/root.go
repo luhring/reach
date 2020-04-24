@@ -12,13 +12,12 @@ import (
 	"github.com/luhring/reach/reach/analyzer"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/aws/api"
-	"github.com/luhring/reach/reach/explainer"
 	"github.com/luhring/reach/reach/generic"
 	"github.com/luhring/reach/reach/generic/standard"
 )
 
 const explainFlag = "explain"
-const vectorsFlag = "vectors"
+const pathsFlag = "paths"
 const jsonFlag = "json"
 const assertReachableFlag = "assert-reachable"
 const assertNotReachableFlag = "assert-not-reachable"
@@ -50,8 +49,8 @@ See https://github.com/luhring/reach for documentation.`,
 		destinationInput := args[1]
 
 		catalog := &reach.DomainClientCatalog{}
-		catalog.Store(aws.ResourceDomainAWS, api.NewResourceProvider())
-		catalog.Store(generic.ResourceDomainGeneric, standard.NewResourceProvider())
+		catalog.Store(aws.ResourceDomainAWS, api.NewDomainClient())
+		catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
 
 		source, err := resolveSubject(sourceInput, os.Stderr, catalog)
 		if err != nil {
@@ -77,9 +76,6 @@ See https://github.com/luhring/reach for documentation.`,
 
 		if outputJSON {
 			fmt.Println(analysis.ToJSON())
-		} else if explain {
-			ex := explainer.New(*analysis)
-			fmt.Print(ex.Explain())
 		} else if showPaths {
 			var pathDescriptions []string
 
@@ -103,19 +99,7 @@ See https://github.com/luhring/reach for documentation.`,
 				printMergedResultsWarning()
 				// warnIfAnyVectorHasRestrictedReturnTraffic(paths)
 			} else {
-				// calculate merged return traffic
-				mergedReturnTraffic, err := analysis.MergedReturnTraffic()
-				if err != nil {
-					exitWithError(err)
-				}
-
-				restrictedProtocols := mergedTraffic.ProtocolsWithRestrictedReturnPath(mergedReturnTraffic)
-				if len(restrictedProtocols) > 0 {
-					found, warnings := explainer.WarningsFromRestrictedReturnPath(restrictedProtocols)
-					if found {
-						fmt.Print("\n" + warnings + "\n")
-					}
-				}
+				// warnings about return traffic?
 			}
 		}
 
@@ -138,7 +122,7 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().BoolVar(&explain, explainFlag, false, "explain how the configuration was analyzed")
-	rootCmd.Flags().BoolVar(&showPaths, vectorsFlag, false, "show allowed traffic in terms of network vectors")
+	rootCmd.Flags().BoolVar(&showPaths, pathsFlag, false, "show allowed traffic in terms of network paths")
 	rootCmd.Flags().BoolVar(&outputJSON, jsonFlag, false, "output full analysis as JSON (overrides other display flags)")
 	rootCmd.Flags().BoolVar(&assertReachable, assertReachableFlag, false, "exit non-zero if no traffic is allowed from source to destination")
 	rootCmd.Flags().BoolVar(&assertNotReachable, assertNotReachableFlag, false, "exit non-zero if any traffic can reach destination from source")

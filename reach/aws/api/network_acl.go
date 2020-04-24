@@ -12,13 +12,13 @@ import (
 )
 
 // NetworkACL queries the AWS API for a network ACL matching the given ID.
-func (provider *ResourceProvider) NetworkACL(id string) (*reachAWS.NetworkACL, error) {
+func (client *DomainClient) NetworkACL(id string) (*reachAWS.NetworkACL, error) {
 	input := &ec2.DescribeNetworkAclsInput{
 		NetworkAclIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := provider.ec2.DescribeNetworkAcls(input)
+	result, err := client.ec2.DescribeNetworkAcls(input)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func networkACLRulesForSingleDirection(entries []*ec2.NetworkAclEntry, inbound b
 		return nil
 	}
 
-	rules := []reachAWS.NetworkACLRule{}
+	var rules []reachAWS.NetworkACLRule
 
 	for _, entry := range entries {
 		if entry != nil {

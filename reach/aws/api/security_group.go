@@ -13,13 +13,13 @@ import (
 )
 
 // SecurityGroup queries the AWS API for a security group matching the given ID.
-func (provider *ResourceProvider) SecurityGroup(id string) (*reachAWS.SecurityGroup, error) {
+func (client *DomainClient) SecurityGroup(id string) (*reachAWS.SecurityGroup, error) {
 	input := &ec2.DescribeSecurityGroupsInput{
 		GroupIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := provider.ec2.DescribeSecurityGroups(input)
+	result, err := client.ec2.DescribeSecurityGroups(input)
 	if err != nil {
 		return nil, err
 	}
@@ -133,14 +133,14 @@ func securityGroupReferenceAccountID(pair *ec2.UserIdGroupPair) string {
 	return aws.StringValue(pair.UserId)
 }
 
-func ipNetworksFromSecurityGroupRule(ipv4Ranges []*ec2.IpRange, ipv6Ranges []*ec2.Ipv6Range) []*net.IPNet {
-	networks := make([]*net.IPNet, len(ipv4Ranges)+len(ipv6Ranges))
+func ipNetworksFromSecurityGroupRule(ipv4Ranges []*ec2.IpRange, ipv6Ranges []*ec2.Ipv6Range) []net.IPNet {
+	networks := make([]net.IPNet, len(ipv4Ranges)+len(ipv6Ranges))
 
 	for i, block := range ipv4Ranges {
 		if block != nil {
 			_, network, err := net.ParseCIDR(aws.StringValue(block.CidrIp))
 			if err == nil {
-				networks[i] = network
+				networks[i] = *network
 			}
 		}
 	}
@@ -149,7 +149,7 @@ func ipNetworksFromSecurityGroupRule(ipv4Ranges []*ec2.IpRange, ipv6Ranges []*ec
 		if block != nil {
 			_, network, err := net.ParseCIDR(aws.StringValue(block.CidrIpv6))
 			if err == nil {
-				networks[len(ipv4Ranges)+i] = network
+				networks[len(ipv4Ranges)+i] = *network
 			}
 		}
 	}

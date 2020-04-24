@@ -10,13 +10,13 @@ import (
 )
 
 // EC2Instance queries the AWS API for an EC2 instance matching the given ID.
-func (provider *ResourceProvider) EC2Instance(id string) (*reachAWS.EC2Instance, error) {
+func (client *DomainClient) EC2Instance(id string) (*reachAWS.EC2Instance, error) {
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := provider.ec2.DescribeInstances(input)
+	result, err := client.ec2.DescribeInstances(input)
 	if err != nil {
 		return nil, err
 	}
@@ -39,10 +39,10 @@ func (provider *ResourceProvider) EC2Instance(id string) (*reachAWS.EC2Instance,
 }
 
 // AllEC2Instances queries the AWS API for all EC2 instances.
-func (provider *ResourceProvider) AllEC2Instances() ([]reachAWS.EC2Instance, error) {
+func (client *DomainClient) AllEC2Instances() ([]reachAWS.EC2Instance, error) {
 	const errFormat = "unable to get all EC2 instances: %v"
 
-	describeInstancesOutput, err := provider.ec2.DescribeInstances(nil)
+	describeInstancesOutput, err := client.ec2.DescribeInstances(nil)
 
 	if err != nil {
 		return nil, fmt.Errorf(errFormat, err)

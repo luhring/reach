@@ -36,21 +36,6 @@ func (i EC2Instance) ResourceReference() reach.ResourceReference {
 	}
 }
 
-// Dependencies returns a collection of the EC2 instance's resource dependencies.
-func (i EC2Instance) Dependencies(client DomainClient) (*reach.ResourceCollection, error) {
-	rc := reach.NewResourceCollection()
-
-	for _, attachment := range i.NetworkInterfaceAttachments {
-		attachmentDependencies, err := attachment.Dependencies(client)
-		if err != nil {
-			return nil, err
-		}
-		rc.Merge(attachmentDependencies)
-	}
-
-	return rc, nil
-}
-
 // Name returns the instance's ID, and, if available, its name tag value.
 func (i EC2Instance) Name() string {
 	if name := strings.TrimSpace(i.NameTag); name != "" {

@@ -23,8 +23,8 @@ const (
 
 // A Subject is an entity about which a network traffic question is being asked. Reach analyses are conducted between "source" subjects and "destination" subjects. For example, when asking about network traffic allowed between instance A and instance B, instances A and B are the "subjects" of the analysis.
 type Subject struct {
-	Domain string
-	Kind   string
+	Domain Domain
+	Kind   Kind
 	ID     string
 	Role   SubjectRole
 }

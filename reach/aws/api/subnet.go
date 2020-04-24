@@ -8,13 +8,13 @@ import (
 )
 
 // Subnet queries the AWS API for a subnet matching the given ID.
-func (provider *ResourceProvider) Subnet(id string) (*reachAWS.Subnet, error) {
+func (client *DomainClient) Subnet(id string) (*reachAWS.Subnet, error) {
 	input := &ec2.DescribeSubnetsInput{
 		SubnetIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := provider.ec2.DescribeSubnets(input)
+	result, err := client.ec2.DescribeSubnets(input)
 	if err != nil {
 		return nil, err
 	}
@@ -25,12 +25,12 @@ func (provider *ResourceProvider) Subnet(id string) (*reachAWS.Subnet, error) {
 
 	awsSubnet := result.Subnets[0]
 
-	networkACLID, err := provider.networkACLIDFromSubnetID(aws.StringValue(awsSubnet.SubnetId))
+	networkACLID, err := client.networkACLIDFromSubnetID(aws.StringValue(awsSubnet.SubnetId))
 	if err != nil {
 		return nil, err
 	}
 
-	routeTableID, err := provider.routeTableIDFromSubnetID(aws.StringValue(awsSubnet.SubnetId))
+	routeTableID, err := client.routeTableIDFromSubnetID(aws.StringValue(awsSubnet.SubnetId))
 	if err != nil {
 		return nil, err
 	}
@@ -48,12 +48,12 @@ func newSubnetFromAPI(subnet *ec2.Subnet, networkACLID, routeTableID string) rea
 	}
 }
 
-func (provider *ResourceProvider) networkACLIDFromSubnetID(id string) (string, error) {
+func (client *DomainClient) networkACLIDFromSubnetID(id string) (string, error) {
 	input := &ec2.DescribeNetworkAclsInput{
 		Filters: generateEC2Filters(id),
 	}
 
-	result, err := provider.ec2.DescribeNetworkAcls(input)
+	result, err := client.ec2.DescribeNetworkAcls(input)
 	if err != nil {
 		return "", err
 	}
@@ -65,12 +65,12 @@ func (provider *ResourceProvider) networkACLIDFromSubnetID(id string) (string, e
 	return aws.StringValue(result.NetworkAcls[0].NetworkAclId), nil
 }
 
-func (provider *ResourceProvider) routeTableIDFromSubnetID(id string) (string, error) {
+func (client *DomainClient) routeTableIDFromSubnetID(id string) (string, error) {
 	input := &ec2.DescribeRouteTablesInput{
 		Filters: generateEC2Filters(id),
 	}
 
-	result, err := provider.ec2.DescribeRouteTables(input)
+	result, err := client.ec2.DescribeRouteTables(input)
 	if err != nil {
 		return "", nil
 	}

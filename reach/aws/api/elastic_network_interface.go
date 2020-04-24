@@ -10,13 +10,13 @@ import (
 )
 
 // ElasticNetworkInterface queries the AWS API for an elastic network interface matching the given ID.
-func (provider *ResourceProvider) ElasticNetworkInterface(id string) (*reachAWS.ElasticNetworkInterface, error) {
+func (client *DomainClient) ElasticNetworkInterface(id string) (*reachAWS.ElasticNetworkInterface, error) {
 	input := &ec2.DescribeNetworkInterfacesInput{
 		NetworkInterfaceIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := provider.ec2.DescribeNetworkInterfaces(input)
+	result, err := client.ec2.DescribeNetworkInterfaces(input)
 	if err != nil {
 		return nil, err
 	}

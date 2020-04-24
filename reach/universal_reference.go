@@ -7,17 +7,6 @@ type UniversalReference struct {
 	R        ResourceReference
 }
 
-func NewUniversalReference(domain, kind, id string, implicit bool) UniversalReference {
-	return UniversalReference{
-		R: ResourceReference{
-			Domain: domain,
-			Kind:   kind,
-			ID:     id,
-		},
-		Implicit: implicit,
-	}
-}
-
 func (i UniversalReference) Equal(other UniversalReference) bool {
 	if i.Implicit != other.Implicit {
 		return false

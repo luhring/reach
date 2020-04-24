@@ -16,9 +16,10 @@ type Tracer struct {
 }
 
 func NewTracer(domainClientResolver reach.DomainClientResolver) *Tracer {
-	// TODO: Create ReferenceResolver here, building on top of Domains and relying on domain packages to do their own fetching
+	referenceResolver := NewReferenceResolver(domainClientResolver)
 
 	return &Tracer{
+		referenceResolver:    &referenceResolver,
 		domainClientResolver: domainClientResolver,
 	}
 }

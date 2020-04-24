@@ -8,13 +8,13 @@ import (
 )
 
 // RouteTable queries the AWS API for a route table matching the given ID.
-func (provider *ResourceProvider) RouteTable(id string) (*reachAWS.RouteTable, error) {
+func (client *DomainClient) RouteTable(id string) (*reachAWS.RouteTable, error) {
 	input := &ec2.DescribeRouteTablesInput{
 		RouteTableIds: []*string{
 			aws.String(id),
 		},
 	}
-	result, err := provider.ec2.DescribeRouteTables(input)
+	result, err := client.ec2.DescribeRouteTables(input)
 	if err != nil {
 		return nil, err
 	}

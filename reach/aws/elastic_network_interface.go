@@ -25,18 +25,6 @@ type ElasticNetworkInterface struct {
 	SrcDstCheck          bool
 }
 
-// ElasticNetworkInterfaceFromNetworkPoint extracts the ElasticNetworkInterface from the lineage of the specified network point.
-func ElasticNetworkInterfaceFromNetworkPoint(point reach.NetworkPoint, rc *reach.ResourceCollection) *ElasticNetworkInterface {
-	for _, ancestor := range point.Lineage { // assumes there will only be one ENI among the ancestors
-		if ancestor.Domain == ResourceDomainAWS && ancestor.Kind == ResourceKindElasticNetworkInterface {
-			eni := rc.Get(ancestor).Properties.(ElasticNetworkInterface)
-			return &eni
-		}
-	}
-
-	return nil
-}
-
 // Name returns the elastic network interface's ID, and, if available, its name tag value.
 func (eni ElasticNetworkInterface) Name() string {
 	if name := strings.TrimSpace(eni.NameTag); name != "" {
@@ -60,57 +48,6 @@ func (eni ElasticNetworkInterface) ResourceReference() reach.ResourceReference {
 		Kind:   ResourceKindElasticNetworkInterface,
 		ID:     eni.ID,
 	}
-}
-
-// Dependencies returns a collection of the elastic network interface's resource dependencies.
-func (eni ElasticNetworkInterface) Dependencies(client DomainClient) (*reach.ResourceCollection, error) {
-	rc := reach.NewResourceCollection()
-
-	subnet, err := client.Subnet(eni.SubnetID)
-	if err != nil {
-		return nil, err
-	}
-	rc.Put(reach.ResourceReference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindSubnet,
-		ID:     subnet.ID,
-	}, subnet.ToResource())
-
-	subnetDependencies, err := subnet.Dependencies(client)
-	if err != nil {
-		return nil, err
-	}
-	rc.Merge(subnetDependencies)
-
-	vpc, err := client.VPC(eni.VPCID)
-	if err != nil {
-		return nil, err
-	}
-	rc.Put(reach.ResourceReference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindVPC,
-		ID:     vpc.ID,
-	}, vpc.ToResource())
-
-	for _, sgID := range eni.SecurityGroupIDs {
-		sg, err := client.SecurityGroup(sgID)
-		if err != nil {
-			return nil, err
-		}
-		rc.Put(reach.ResourceReference{
-			Domain: ResourceDomainAWS,
-			Kind:   ResourceKindSecurityGroup,
-			ID:     sg.ID,
-		}, sg.ToResource())
-
-		sgDependencies, err := sg.Dependencies(client)
-		if err != nil {
-			return nil, err
-		}
-		rc.Merge(sgDependencies)
-	}
-
-	return rc, nil
 }
 
 func (eni ElasticNetworkInterface) Visitable(_ bool) bool {

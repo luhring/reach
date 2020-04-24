@@ -13,21 +13,21 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
-// ResourceProvider implements an AWS resource provider using the AWS API (via the AWS SDK).
-type ResourceProvider struct {
+// DomainClient implements an AWS DomainClient using the AWS API (via the AWS SDK).
+type DomainClient struct {
 	session *session.Session
 	ec2     *ec2.EC2
 }
 
-// NewResourceProvider returns a reference to a new ResourceProvider for the AWS API.
-func NewResourceProvider() *ResourceProvider {
+// NewDomainClient returns a reference to a new DomainClient for the AWS API.
+func NewDomainClient() *DomainClient {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
-	})) // TODO: Don't call session.Must —- return error, and don't panic, this is a lib after all!
+	})) // TODO: Don't call session.Must —- return error, and don't panic, this is a library after all!
 
 	ec2Client := ec2.New(sess)
 
-	return &ResourceProvider{
+	return &DomainClient{
 		session: sess,
 		ec2:     ec2Client,
 	}
@@ -45,7 +45,7 @@ func nameTag(tags []*ec2.Tag) string {
 	return ""
 }
 
-func ensureSingleResult(resultSetLength int, entity, id string) error {
+func ensureSingleResult(resultSetLength int, entity reach.Kind, id string) error {
 	if resultSetLength == 0 {
 		return fmt.Errorf("AWS API did not return a %s for ID '%s'", entity, id)
 	}

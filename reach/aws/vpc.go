@@ -7,7 +7,7 @@ import (
 )
 
 // ResourceKindVPC specifies the unique name for the VPC kind of resource.
-const ResourceKindVPC = "VPC"
+const ResourceKindVPC reach.Kind = "VPC"
 
 // An VPC resource representation.
 type VPC struct {
@@ -16,15 +16,15 @@ type VPC struct {
 	IPv6CIDRs []net.IPNet `json:"IPv6CIDRs,omitempty"`
 }
 
-// ToResource returns the VPC converted to a generalized Reach resource.
-func (vpc VPC) ToResource() reach.Resource {
+// Resource returns the VPC converted to a generalized Reach resource.
+func (vpc VPC) Resource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindVPC,
 		Properties: vpc,
 	}
 }
 
-func (vpc VPC) ResourceRef() reach.ResourceReference {
+func (vpc VPC) ResourceReference() reach.ResourceReference {
 	return reach.ResourceReference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindVPC,
