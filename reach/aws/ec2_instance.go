@@ -63,8 +63,8 @@ func (i EC2Instance) Visitable(alreadyVisited bool) bool {
 	return alreadyVisited == false
 }
 
-func (i EC2Instance) Ref() reach.InfrastructureReference {
-	return reach.InfrastructureReference{
+func (i EC2Instance) Ref() reach.UniversalReference {
+	return reach.UniversalReference{
 		R: i.ResourceReference(),
 	}
 }

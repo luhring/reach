@@ -2,13 +2,13 @@ package reach
 
 import "fmt"
 
-type InfrastructureReference struct {
+type UniversalReference struct {
 	Implicit bool // Is infrastructure implied by referenced resource instead of being the resource itself
 	R        ResourceReference
 }
 
-func NewInfrastructureReference(domain, kind, id string, implicit bool) InfrastructureReference {
-	return InfrastructureReference{
+func NewUniversalReference(domain, kind, id string, implicit bool) UniversalReference {
+	return UniversalReference{
 		R: ResourceReference{
 			Domain: domain,
 			Kind:   kind,
@@ -18,7 +18,7 @@ func NewInfrastructureReference(domain, kind, id string, implicit bool) Infrastr
 	}
 }
 
-func (i InfrastructureReference) Equal(other InfrastructureReference) bool {
+func (i UniversalReference) Equal(other UniversalReference) bool {
 	if i.Implicit != other.Implicit {
 		return false
 	}
@@ -26,7 +26,7 @@ func (i InfrastructureReference) Equal(other InfrastructureReference) bool {
 	return i.R.Equal(other.R)
 }
 
-func (i InfrastructureReference) String() string {
+func (i UniversalReference) String() string {
 	var implicitSuffix string
 	if i.Implicit {
 		implicitSuffix = " (implicit infrastructure)"

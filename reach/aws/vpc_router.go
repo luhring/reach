@@ -10,8 +10,8 @@ func NewVPCRouter(resources ResourceGetter) (*VPCRouter, error) {
 
 }
 
-func (r VPCRouter) Ref() reach.InfrastructureReference {
-	return reach.InfrastructureReference{
+func (r VPCRouter) Ref() reach.UniversalReference {
+	return reach.UniversalReference{
 		Implicit: true,
 		R:        r.VPC.ResourceRef(),
 	}

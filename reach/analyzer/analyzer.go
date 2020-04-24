@@ -8,24 +8,19 @@ import (
 
 // Analyzer performs Reach's central network traffic analysis.
 type Analyzer struct {
-	infrastructure reach.InfrastructureGetter
-	domains        reach.DomainProvider
+	domains reach.DomainProvider
 }
 
 // New creates a new Analyzer.
-func New(
-	infrastructure reach.InfrastructureGetter,
-	domains reach.DomainProvider,
-) *Analyzer {
+func New(domains reach.DomainProvider) *Analyzer {
 	return &Analyzer{
-		infrastructure: infrastructure,
-		domains:        domains,
+		domains: domains,
 	}
 }
 
 // Analyze performs a full analysis of allowed network traffic among the specified subjects.
 func (a *Analyzer) Analyze(source, destination reach.Subject) (*reach.Analysis, error) {
-	var tracer reach.Tracer = NewTracer(a.infrastructure, a.domains)
+	var tracer reach.Tracer = NewTracer(a.domains)
 	paths, err := tracer.Trace(source, destination)
 	if err != nil {
 		return nil, fmt.Errorf("unable to complete trace: %v", err)

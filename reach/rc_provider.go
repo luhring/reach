@@ -14,7 +14,7 @@ func NewRCProvider(rc *ResourceCollection) *RCProvider {
 	return &RCProvider{rc: rc}
 }
 
-func (p *RCProvider) Get(ref InfrastructureReference) (Resource, error) {
+func (p *RCProvider) Resolve(ref UniversalReference) (Resource, error) {
 	if ref.Implicit == false {
 		r := p.rc.Get(ref.R)
 		if r == nil {

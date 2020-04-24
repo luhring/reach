@@ -11,17 +11,15 @@ import (
 )
 
 type Tracer struct {
-	infrastructure reach.InfrastructureGetter
+	infrastructure reach.ReferenceResolver
 	domains        reach.DomainProvider
 }
 
-func NewTracer(
-	infrastructure reach.InfrastructureGetter,
-	domains reach.DomainProvider,
-) *Tracer {
+func NewTracer(domains reach.DomainProvider) *Tracer {
+	// TODO: Create ReferenceResolver here, building on top of Domains and relying on domain packages to do their own fetching
+
 	return &Tracer{
-		infrastructure: infrastructure,
-		domains:        domains,
+		domains: domains,
 	}
 }
 
@@ -57,7 +55,7 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 }
 
 func (t *Tracer) subjectIPs(s reach.Subject) ([]net.IP, error) {
-	infrastructure, err := t.infrastructure.Get(s.Ref())
+	infrastructure, err := t.infrastructure.Resolve(s.Ref())
 	if err != nil {
 		return nil, fmt.Errorf("unable to get infrastructure for subject: %v", err)
 	}
@@ -83,7 +81,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 				return
 			default:
 				// We need to turn the ref into a Traceable
-				resource, err := t.infrastructure.Get(job.ref)
+				resource, err := t.infrastructure.Resolve(job.ref)
 				if err != nil {
 					results <- traceResult{error: err}
 					return

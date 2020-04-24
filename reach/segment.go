@@ -16,7 +16,7 @@ func (s Segment) Factors() []Factor {
 	return result
 }
 
-func (s Segment) Contains(ref InfrastructureReference) bool {
+func (s Segment) Contains(ref UniversalReference) bool {
 	for _, point := range s.Points {
 		if point.Ref.Equal(ref) {
 			return true

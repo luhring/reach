@@ -117,8 +117,8 @@ func (eni ElasticNetworkInterface) Visitable(_ bool) bool {
 	return true
 }
 
-func (eni ElasticNetworkInterface) Ref() reach.InfrastructureReference {
-	return reach.InfrastructureReference{
+func (eni ElasticNetworkInterface) Ref() reach.UniversalReference {
+	return reach.UniversalReference{
 		R: eni.ResourceReference(),
 	}
 }

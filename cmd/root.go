@@ -69,7 +69,7 @@ See https://github.com/luhring/reach for documentation.`,
 			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
 		}
 
-		a := analyzer.New(nil, domains) // TODO: Pass in InfrastructureGetter
+		a := analyzer.New(domains)
 		analysis, err := a.Analyze(*source, *destination)
 		if err != nil {
 			exitWithError(err)
