@@ -102,10 +102,10 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					return
 				}
 
-				firstTraceJob := job.path.Zero()
+				isFirstTraceJob := job.path.Zero()
 
 				var previousEdge *reach.Edge
-				if !firstTraceJob {
+				if isFirstTraceJob == false {
 					edge := job.path.LastEdge()
 					previousEdge = &edge
 				}
@@ -114,7 +114,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 				point := reach.Point{Ref: job.ref, Factors: factors}
 
 				var path reach.Path
-				if firstTraceJob {
+				if isFirstTraceJob {
 					path = reach.NewPath(point)
 				} else {
 					path = job.path.Add(job.edge, point, traceable.Segments())
