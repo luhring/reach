@@ -8,11 +8,11 @@ import (
 
 // Analyzer performs Reach's central network traffic analysis.
 type Analyzer struct {
-	domains reach.DomainProvider
+	domains reach.DomainClientCatalog
 }
 
 // New creates a new Analyzer.
-func New(domains reach.DomainProvider) *Analyzer {
+func New(domains reach.DomainClientCatalog) *Analyzer {
 	return &Analyzer{
 		domains: domains,
 	}

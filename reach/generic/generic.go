@@ -1,3 +1,5 @@
 package generic
 
-const ResourceDomainGeneric = "generic"
+import "github.com/luhring/reach/reach"
+
+const ResourceDomainGeneric reach.Domain = "generic"

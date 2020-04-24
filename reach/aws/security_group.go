@@ -37,7 +37,7 @@ func (sg SecurityGroup) ToResourceReference() reach.ResourceReference {
 }
 
 // Dependencies returns a collection of the security group's resource dependencies.
-func (sg SecurityGroup) Dependencies(provider ResourceGetter) (*reach.ResourceCollection, error) {
+func (sg SecurityGroup) Dependencies(provider DomainClient) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	vpc, err := provider.VPC(sg.VPCID)

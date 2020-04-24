@@ -49,17 +49,17 @@ See https://github.com/luhring/reach for documentation.`,
 		sourceInput := args[0]
 		destinationInput := args[1]
 
-		domains := &ConfigurationDomainProvider{}
-		domains.Load(aws.ResourceDomainAWS, api.NewResourceProvider())
-		domains.Load(generic.ResourceDomainGeneric, standard.NewResourceProvider())
+		catalog := &reach.DomainClientCatalog{}
+		catalog.Store(aws.ResourceDomainAWS, api.NewResourceProvider())
+		catalog.Store(generic.ResourceDomainGeneric, standard.NewResourceProvider())
 
-		source, err := resolveSubject(sourceInput, os.Stderr, domains)
+		source, err := resolveSubject(sourceInput, os.Stderr, catalog)
 		if err != nil {
 			exitWithError(err)
 		}
 		source.SetRoleToSource()
 
-		destination, err := resolveSubject(destinationInput, os.Stderr, domains)
+		destination, err := resolveSubject(destinationInput, os.Stderr, catalog)
 		if err != nil {
 			exitWithError(err)
 		}
@@ -69,7 +69,7 @@ See https://github.com/luhring/reach for documentation.`,
 			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
 		}
 
-		a := analyzer.New(domains)
+		a := analyzer.New(catalog)
 		analysis, err := a.Analyze(*source, *destination)
 		if err != nil {
 			exitWithError(err)

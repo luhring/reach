@@ -11,15 +11,15 @@ import (
 )
 
 type Tracer struct {
-	infrastructure reach.ReferenceResolver
-	domains        reach.DomainProvider
+	referenceResolver    reach.ReferenceResolver
+	domainClientResolver reach.DomainClientResolver
 }
 
-func NewTracer(domains reach.DomainProvider) *Tracer {
+func NewTracer(domainClientResolver reach.DomainClientResolver) *Tracer {
 	// TODO: Create ReferenceResolver here, building on top of Domains and relying on domain packages to do their own fetching
 
 	return &Tracer{
-		domains: domains,
+		domainClientResolver: domainClientResolver,
 	}
 }
 
@@ -55,7 +55,7 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 }
 
 func (t *Tracer) subjectIPs(s reach.Subject) ([]net.IP, error) {
-	infrastructure, err := t.infrastructure.Resolve(s.Ref())
+	infrastructure, err := t.referenceResolver.Resolve(s.Ref())
 	if err != nil {
 		return nil, fmt.Errorf("unable to get infrastructure for subject: %v", err)
 	}
@@ -63,7 +63,7 @@ func (t *Tracer) subjectIPs(s reach.Subject) ([]net.IP, error) {
 	if !ok {
 		return nil, errors.New("subject does not implement IPAddressable")
 	}
-	ips, err := addressable.IPs(t.domains)
+	ips, err := addressable.IPs(t.domainClientResolver)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get IP addresses for subject: %v", err)
 	}
@@ -81,7 +81,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 				return
 			default:
 				// We need to turn the ref into a Traceable
-				resource, err := t.infrastructure.Resolve(job.ref)
+				resource, err := t.referenceResolver.Resolve(job.ref)
 				if err != nil {
 					results <- traceResult{error: err}
 					return
@@ -108,7 +108,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					previousEdge = &edge
 				}
 
-				factors, err := traceable.FactorsForward(t.domains, previousEdge)
+				factors, err := traceable.FactorsForward(t.domainClientResolver, previousEdge)
 				point := reach.Point{Ref: job.ref, Factors: factors}
 
 				var path reach.Path
@@ -124,7 +124,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					return
 				}
 
-				edges, err := traceable.EdgesForward(t.domains, previousEdge, job.destinationIPs)
+				edges, err := traceable.EdgesForward(t.domainClientResolver, previousEdge, job.destinationIPs)
 				if err != nil {
 					results <- traceResult{
 						error: fmt.Errorf("tracer was unable to get edges for ref (%s): %v", job.ref, err),

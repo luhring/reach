@@ -1,15 +1,14 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"net"
 
 	"github.com/luhring/reach/reach"
 )
 
-// The ResourceGetter interface wraps all of the necessary methods for accessing AWS-specific resources.
-type ResourceGetter interface {
+// The DomainClient interface wraps all of the necessary methods for accessing AWS-specific resources.
+type DomainClient interface {
 	AllEC2Instances() ([]EC2Instance, error)
 	EC2Instance(id string) (*EC2Instance, error)
 	EC2InstanceByENI(eniID string) (*EC2Instance, error)
@@ -25,14 +24,14 @@ type ResourceGetter interface {
 	VPC(id string) (*VPC, error)
 }
 
-func unpackResourceGetter(domains reach.DomainProvider) (ResourceGetter, error) {
-	domainResourceGetter := domains.Domain(ResourceDomainAWS)
-	if domainResourceGetter == nil {
-		return nil, fmt.Errorf("DomainProvider has no entry for domain '%s'", ResourceDomainAWS)
+func unpackDomainClient(resolver reach.DomainClientResolver) (DomainClient, error) {
+	d := resolver.Resolve(ResourceDomainAWS)
+	if d == nil {
+		return nil, fmt.Errorf("DomainClientResolver has no entry for domain '%s'", ResourceDomainAWS)
 	}
-	resourceGetter, ok := domainResourceGetter.(ResourceGetter)
+	domainClient, ok := d.(DomainClient)
 	if !ok {
-		return nil, errors.New("domain ResourceGetter interface not implemented correctly")
+		return nil, fmt.Errorf("DomainClient interface not implemented correctly for domain '%s'", ResourceDomainAWS)
 	}
-	return resourceGetter, nil
+	return domainClient, nil
 }

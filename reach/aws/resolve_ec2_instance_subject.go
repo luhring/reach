@@ -7,8 +7,8 @@ import (
 )
 
 // ResolveEC2InstanceSubject looks up an EC2 instance using the given provider and returns it as a new subject.
-func ResolveEC2InstanceSubject(identifier string, domains reach.DomainProvider) (*reach.Subject, error) {
-	resources, err := unpackResourceGetter(domains)
+func ResolveEC2InstanceSubject(identifier string, domains reach.DomainClientResolver) (*reach.Subject, error) {
+	resources, err := unpackDomainClient(domains)
 	if err != nil {
 		return nil, fmt.Errorf("unable to resolve EC2 instance subject: %v", err)
 	}

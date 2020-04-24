@@ -4,8 +4,8 @@ import "fmt"
 
 // ResourceReference uniquely identifies a Resource used by Reach. It specifies the resource's Domain (e.g. AWS), Kind (e.g. EC2 instance), and ID (e.g. "i-0136d3233f0ef1924").
 type ResourceReference struct {
-	Domain string
-	Kind   string
+	Domain Domain
+	Kind   Kind
 	ID     string
 }
 

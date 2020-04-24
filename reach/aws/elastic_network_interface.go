@@ -10,7 +10,7 @@ import (
 )
 
 // ResourceKindElasticNetworkInterface specifies the unique name for the elastic network interface kind of resource.
-const ResourceKindElasticNetworkInterface = "ElasticNetworkInterface"
+const ResourceKindElasticNetworkInterface reach.Kind = "ElasticNetworkInterface"
 
 // An ElasticNetworkInterface resource representation.
 type ElasticNetworkInterface struct {
@@ -63,10 +63,10 @@ func (eni ElasticNetworkInterface) ResourceReference() reach.ResourceReference {
 }
 
 // Dependencies returns a collection of the elastic network interface's resource dependencies.
-func (eni ElasticNetworkInterface) Dependencies(provider ResourceGetter) (*reach.ResourceCollection, error) {
+func (eni ElasticNetworkInterface) Dependencies(client DomainClient) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
-	subnet, err := provider.Subnet(eni.SubnetID)
+	subnet, err := client.Subnet(eni.SubnetID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,13 +76,13 @@ func (eni ElasticNetworkInterface) Dependencies(provider ResourceGetter) (*reach
 		ID:     subnet.ID,
 	}, subnet.ToResource())
 
-	subnetDependencies, err := subnet.Dependencies(provider)
+	subnetDependencies, err := subnet.Dependencies(client)
 	if err != nil {
 		return nil, err
 	}
 	rc.Merge(subnetDependencies)
 
-	vpc, err := provider.VPC(eni.VPCID)
+	vpc, err := client.VPC(eni.VPCID)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (eni ElasticNetworkInterface) Dependencies(provider ResourceGetter) (*reach
 	}, vpc.ToResource())
 
 	for _, sgID := range eni.SecurityGroupIDs {
-		sg, err := provider.SecurityGroup(sgID)
+		sg, err := client.SecurityGroup(sgID)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func (eni ElasticNetworkInterface) Dependencies(provider ResourceGetter) (*reach
 			ID:     sg.ID,
 		}, sg.ToResource())
 
-		sgDependencies, err := sg.Dependencies(provider)
+		sgDependencies, err := sg.Dependencies(client)
 		if err != nil {
 			return nil, err
 		}
@@ -127,11 +127,7 @@ func (eni ElasticNetworkInterface) Segments() bool {
 	return false
 }
 
-func (eni ElasticNetworkInterface) ForwardEdges(
-	previousEdge *reach.Edge,
-	domains reach.DomainProvider,
-	_ []net.IP,
-) ([]reach.Edge, error) {
+func (eni ElasticNetworkInterface) ForwardEdges(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ []net.IP) ([]reach.Edge, error) {
 	err := eni.checkNilPreviousEdge(previousEdge)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate forward edges: %v", err)
@@ -140,16 +136,16 @@ func (eni ElasticNetworkInterface) ForwardEdges(
 	// Elastic Network Interfaces don't mutate the IP tuple
 	tuple := previousEdge.Tuple
 
-	resources, err := unpackResourceGetter(domains)
+	client, err := unpackDomainClient(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get resources: %v", err)
+		return nil, fmt.Errorf("unable to get client: %v", err)
 	}
 
 	switch eni.flow(tuple, previousEdge.ConnectsInterface) {
 	case reach.FlowOutbound:
-		return eni.handleEdgeForVPCRouter(tuple, resources)
+		return eni.handleEdgeForVPCRouter(client, tuple)
 	case reach.FlowInbound:
-		return eni.handleEdgeForEC2Instance(tuple, resources)
+		return eni.handleEdgeForEC2Instance(client, tuple)
 	case reach.FlowDropped:
 		return nil, nil
 	default:
@@ -186,8 +182,8 @@ func (eni ElasticNetworkInterface) checkNilPreviousEdge(previousEdge *reach.Edge
 	return nil
 }
 
-func (eni ElasticNetworkInterface) handleEdgeForVPCRouter(lastTuple reach.IPTuple, resources ResourceGetter) ([]reach.Edge, error) {
-	router, err := eni.connectedVPCRouter(resources)
+func (eni ElasticNetworkInterface) handleEdgeForVPCRouter(client DomainClient, lastTuple reach.IPTuple) ([]reach.Edge, error) {
+	router, err := eni.connectedVPCRouter(client)
 	if err != nil {
 		return nil, fmt.Errorf("cannot produce forward edge: %v", err)
 	}
@@ -199,8 +195,8 @@ func (eni ElasticNetworkInterface) handleEdgeForVPCRouter(lastTuple reach.IPTupl
 	return []reach.Edge{edge}, nil
 }
 
-func (eni ElasticNetworkInterface) handleEdgeForEC2Instance(lastTuple reach.IPTuple, resources ResourceGetter) ([]reach.Edge, error) {
-	ec2, err := eni.connectedEC2Instance(resources)
+func (eni ElasticNetworkInterface) handleEdgeForEC2Instance(client DomainClient, lastTuple reach.IPTuple) ([]reach.Edge, error) {
+	ec2, err := eni.connectedEC2Instance(client)
 	if err != nil {
 		return nil, fmt.Errorf("cannot produce forward edge: %v", err)
 	}
@@ -212,23 +208,20 @@ func (eni ElasticNetworkInterface) handleEdgeForEC2Instance(lastTuple reach.IPTu
 	return []reach.Edge{edge}, nil
 }
 
-func (eni ElasticNetworkInterface) FactorsForward(
-	previousEdge *reach.Edge,
-	domains reach.DomainProvider,
-) ([]reach.Factor, error) {
+func (eni ElasticNetworkInterface) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
 	err := eni.checkNilPreviousEdge(previousEdge)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate forward edges: %v", err)
 	}
 
-	resources, err := unpackResourceGetter(domains)
+	client, err := unpackDomainClient(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get resources: %v", err)
+		return nil, fmt.Errorf("unable to get client: %v", err)
 	}
 
 	var factors []reach.Factor
 
-	sgRulesFactor, err := eni.securityGroupRulesFactor(resources, *previousEdge)
+	sgRulesFactor, err := eni.securityGroupRulesFactor(client, *previousEdge)
 	if err != nil {
 		return nil, fmt.Errorf("unable to determine security group rules factors: %v", err)
 	}
@@ -237,10 +230,10 @@ func (eni ElasticNetworkInterface) FactorsForward(
 	return factors, nil
 }
 
-func (eni ElasticNetworkInterface) securityGroups(resources ResourceGetter) ([]SecurityGroup, error) {
+func (eni ElasticNetworkInterface) securityGroups(client DomainClient) ([]SecurityGroup, error) {
 	sgs := make([]SecurityGroup, len(eni.SecurityGroupIDs))
 	for _, id := range eni.SecurityGroupIDs {
-		sg, err := resources.SecurityGroup(id)
+		sg, err := client.SecurityGroup(id)
 		if err != nil {
 			return nil, fmt.Errorf("unable to get security group (id: %s): %v", id, err)
 		}
@@ -249,7 +242,7 @@ func (eni ElasticNetworkInterface) securityGroups(resources ResourceGetter) ([]S
 	return sgs, nil
 }
 
-func (eni ElasticNetworkInterface) IPs(_ reach.DomainProvider) ([]net.IP, error) {
+func (eni ElasticNetworkInterface) IPs(_ reach.DomainClientResolver) ([]net.IP, error) {
 	var ips []net.IP
 
 	ips = append(ips, eni.ownedIPs()...)
@@ -277,16 +270,16 @@ func (eni ElasticNetworkInterface) owns(ip net.IP) bool {
 	return false
 }
 
-func (eni ElasticNetworkInterface) connectedEC2Instance(resources ResourceGetter) (*EC2Instance, error) {
-	ec2, err := resources.EC2InstanceByENI(eni.ID)
+func (eni ElasticNetworkInterface) connectedEC2Instance(client DomainClient) (*EC2Instance, error) {
+	ec2, err := client.EC2InstanceByENI(eni.ID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get ref of connected EC2 instance: %v", err)
 	}
 	return ec2, nil
 }
 
-func (eni ElasticNetworkInterface) connectedVPCRouter(resources ResourceGetter) (*VPCRouter, error) {
-	router, err := NewVPCRouter(resources)
+func (eni ElasticNetworkInterface) connectedVPCRouter(client DomainClient) (*VPCRouter, error) {
+	router, err := NewVPCRouter(client)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get VPC router: %v", err)
 	}

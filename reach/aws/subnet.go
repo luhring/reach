@@ -22,7 +22,7 @@ func (s Subnet) ToResource() reach.Resource {
 }
 
 // Dependencies returns a collection of the subnet's resource dependencies.
-func (s Subnet) Dependencies(provider ResourceGetter) (*reach.ResourceCollection, error) {
+func (s Subnet) Dependencies(provider DomainClient) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	networkACL, err := provider.NetworkACL(s.NetworkACLID)

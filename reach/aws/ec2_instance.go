@@ -9,7 +9,7 @@ import (
 )
 
 // ResourceKindEC2Instance specifies the unique name for the EC2 instance kind of resource.
-const ResourceKindEC2Instance = "EC2Instance"
+const ResourceKindEC2Instance reach.Kind = "EC2Instance"
 
 // An EC2Instance resource representation.
 type EC2Instance struct {
@@ -37,11 +37,11 @@ func (i EC2Instance) ResourceReference() reach.ResourceReference {
 }
 
 // Dependencies returns a collection of the EC2 instance's resource dependencies.
-func (i EC2Instance) Dependencies(provider ResourceGetter) (*reach.ResourceCollection, error) {
+func (i EC2Instance) Dependencies(client DomainClient) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	for _, attachment := range i.NetworkInterfaceAttachments {
-		attachmentDependencies, err := attachment.Dependencies(provider)
+		attachmentDependencies, err := attachment.Dependencies(client)
 		if err != nil {
 			return nil, err
 		}
@@ -73,14 +73,10 @@ func (i EC2Instance) Segments() bool {
 	return false // TODO: If this resource can ever perform NAT, this answer would change.
 }
 
-func (i EC2Instance) ForwardEdges(
-	previousEdge *reach.Edge,
-	domains reach.DomainProvider,
-	destinationIPs []net.IP,
-) ([]reach.Edge, error) {
+func (i EC2Instance) ForwardEdges(resolver reach.DomainClientResolver, previousEdge *reach.Edge, destinationIPs []net.IP) ([]reach.Edge, error) {
 	var tuples []reach.IPTuple
 	if previousEdge == nil { // This is the first point in the path.
-		t, err := i.firstPointTuples(domains, destinationIPs)
+		t, err := i.firstPointTuples(resolver, destinationIPs)
 		if err != nil {
 			return nil, fmt.Errorf("cannot generate tuples for first point: %v", err)
 		}
@@ -90,12 +86,12 @@ func (i EC2Instance) ForwardEdges(
 		tuples = []reach.IPTuple{previousEdge.Tuple}
 	}
 
-	resources, err := unpackResourceGetter(domains)
+	client, err := unpackDomainClient(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get resources: %v", err)
+		return nil, fmt.Errorf("unable to get client: %v", err)
 	}
 
-	enis, err := i.elasticNetworkInterfaces(resources)
+	enis, err := i.elasticNetworkInterfaces(client)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get ENIs: %v", err)
 	}
@@ -115,13 +111,13 @@ func (i EC2Instance) ForwardEdges(
 }
 
 func (i EC2Instance) firstPointTuples(
-	domains reach.DomainProvider,
+	resolver reach.DomainClientResolver,
 	destinationIPs []net.IP,
 ) ([]reach.IPTuple, error) {
 	// If the traffic originates from this EC2 instance, any of its owned IP addresses could be used as source.
 	// (Technically, any IP address could be used as source, as long as src/dst check is off, but currently we have no way to inform the Tracer about scenarios like this.)
 
-	srcIPs, err := i.InterfaceIPs(domains)
+	srcIPs, err := i.InterfaceIPs(resolver)
 	if err != nil {
 		return nil, fmt.Errorf("cannot determine possible src IPs: %v", err)
 	}
@@ -139,27 +135,27 @@ func (i EC2Instance) firstPointTuples(
 }
 
 func (i EC2Instance) FactorsForward(
+	_ reach.DomainClientResolver,
 	_ *reach.Edge,
-	_ reach.DomainProvider,
 ) ([]reach.Factor, error) {
 	f := i.newInstanceStateFactor()
 	return []reach.Factor{f}, nil
 }
 
-func (i EC2Instance) IPs(domains reach.DomainProvider) ([]net.IP, error) {
-	resources, err := unpackResourceGetter(domains)
+func (i EC2Instance) IPs(resolver reach.DomainClientResolver) ([]net.IP, error) {
+	client, err := unpackDomainClient(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get resources: %v", err)
+		return nil, fmt.Errorf("unable to get client: %v", err)
 	}
 
-	enis, err := i.elasticNetworkInterfaces(resources)
+	enis, err := i.elasticNetworkInterfaces(client)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't look up ENIs: %v", err)
 	}
 
 	var ips []net.IP
 	for _, eni := range enis {
-		eniIPs, err := eni.IPs(domains)
+		eniIPs, err := eni.IPs(resolver)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't get IPs for ENI (%s): %v", eni.Ref(), err)
 		}
@@ -169,13 +165,13 @@ func (i EC2Instance) IPs(domains reach.DomainProvider) ([]net.IP, error) {
 	return ips, nil
 }
 
-func (i EC2Instance) InterfaceIPs(domains reach.DomainProvider) ([]net.IP, error) {
-	resources, err := unpackResourceGetter(domains)
+func (i EC2Instance) InterfaceIPs(resolver reach.DomainClientResolver) ([]net.IP, error) {
+	client, err := unpackDomainClient(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get resources: %v", err)
+		return nil, fmt.Errorf("unable to get client: %v", err)
 	}
 
-	enis, err := i.elasticNetworkInterfaces(resources)
+	enis, err := i.elasticNetworkInterfaces(client)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't look up ENIs: %v", err)
 	}
@@ -225,12 +221,12 @@ func (i EC2Instance) elasticNetworkInterfaceIDs() []string {
 	return ids
 }
 
-func (i EC2Instance) elasticNetworkInterfaces(resources ResourceGetter) ([]ElasticNetworkInterface, error) {
+func (i EC2Instance) elasticNetworkInterfaces(client DomainClient) ([]ElasticNetworkInterface, error) {
 	eniIDs := i.elasticNetworkInterfaceIDs()
 	enis := make([]ElasticNetworkInterface, len(eniIDs))
 
 	for _, id := range eniIDs {
-		eni, err := resources.ElasticNetworkInterface(id)
+		eni, err := client.ElasticNetworkInterface(id)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't get ENI (%s): %v", id, err)
 		}

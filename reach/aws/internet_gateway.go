@@ -20,7 +20,7 @@ func (igw InternetGateway) ToResource() reach.Resource {
 }
 
 // Dependencies returns a collection of the Internet gateway's resource dependencies.
-func (igw InternetGateway) Dependencies(provider ResourceGetter) (*reach.ResourceCollection, error) {
+func (igw InternetGateway) Dependencies(provider DomainClient) (*reach.ResourceCollection, error) {
 	rc := reach.NewResourceCollection()
 
 	vpc, err := provider.VPC(igw.VPCID)

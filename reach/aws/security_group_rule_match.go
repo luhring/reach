@@ -12,7 +12,7 @@ type securityGroupRuleMatch struct {
 }
 
 func matchSecurityGroupRule(
-	resources ResourceGetter,
+	resources DomainClient,
 	rule SecurityGroupRule,
 	ip net.IP,
 ) (*securityGroupRuleMatch, error) {

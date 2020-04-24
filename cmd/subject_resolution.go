@@ -10,7 +10,7 @@ import (
 	"github.com/luhring/reach/reach/generic"
 )
 
-func resolveSubject(input string, progressWriter io.Writer, domains reach.DomainProvider) (*reach.Subject, error) {
+func resolveSubject(input string, progressWriter io.Writer, domains reach.DomainClientResolver) (*reach.Subject, error) {
 	q := getQualifiedSubject(input)
 
 	if q != nil {
@@ -38,7 +38,7 @@ type qualifiedSubject struct {
 	identifier string
 }
 
-func resolveSubjectImplicitly(input string, progressWriter io.Writer, domains reach.DomainProvider) (*reach.Subject, error) {
+func resolveSubjectImplicitly(input string, progressWriter io.Writer, domains reach.DomainClientResolver) (*reach.Subject, error) {
 	// 1. Try IP address format.
 	err := generic.CheckIPAddress(input)
 	if err == nil {
@@ -57,7 +57,7 @@ func resolveSubjectImplicitly(input string, progressWriter io.Writer, domains re
 	return aws.ResolveEC2InstanceSubject(input, domains)
 }
 
-func resolveSubjectExplicitly(qualifiedSubject qualifiedSubject, domains reach.DomainProvider) (*reach.Subject, error) {
+func resolveSubjectExplicitly(qualifiedSubject qualifiedSubject, domains reach.DomainClientResolver) (*reach.Subject, error) {
 	switch qualifiedSubject.typePrefix {
 	case "ip":
 		return generic.ResolveIPAddressSubject(qualifiedSubject.identifier)

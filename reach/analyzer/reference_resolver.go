@@ -3,12 +3,12 @@ package analyzer
 import "github.com/luhring/reach/reach"
 
 type ReferenceResolver struct {
-	domains reach.DomainProvider
+	resolver reach.DomainClientResolver
 }
 
-func NewReferenceResolver(domains reach.DomainProvider) ReferenceResolver {
+func NewReferenceResolver(resolver reach.DomainClientResolver) ReferenceResolver {
 	return ReferenceResolver{
-		domains: domains,
+		resolver: resolver,
 	}
 }
 

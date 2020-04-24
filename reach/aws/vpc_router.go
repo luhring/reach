@@ -6,7 +6,7 @@ type VPCRouter struct {
 	VPC VPC
 }
 
-func NewVPCRouter(resources ResourceGetter) (*VPCRouter, error) {
+func NewVPCRouter(resources DomainClient) (*VPCRouter, error) {
 
 }
 

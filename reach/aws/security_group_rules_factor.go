@@ -15,7 +15,7 @@ type securityGroupRulesFactor struct {
 }
 
 func (eni ElasticNetworkInterface) securityGroupRulesFactor(
-	resources ResourceGetter,
+	resources DomainClient,
 	previousEdge reach.Edge,
 ) (*reach.Factor, error) {
 	sgs, err := eni.securityGroups(resources)
@@ -62,7 +62,7 @@ func (eni ElasticNetworkInterface) securityGroupRulesFactor(
 	return factor, nil
 }
 
-func applicableSecurityGroupRules(resources ResourceGetter, sgs []SecurityGroup, ip net.IP, rules func(sg SecurityGroup) []SecurityGroupRule, direction securityGroupRuleDirection) ([]securityGroupRulesFactorComponent, error) {
+func applicableSecurityGroupRules(resources DomainClient, sgs []SecurityGroup, ip net.IP, rules func(sg SecurityGroup) []SecurityGroupRule, direction securityGroupRuleDirection) ([]securityGroupRulesFactorComponent, error) {
 	var components []securityGroupRulesFactorComponent
 
 	for _, sg := range sgs {
