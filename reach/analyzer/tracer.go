@@ -96,24 +96,22 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					return
 				}
 
-				err = detectLoop(job.path, traceable)
+				err = ensureNoPathCycles(job.path, traceable)
 				if err != nil {
-					results <- traceResult{error: fmt.Errorf("tracer detected a loop: %v", err)}
+					results <- traceResult{error: fmt.Errorf("tracer detected a path cycle: %v", err)}
 					return
 				}
 
-				var previousEdge *reach.Edge
 				firstTraceJob := job.path.Zero()
+
+				var previousEdge *reach.Edge
 				if !firstTraceJob {
 					edge := job.path.LastEdge()
 					previousEdge = &edge
 				}
 
 				factors, err := traceable.Factors(previousEdge, t.domains)
-				point := reach.Point{
-					Ref:     job.ref,
-					Factors: factors,
-				}
+				point := reach.Point{Ref: job.ref, Factors: factors}
 
 				var path reach.Path
 				if firstTraceJob {
@@ -128,13 +126,11 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					return
 				}
 
-				edges, err := traceable.ForwardEdges(
-					previousEdge,
-					t.domains,
-					job.destinationIPs,
-				)
+				edges, err := traceable.ForwardEdges(previousEdge, t.domains, job.destinationIPs)
 				if err != nil {
-					results <- traceResult{error: fmt.Errorf("tracer was unable to get edges for ref (%s): %v", job.ref, err)}
+					results <- traceResult{
+						error: fmt.Errorf("tracer was unable to get edges for ref (%s): %v", job.ref, err),
+					}
 					return
 				}
 
@@ -174,8 +170,8 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 	return results
 }
 
-func detectLoop(path reach.Path, traceable reach.Traceable) error {
-	// TODO: (Later) Consider a more intelligent loop detection system that leverages tuples
+func ensureNoPathCycles(path reach.Path, traceable reach.Traceable) error {
+	// TODO: (Later) Consider a more intelligent cycle detection system that leverages tuples
 
 	ref := traceable.Ref()
 	if traceable.Visitable(path.Contains(ref)) == false {
