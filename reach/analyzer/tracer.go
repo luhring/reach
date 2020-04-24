@@ -110,7 +110,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					previousEdge = &edge
 				}
 
-				factors, err := traceable.FactorsForward(previousEdge, t.domains)
+				factors, err := traceable.FactorsForward(t.domains, previousEdge)
 				point := reach.Point{Ref: job.ref, Factors: factors}
 
 				var path reach.Path
@@ -126,7 +126,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					return
 				}
 
-				edges, err := traceable.EdgesForward(previousEdge, t.domains, job.destinationIPs)
+				edges, err := traceable.EdgesForward(t.domains, previousEdge, job.destinationIPs)
 				if err != nil {
 					results <- traceResult{
 						error: fmt.Errorf("tracer was unable to get edges for ref (%s): %v", job.ref, err),
