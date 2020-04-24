@@ -24,7 +24,7 @@ const assertReachableFlag = "assert-reachable"
 const assertNotReachableFlag = "assert-not-reachable"
 
 var explain bool
-var showVectors bool
+var showPaths bool
 var outputJSON bool
 var assertReachable bool
 var assertNotReachable bool
@@ -65,7 +65,7 @@ See https://github.com/luhring/reach for documentation.`,
 		}
 		destination.SetRoleToDestination()
 
-		if !(outputJSON || explain || showVectors) {
+		if !(outputJSON || explain || showPaths) {
 			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
 		}
 
@@ -80,14 +80,14 @@ See https://github.com/luhring/reach for documentation.`,
 		} else if explain {
 			ex := explainer.New(*analysis)
 			fmt.Print(ex.Explain())
-		} else if showVectors { // TODO: This probably becomes "showPaths" or something
-			var vectorOutputs []string
+		} else if showPaths {
+			var pathDescriptions []string
 
-			for _, v := range analysis.NetworkVectors {
-				vectorOutputs = append(vectorOutputs, v.String())
+			for _, p := range analysis.Paths {
+				pathDescriptions = append(pathDescriptions, fmt.Sprint(p))
 			}
 
-			fmt.Print(strings.Join(vectorOutputs, "\n"))
+			fmt.Print(strings.Join(pathDescriptions, "\n"))
 		} else {
 			paths := analysis.Paths
 			tcs := reach.TrafficContentsFromPaths(paths)
@@ -99,9 +99,9 @@ See https://github.com/luhring/reach for documentation.`,
 			fmt.Print("network traffic allowed from source to destination:" + "\n")
 			fmt.Print(mergedTraffic.ColorStringWithSymbols())
 
-			if len(analysis.NetworkVectors) > 1 { // handling this case with care; this view isn't optimized for multi-vector output!
+			if len(paths) > 1 { // handling this case with care; this view isn't optimized for multi-vector output!
 				printMergedResultsWarning()
-				warnIfAnyVectorHasRestrictedReturnTraffic(analysis.NetworkVectors)
+				// warnIfAnyVectorHasRestrictedReturnTraffic(paths)
 			} else {
 				// calculate merged return traffic
 				mergedReturnTraffic, err := analysis.MergedReturnTraffic()
@@ -138,7 +138,7 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().BoolVar(&explain, explainFlag, false, "explain how the configuration was analyzed")
-	rootCmd.Flags().BoolVar(&showVectors, vectorsFlag, false, "show allowed traffic in terms of network vectors")
+	rootCmd.Flags().BoolVar(&showPaths, vectorsFlag, false, "show allowed traffic in terms of network vectors")
 	rootCmd.Flags().BoolVar(&outputJSON, jsonFlag, false, "output full analysis as JSON (overrides other display flags)")
 	rootCmd.Flags().BoolVar(&assertReachable, assertReachableFlag, false, "exit non-zero if no traffic is allowed from source to destination")
 	rootCmd.Flags().BoolVar(&assertNotReachable, assertNotReachableFlag, false, "exit non-zero if any traffic can reach destination from source")
