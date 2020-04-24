@@ -212,7 +212,7 @@ func (eni ElasticNetworkInterface) handleEdgeForEC2Instance(lastTuple reach.IPTu
 	return []reach.Edge{edge}, nil
 }
 
-func (eni ElasticNetworkInterface) Factors(
+func (eni ElasticNetworkInterface) FactorsForward(
 	previousEdge *reach.Edge,
 	domains reach.DomainProvider,
 ) ([]reach.Factor, error) {

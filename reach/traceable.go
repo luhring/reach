@@ -6,13 +6,17 @@ type Traceable interface {
 	Visitable(alreadyVisited bool) bool
 	Ref() InfrastructureReference
 	Segments() bool
-	ForwardEdges(
+	EdgesForward(
 		previousEdge *Edge,
 		domains DomainProvider,
 		destinationIPs []net.IP,
 	) ([]Edge, error)
-	Factors(
+	FactorsForward(
 		previousEdge *Edge,
+		domains DomainProvider,
+	) ([]Factor, error)
+	FactorsReturn(
+		nextEdge *Edge,
 		domains DomainProvider,
 	) ([]Factor, error)
 }

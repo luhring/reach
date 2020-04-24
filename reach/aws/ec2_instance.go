@@ -138,7 +138,7 @@ func (i EC2Instance) firstPointTuples(
 	return tuples, nil
 }
 
-func (i EC2Instance) Factors(
+func (i EC2Instance) FactorsForward(
 	_ *reach.Edge,
 	_ reach.DomainProvider,
 ) ([]reach.Factor, error) {
