@@ -102,23 +102,24 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					return
 				}
 
-				factors := traceable.Factors()
+				var previousEdge *reach.Edge
+				firstTraceJob := job.path.Zero()
+				if !firstTraceJob {
+					edge := job.path.LastEdge()
+					previousEdge = &edge
+				}
+
+				factors, err := traceable.Factors(previousEdge, t.domains)
 				point := reach.Point{
 					Ref:     job.ref,
 					Factors: factors,
 				}
 
-				firstTraceJob := job.path == nil
 				var path reach.Path
-				var previousEdge *reach.Edge
 				if firstTraceJob {
-					// This is the first traced point.
 					path = reach.NewPath(point)
 				} else {
-					path = *job.path
-					le := path.LastEdge()
-					previousEdge = &le
-					path = path.Add(job.edge, point, traceable.Segments())
+					path = job.path.Add(job.edge, point, traceable.Segments())
 				}
 
 				if traceable.Ref().Equal(job.destinationRef) {
@@ -148,7 +149,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 				for _, edge := range edges {
 					j := traceJob{
 						ref:            edge.EndRef,
-						path:           &path,
+						path:           path,
 						edge:           edge,
 						sourceRef:      job.sourceRef,
 						destinationRef: job.destinationRef,
@@ -173,12 +174,8 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 	return results
 }
 
-func detectLoop(path *reach.Path, traceable reach.Traceable) error {
+func detectLoop(path reach.Path, traceable reach.Traceable) error {
 	// TODO: (Later) Consider a more intelligent loop detection system that leverages tuples
-
-	if path == nil {
-		return nil
-	}
 
 	ref := traceable.Ref()
 	if traceable.Visitable(path.Contains(ref)) == false {

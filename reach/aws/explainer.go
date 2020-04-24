@@ -83,9 +83,9 @@ func (ex *Explainer) SecurityGroupRules(factor reach.Factor, p reach.Perspective
 		var ruleViewModels []securityGroupRuleExplanationViewModel
 
 		for _, rule := range rules {
-			sgRef := ex.analysis.Resources.Get(rule.SecurityGroup)
+			sgRef := ex.analysis.Resources.Get(rule.SecurityGroupID)
 			if sgRef == nil {
-				log.Fatalf(formatResourceMissing, rule.SecurityGroup)
+				log.Fatalf(formatResourceMissing, rule.SecurityGroupID)
 			}
 
 			sg := sgRef.Properties.(SecurityGroup)

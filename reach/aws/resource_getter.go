@@ -3,6 +3,7 @@ package aws
 import (
 	"errors"
 	"fmt"
+	"net"
 
 	"github.com/luhring/reach/reach"
 )
@@ -16,6 +17,7 @@ type ResourceGetter interface {
 	InternetGateway(id string) (*InternetGateway, error)
 	NATGateway(id string) (*NATGateway, error)
 	NetworkACL(id string) (*NetworkACL, error)
+	ResolveSecurityGroupReference(sgID string) ([]net.IPNet, error)
 	RouteTable(id string) (*RouteTable, error)
 	SecurityGroup(id string) (*SecurityGroup, error)
 	SecurityGroupReference(id, accountID string) (*SecurityGroupReference, error)

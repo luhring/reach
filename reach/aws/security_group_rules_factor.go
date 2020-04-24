@@ -1,6 +1,9 @@
 package aws
 
 import (
+	"fmt"
+	"net"
+
 	"github.com/luhring/reach/reach"
 )
 
@@ -11,86 +14,89 @@ type securityGroupRulesFactor struct {
 	RuleComponents []securityGroupRulesFactorComponent
 }
 
-type securityGroupRuleMatcher func(r SecurityGroupRule, other reach.NetworkPoint) *securityGroupRuleMatch
-
-// securityGroupRulesFactorForInterDomain calculates a SecurityGroupRules factor by assuming the other network point is not within the AWS domain.
-func (eni ElasticNetworkInterface) securityGroupRulesFactorForInterDomain(
-	rc *reach.ResourceCollection,
-	awsPerspective perspective,
-	otherNetworkPoint reach.NetworkPoint,
-) (*reach.Factor, error) {
-	matcher := func(r SecurityGroupRule, other reach.NetworkPoint) *securityGroupRuleMatch {
-		return r.matchIP(other.IPAddress)
-	}
-
-	return eni.securityGroupRulesFactor(rc, awsPerspective, otherNetworkPoint, matcher)
-}
-
-// securityGroupRulesFactorForAWSDomain calculates a SecurityGroupRules factor by assuming the other network point is within the AWS domain.
-func (eni ElasticNetworkInterface) securityGroupRulesFactorForAWSDomain(
-	rc *reach.ResourceCollection,
-	awsPerspective perspective,
-	otherNetworkPoint reach.NetworkPoint,
-) (*reach.Factor, error) {
-	matcher := func(r SecurityGroupRule, other reach.NetworkPoint) *securityGroupRuleMatch {
-		match := r.matchIP(other.IPAddress)
-		if match != nil {
-			return match
-		}
-
-		if eni := ElasticNetworkInterfaceFromNetworkPoint(other, rc); eni != nil {
-			return r.matchSecurityGroupAttachedToENI(*eni)
-		}
-
-		return nil
-	}
-
-	return eni.securityGroupRulesFactor(rc, awsPerspective, otherNetworkPoint, matcher)
-}
-
 func (eni ElasticNetworkInterface) securityGroupRulesFactor(
-	rc *reach.ResourceCollection,
-	awsPerspective perspective,
-	otherNetworkPoint reach.NetworkPoint,
-	matcher securityGroupRuleMatcher,
+	resources ResourceGetter,
+	previousEdge reach.Edge,
 ) (*reach.Factor, error) {
-	var components []securityGroupRulesFactorComponent
-	var trafficContentSegments []reach.TrafficContent
-
-	for _, sgID := range eni.SecurityGroupIDs {
-		sg := rc.Get(reach.ResourceReference{
-			Domain: ResourceDomainAWS,
-			Kind:   ResourceKindSecurityGroup,
-			ID:     sgID,
-		}).Properties.(SecurityGroup)
-
-		for i, rule := range awsPerspective.securityGroupRules(sg) {
-			if match := matcher(rule, otherNetworkPoint); match != nil {
-				trafficContentSegments = append(trafficContentSegments, rule.TrafficContent)
-
-				components = append(components, securityGroupRulesFactorComponent{
-					SecurityGroup: sg.ToResourceReference(),
-					RuleDirection: awsPerspective.securityGroupRuleDirection,
-					RuleIndex:     i,
-					Match:         *match,
-					Traffic:       rule.TrafficContent,
-				})
-			}
-		}
+	sgs, err := eni.securityGroups(resources)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get ENI's security groups: %v", err)
 	}
 
-	tc, err := reach.NewTrafficContentFromMergingMultiple(trafficContentSegments)
+	var ip net.IP
+	var rules func(sg SecurityGroup) []SecurityGroupRule
+	var direction securityGroupRuleDirection
+
+	switch flow := eni.flow(previousEdge.Tuple, previousEdge.ConnectsInterface); flow {
+	case reach.FlowOutbound:
+		ip = previousEdge.Tuple.Dst
+		rules = func(sg SecurityGroup) []SecurityGroupRule { return sg.OutboundRules }
+		direction = securityGroupRuleDirectionOutbound
+	case reach.FlowInbound:
+		ip = previousEdge.Tuple.Src
+		rules = func(sg SecurityGroup) []SecurityGroupRule { return sg.InboundRules }
+		direction = securityGroupRuleDirectionInbound
+	default:
+		return nil, fmt.Errorf("determing security group rules factors for flow '%s' is not supported", flow)
+	}
+
+	components, err := applicableSecurityGroupRules(resources, sgs, ip, rules, direction)
 	if err != nil {
 		return nil, err
 	}
 
-	return &reach.Factor{
+	traffic, err := trafficFromSecurityGroupRulesFactorComponents(components)
+	if err != nil {
+		return nil, fmt.Errorf("unable to consolidate factor traffic: %v", err)
+	}
+
+	factor := &reach.Factor{
 		Kind:          FactorKindSecurityGroupRules,
 		Resource:      eni.ResourceReference(),
-		Traffic:       tc,
-		ReturnTraffic: reach.NewTrafficContentForAllTraffic(),
+		Traffic:       traffic,
+		ReturnTraffic: reach.TrafficContent{},
 		Properties: securityGroupRulesFactor{
-			components,
+			RuleComponents: components,
 		},
-	}, nil
+	}
+	return factor, nil
+}
+
+func applicableSecurityGroupRules(resources ResourceGetter, sgs []SecurityGroup, ip net.IP, rules func(sg SecurityGroup) []SecurityGroupRule, direction securityGroupRuleDirection) ([]securityGroupRulesFactorComponent, error) {
+	var components []securityGroupRulesFactorComponent
+
+	for _, sg := range sgs {
+		for index, rule := range rules(sg) {
+			match, err := matchSecurityGroupRule(resources, rule, ip)
+			if err != nil {
+				return nil, fmt.Errorf("unable to get applicable security group rules: %v", err)
+			}
+
+			if match != nil {
+				c := securityGroupRulesFactorComponent{
+					SecurityGroupID: sg.ID,
+					RuleDirection:   direction,
+					RuleIndex:       index,
+					Match:           *match,
+					Traffic:         rule.TrafficContent,
+				}
+				components = append(components, c)
+			}
+		}
+	}
+
+	return components, nil
+}
+
+func trafficFromSecurityGroupRulesFactorComponents(components []securityGroupRulesFactorComponent) (reach.TrafficContent, error) {
+	var segments []reach.TrafficContent
+	for _, component := range components {
+		segments = append(segments, component.Traffic)
+	}
+
+	tc, err := reach.NewTrafficContentFromMergingMultiple(segments)
+	if err != nil {
+		return reach.TrafficContent{}, err
+	}
+	return tc, nil
 }

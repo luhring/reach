@@ -14,6 +14,10 @@ func NewPath(firstPoint Point) Path {
 	return path
 }
 
+func (p Path) Zero() bool {
+	return len(p.Segments) == 0
+}
+
 func (p Path) LastPoint() Point {
 	lastSegment := p.Segments[len(p.Segments)-1]
 	lastPoint := lastSegment.Points[len(lastSegment.Points)-1]

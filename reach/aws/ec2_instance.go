@@ -138,9 +138,12 @@ func (i EC2Instance) firstPointTuples(
 	return tuples, nil
 }
 
-func (i EC2Instance) Factors() []reach.Factor {
+func (i EC2Instance) Factors(
+	_ *reach.Edge,
+	_ reach.DomainProvider,
+) ([]reach.Factor, error) {
 	f := i.newInstanceStateFactor()
-	return []reach.Factor{f}
+	return []reach.Factor{f}, nil
 }
 
 func (i EC2Instance) IPs(domains reach.DomainProvider) ([]net.IP, error) {

@@ -11,5 +11,8 @@ type Traceable interface {
 		domains DomainProvider,
 		destinationIPs []net.IP,
 	) ([]Edge, error)
-	Factors() []Factor
+	Factors(
+		previousEdge *Edge,
+		domains DomainProvider,
+	) ([]Factor, error)
 }

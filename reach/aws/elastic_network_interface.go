@@ -113,8 +113,8 @@ func (eni ElasticNetworkInterface) Dependencies(provider ResourceGetter) (*reach
 	return rc, nil
 }
 
-func (eni ElasticNetworkInterface) Visitable(alreadyVisited bool) bool {
-	return alreadyVisited == false
+func (eni ElasticNetworkInterface) Visitable(_ bool) bool {
+	return true
 }
 
 func (eni ElasticNetworkInterface) Ref() reach.InfrastructureReference {
@@ -132,8 +132,9 @@ func (eni ElasticNetworkInterface) ForwardEdges(
 	domains reach.DomainProvider,
 	_ []net.IP,
 ) ([]reach.Edge, error) {
-	if previousEdge == nil {
-		return nil, errors.New("reach does not currently support an Elastic Network Interface being the first point in a path")
+	err := eni.checkNilPreviousEdge(previousEdge)
+	if err != nil {
+		return nil, fmt.Errorf("unable to generate forward edges: %v", err)
 	}
 
 	// Elastic Network Interfaces don't mutate the IP tuple
@@ -144,26 +145,45 @@ func (eni ElasticNetworkInterface) ForwardEdges(
 		return nil, fmt.Errorf("unable to get resources: %v", err)
 	}
 
-	if eni.owns(tuple.Dst) {
+	switch eni.flow(tuple, previousEdge.ConnectsInterface) {
+	case reach.FlowOutbound:
+		return eni.handleEdgeForVPCRouter(tuple, resources)
+	case reach.FlowInbound:
 		return eni.handleEdgeForEC2Instance(tuple, resources)
+	case reach.FlowDropped:
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("cannot determine direction of flow for tuple (%v)", tuple)
+	}
+}
+
+func (eni ElasticNetworkInterface) flow(tuple reach.IPTuple, previousEdgeConnectsInterface bool) reach.Flow {
+	if eni.owns(tuple.Dst) {
+		return reach.FlowInbound
 	}
 
 	if eni.owns(tuple.Src) {
-		return eni.handleEdgeForVPCRouter(tuple, resources)
+		return reach.FlowOutbound
 	}
 
 	if eni.SrcDstCheck == false {
-		if previousEdge.ConnectsInterface {
-			return eni.handleEdgeForVPCRouter(tuple, resources)
+		if previousEdgeConnectsInterface {
+			return reach.FlowOutbound
 		}
 
-		return eni.handleEdgeForEC2Instance(tuple, resources)
+		return reach.FlowInbound
 	}
 
 	// SrcDstCheck is on, but neither of the IPs in the tuple belongs to this ENI.
 	// This traffic would be dropped by the ENI.
-	// Thus, no forward edges.
-	return nil, nil
+	return reach.FlowDropped
+}
+
+func (eni ElasticNetworkInterface) checkNilPreviousEdge(previousEdge *reach.Edge) error {
+	if previousEdge == nil {
+		return errors.New("reach does not currently support an Elastic Network Interface being the first point in a path")
+	}
+	return nil
 }
 
 func (eni ElasticNetworkInterface) handleEdgeForVPCRouter(lastTuple reach.IPTuple, resources ResourceGetter) ([]reach.Edge, error) {
@@ -192,8 +212,41 @@ func (eni ElasticNetworkInterface) handleEdgeForEC2Instance(lastTuple reach.IPTu
 	return []reach.Edge{edge}, nil
 }
 
-func (eni ElasticNetworkInterface) Factors() []reach.Factor {
-	panic("implement me")
+func (eni ElasticNetworkInterface) Factors(
+	previousEdge *reach.Edge,
+	domains reach.DomainProvider,
+) ([]reach.Factor, error) {
+	err := eni.checkNilPreviousEdge(previousEdge)
+	if err != nil {
+		return nil, fmt.Errorf("unable to generate forward edges: %v", err)
+	}
+
+	resources, err := unpackResourceGetter(domains)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get resources: %v", err)
+	}
+
+	var factors []reach.Factor
+
+	sgRulesFactor, err := eni.securityGroupRulesFactor(resources, *previousEdge)
+	if err != nil {
+		return nil, fmt.Errorf("unable to determine security group rules factors: %v", err)
+	}
+	factors = append(factors, *sgRulesFactor)
+
+	return factors, nil
+}
+
+func (eni ElasticNetworkInterface) securityGroups(resources ResourceGetter) ([]SecurityGroup, error) {
+	sgs := make([]SecurityGroup, len(eni.SecurityGroupIDs))
+	for _, id := range eni.SecurityGroupIDs {
+		sg, err := resources.SecurityGroup(id)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get security group (id: %s): %v", id, err)
+		}
+		sgs = append(sgs, *sg)
+	}
+	return sgs, nil
 }
 
 func (eni ElasticNetworkInterface) IPs(_ reach.DomainProvider) ([]net.IP, error) {
