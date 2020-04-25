@@ -23,7 +23,7 @@ func (a *Analyzer) Analyze(source, destination reach.Subject) (*reach.Analysis, 
 	var tracer reach.Tracer = NewTracer(a.resolver)
 	paths, err := tracer.Trace(source, destination)
 	if err != nil {
-		return nil, fmt.Errorf("unable to complete trace: %v", err)
+		return nil, fmt.Errorf("unable to complete trace of network paths: %v", err)
 	}
 
 	// var analyzedPaths []analyzedPath

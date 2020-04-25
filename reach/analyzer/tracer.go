@@ -90,7 +90,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 				traceable, ok := resource.Properties.(reach.Traceable)
 				if !ok {
 					results <- traceResult{
-						error: fmt.Errorf("attempted to trace resource that is not traceable"),
+						error: fmt.Errorf("cannot trace point that doesn't implement the traceable interface: '%v'", job.ref),
 					}
 					return
 				}
