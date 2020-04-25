@@ -48,7 +48,7 @@ See https://github.com/luhring/reach for documentation.`,
 		sourceInput := args[0]
 		destinationInput := args[1]
 
-		catalog := &reach.DomainClientCatalog{}
+		catalog := reach.NewDomainClientCatalog()
 		catalog.Store(aws.ResourceDomainAWS, api.NewDomainClient())
 		catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
 

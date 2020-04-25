@@ -57,6 +57,10 @@ func (client *DomainClient) AllEC2Instances() ([]reachAWS.EC2Instance, error) {
 	return instances, nil
 }
 
+func (client *DomainClient) EC2InstanceByENI(eniID string) (*reachAWS.EC2Instance, error) {
+	panic("implement me!")
+}
+
 func newEC2InstanceFromAPI(instance *ec2.Instance) reachAWS.EC2Instance {
 	return reachAWS.EC2Instance{
 		ID:                          aws.StringValue(instance.InstanceId),

@@ -58,7 +58,7 @@ func (i EC2Instance) Segments() bool {
 	return false // TODO: If this resource can ever perform NAT, this answer would change.
 }
 
-func (i EC2Instance) ForwardEdges(resolver reach.DomainClientResolver, previousEdge *reach.Edge, destinationIPs []net.IP) ([]reach.Edge, error) {
+func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, destinationIPs []net.IP) ([]reach.Edge, error) {
 	var tuples []reach.IPTuple
 	if previousEdge == nil { // This is the first point in the path.
 		t, err := i.firstPointTuples(resolver, destinationIPs)
@@ -125,6 +125,10 @@ func (i EC2Instance) FactorsForward(
 ) ([]reach.Factor, error) {
 	f := i.newInstanceStateFactor()
 	return []reach.Factor{f}, nil
+}
+
+func (i EC2Instance) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
+	panic("implement me!")
 }
 
 func (i EC2Instance) IPs(resolver reach.DomainClientResolver) ([]net.IP, error) {

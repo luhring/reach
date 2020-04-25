@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 	"sync"
 
 	"github.com/luhring/reach/reach"
@@ -45,7 +44,8 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 
 	for result := range results {
 		if result.error != nil {
-			_, _ = fmt.Fprintln(os.Stderr, result.error) // TODO: Log more intelligently!
+			// _, _ = fmt.Fprintln(os.Stderr, result.error) // TODO: Log more intelligently!
+			return nil, result.error
 		}
 		paths = append(paths, *result.path)
 	}
@@ -135,8 +135,8 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 
 				numEdges := len(edges)
 				if numEdges < 1 {
-					err := fmt.Errorf("no forward edges found when processing job:\n%+v", job)
-					results <- traceResult{error: err}
+					results <- traceResult{
+						error: fmt.Errorf("no forward edges found when processing job:\n%+v", job)}
 					return
 				}
 

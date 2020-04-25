@@ -1,6 +1,8 @@
 package api
 
 import (
+	"net"
+
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
@@ -20,4 +22,8 @@ func (client *DomainClient) SecurityGroupReference(id, accountID string) (*reach
 		NameTag:   sg.NameTag,
 		GroupName: sg.GroupName,
 	}, nil
+}
+
+func (client *DomainClient) ResolveSecurityGroupReference(sgID string) ([]net.IPNet, error) {
+	panic("implement me!")
 }
