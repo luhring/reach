@@ -44,14 +44,16 @@ func (i EC2Instance) Name() string {
 	return i.ID
 }
 
-func (i EC2Instance) Visitable(alreadyVisited bool) bool {
-	return alreadyVisited == false
-}
+// ———— Implementing Traceable ————
 
 func (i EC2Instance) Ref() reach.UniversalReference {
 	return reach.UniversalReference{
 		R: i.ResourceReference(),
 	}
+}
+
+func (i EC2Instance) Visitable(alreadyVisited bool) bool {
+	return alreadyVisited == false
 }
 
 func (i EC2Instance) Segments() bool {
@@ -95,30 +97,6 @@ func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousE
 	return edges, nil
 }
 
-func (i EC2Instance) firstPointTuples(
-	resolver reach.DomainClientResolver,
-	destinationIPs []net.IP,
-) ([]reach.IPTuple, error) {
-	// If the traffic originates from this EC2 instance, any of its owned IP addresses could be used as source.
-	// (Technically, any IP address could be used as source, as long as src/dst check is off, but currently we have no way to inform the Tracer about scenarios like this.)
-
-	srcIPs, err := i.InterfaceIPs(resolver)
-	if err != nil {
-		return nil, fmt.Errorf("cannot determine possible src IPs: %v", err)
-	}
-	// TODO: We need some mechanism to confirm destination addresses are valid in the context of source's network.
-	var tuples []reach.IPTuple
-	for _, src := range srcIPs {
-		for _, dst := range destinationIPs {
-			tuples = append(tuples, reach.IPTuple{
-				Src: src,
-				Dst: dst,
-			})
-		}
-	}
-	return tuples, nil
-}
-
 func (i EC2Instance) FactorsForward(
 	_ reach.DomainClientResolver,
 	_ *reach.Edge,
@@ -127,9 +105,11 @@ func (i EC2Instance) FactorsForward(
 	return []reach.Factor{f}, nil
 }
 
-func (i EC2Instance) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
+func (i EC2Instance) FactorsReturn(_ reach.DomainClientResolver, _ *reach.Edge) ([]reach.Factor, error) {
 	panic("implement me!")
 }
+
+// ———— Implementing IPAddressable ————
 
 func (i EC2Instance) IPs(resolver reach.DomainClientResolver) ([]net.IP, error) {
 	client, err := unpackDomainClient(resolver)
@@ -171,6 +151,29 @@ func (i EC2Instance) InterfaceIPs(resolver reach.DomainClientResolver) ([]net.IP
 	}
 
 	return ips, nil
+}
+
+// ———— Supporting methods ————
+
+func (i EC2Instance) firstPointTuples(resolver reach.DomainClientResolver, destinationIPs []net.IP) ([]reach.IPTuple, error) {
+	// If the traffic originates from this EC2 instance, any of its owned IP addresses could be used as source.
+	// (Technically, any IP address could be used as source, as long as src/dst check is off, but currently we have no way to inform the Tracer about scenarios like this.)
+
+	srcIPs, err := i.InterfaceIPs(resolver)
+	if err != nil {
+		return nil, fmt.Errorf("cannot determine possible src IPs: %v", err)
+	}
+	// TODO: We need some mechanism to confirm destination addresses are valid in the context of source's network.
+	var tuples []reach.IPTuple
+	for _, src := range srcIPs {
+		for _, dst := range destinationIPs {
+			tuples = append(tuples, reach.IPTuple{
+				Src: src,
+				Dst: dst,
+			})
+		}
+	}
+	return tuples, nil
 }
 
 // FactorKindInstanceState specifies the unique name for the EC2 instance state of factor.

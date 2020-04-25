@@ -50,14 +50,16 @@ func (eni ElasticNetworkInterface) ResourceReference() reach.ResourceReference {
 	}
 }
 
-func (eni ElasticNetworkInterface) Visitable(_ bool) bool {
-	return true
-}
+// ———— Implementing Traceable ————
 
 func (eni ElasticNetworkInterface) Ref() reach.UniversalReference {
 	return reach.UniversalReference{
 		R: eni.ResourceReference(),
 	}
+}
+
+func (eni ElasticNetworkInterface) Visitable(_ bool) bool {
+	return true
 }
 
 func (eni ElasticNetworkInterface) Segments() bool {
@@ -89,6 +91,49 @@ func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResol
 		return nil, fmt.Errorf("cannot determine direction of flow for tuple (%v)", tuple)
 	}
 }
+
+func (eni ElasticNetworkInterface) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
+	err := eni.checkNilPreviousEdge(previousEdge)
+	if err != nil {
+		return nil, fmt.Errorf("unable to generate forward edges: %v", err)
+	}
+
+	client, err := unpackDomainClient(resolver)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get client: %v", err)
+	}
+
+	var factors []reach.Factor
+
+	sgRulesFactor, err := eni.securityGroupRulesFactor(client, *previousEdge)
+	if err != nil {
+		return nil, fmt.Errorf("unable to determine security group rules factors: %v", err)
+	}
+	factors = append(factors, *sgRulesFactor)
+
+	return factors, nil
+}
+
+func (eni ElasticNetworkInterface) FactorsReturn(_ reach.DomainClientResolver, _ *reach.Edge) ([]reach.Factor, error) {
+	panic("implement me!")
+}
+
+// ———— Implementing IPAddressable ————
+
+func (eni ElasticNetworkInterface) IPs(_ reach.DomainClientResolver) ([]net.IP, error) {
+	var ips []net.IP
+
+	ips = append(ips, eni.ownedIPs()...)
+	if eni.PublicIPv4Address.Equal(nil) == false {
+		ips = append(ips, eni.PublicIPv4Address)
+	}
+
+	return ips, nil
+}
+
+// TODO: Either implement method InterfaceIPs, or modify interface
+
+// ———— Supporting methods ————
 
 func (eni ElasticNetworkInterface) flow(tuple reach.IPTuple, previousEdgeConnectsInterface bool) reach.Flow {
 	if eni.owns(tuple.Dst) {
@@ -145,32 +190,6 @@ func (eni ElasticNetworkInterface) handleEdgeForEC2Instance(client DomainClient,
 	return []reach.Edge{edge}, nil
 }
 
-func (eni ElasticNetworkInterface) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
-	err := eni.checkNilPreviousEdge(previousEdge)
-	if err != nil {
-		return nil, fmt.Errorf("unable to generate forward edges: %v", err)
-	}
-
-	client, err := unpackDomainClient(resolver)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get client: %v", err)
-	}
-
-	var factors []reach.Factor
-
-	sgRulesFactor, err := eni.securityGroupRulesFactor(client, *previousEdge)
-	if err != nil {
-		return nil, fmt.Errorf("unable to determine security group rules factors: %v", err)
-	}
-	factors = append(factors, *sgRulesFactor)
-
-	return factors, nil
-}
-
-func (eni ElasticNetworkInterface) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
-	panic("implement me!")
-}
-
 func (eni ElasticNetworkInterface) securityGroups(client DomainClient) ([]SecurityGroup, error) {
 	sgs := make([]SecurityGroup, len(eni.SecurityGroupIDs))
 	for _, id := range eni.SecurityGroupIDs {
@@ -181,17 +200,6 @@ func (eni ElasticNetworkInterface) securityGroups(client DomainClient) ([]Securi
 		sgs = append(sgs, *sg)
 	}
 	return sgs, nil
-}
-
-func (eni ElasticNetworkInterface) IPs(_ reach.DomainClientResolver) ([]net.IP, error) {
-	var ips []net.IP
-
-	ips = append(ips, eni.ownedIPs()...)
-	if eni.PublicIPv4Address.Equal(nil) == false {
-		ips = append(ips, eni.PublicIPv4Address)
-	}
-
-	return ips, nil
 }
 
 func (eni ElasticNetworkInterface) ownedIPs() []net.IP {
@@ -222,9 +230,9 @@ func (eni ElasticNetworkInterface) connectedEC2Instance(client DomainClient) (*E
 }
 
 func (eni ElasticNetworkInterface) connectedVPCRouter(client DomainClient) (*VPCRouter, error) {
-	router, err := NewVPCRouter(client)
+	router, err := NewVPCRouter(client, eni.VPCID)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get VPC router: %v", err)
+		return nil, fmt.Errorf("unable to get connected VPC router: %v", err)
 	}
 	return router, nil
 }
