@@ -212,7 +212,7 @@ func (i EC2Instance) elasticNetworkInterfaceIDs() []string {
 
 func (i EC2Instance) elasticNetworkInterfaces(client DomainClient) ([]ElasticNetworkInterface, error) {
 	eniIDs := i.elasticNetworkInterfaceIDs()
-	enis := make([]ElasticNetworkInterface, len(eniIDs))
+	var enis []ElasticNetworkInterface
 
 	for _, id := range eniIDs {
 		eni, err := client.ElasticNetworkInterface(id)
