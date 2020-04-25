@@ -187,7 +187,9 @@ func (eni ElasticNetworkInterface) IPs(_ reach.DomainClientResolver) ([]net.IP, 
 	var ips []net.IP
 
 	ips = append(ips, eni.ownedIPs()...)
-	ips = append(ips, eni.PublicIPv4Address)
+	if eni.PublicIPv4Address.Equal(nil) == false {
+		ips = append(ips, eni.PublicIPv4Address)
+	}
 
 	return ips, nil
 }
