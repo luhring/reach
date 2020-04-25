@@ -15,13 +15,13 @@ const ResourceKindElasticNetworkInterface reach.Kind = "ElasticNetworkInterface"
 // An ElasticNetworkInterface resource representation.
 type ElasticNetworkInterface struct {
 	ID                   string
-	NameTag              string `json:"NameTag,omitempty"`
+	NameTag              string `json:",omitempty"`
 	SubnetID             string
 	VPCID                string
 	SecurityGroupIDs     []string
-	PublicIPv4Address    net.IP   `json:"PublicIPv4Address,omitempty"`
-	PrivateIPv4Addresses []net.IP `json:"PrivateIPv4Addresses,omitempty"`
-	IPv6Addresses        []net.IP `json:"IPv6Addresses,omitempty"`
+	PublicIPv4Address    net.IP   `json:",omitempty"`
+	PrivateIPv4Addresses []net.IP `json:",omitempty"`
+	IPv6Addresses        []net.IP `json:",omitempty"`
 	SrcDstCheck          bool
 }
 
@@ -64,7 +64,7 @@ func (eni ElasticNetworkInterface) Segments() bool {
 	return false
 }
 
-func (eni ElasticNetworkInterface) ForwardEdges(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ []net.IP) ([]reach.Edge, error) {
+func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ []net.IP) ([]reach.Edge, error) {
 	err := eni.checkNilPreviousEdge(previousEdge)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate forward edges: %v", err)
@@ -165,6 +165,10 @@ func (eni ElasticNetworkInterface) FactorsForward(resolver reach.DomainClientRes
 	factors = append(factors, *sgRulesFactor)
 
 	return factors, nil
+}
+
+func (eni ElasticNetworkInterface) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
+	panic("implement me!")
 }
 
 func (eni ElasticNetworkInterface) securityGroups(client DomainClient) ([]SecurityGroup, error) {

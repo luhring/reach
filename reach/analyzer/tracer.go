@@ -1,7 +1,6 @@
 package analyzer
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"sync"
@@ -58,15 +57,15 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 func (t *Tracer) subjectIPs(s reach.Subject) ([]net.IP, error) {
 	infrastructure, err := t.referenceResolver.Resolve(s.Ref())
 	if err != nil {
-		return nil, fmt.Errorf("unable to get infrastructure for subject: %v", err)
+		return nil, fmt.Errorf("unable to get infrastructure for subject (%v): %v", s.Ref(), err)
 	}
 	addressable, ok := infrastructure.Properties.(reach.IPAddressable)
 	if !ok {
-		return nil, errors.New("subject does not implement IPAddressable")
+		return nil, fmt.Errorf("subject does not implement IPAddressable (%v)", s.Ref())
 	}
 	ips, err := addressable.IPs(t.domainClientResolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get IP addresses for subject: %v", err)
+		return nil, fmt.Errorf("unable to get IP addresses for subject (%v): %v", s.Ref(), err)
 	}
 	return ips, nil
 }
