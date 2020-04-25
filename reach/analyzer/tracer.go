@@ -104,8 +104,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 
 				var previousEdge *reach.Edge
 				if isFirstTraceJob == false {
-					edge := job.path.LastEdge()
-					previousEdge = &edge
+					previousEdge = &job.edge
 				}
 
 				factors, err := traceable.FactorsForward(t.domainClientResolver, previousEdge)
