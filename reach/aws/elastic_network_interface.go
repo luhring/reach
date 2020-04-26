@@ -66,7 +66,9 @@ func (eni ElasticNetworkInterface) Segments() bool {
 	return false
 }
 
-func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ []net.IP) ([]reach.Edge, error) {
+func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ *reach.UniversalReference, _ []net.IP) ([]reach.Edge, error) {
+	// TODO: Use previousRef for more intelligent detection of incoming traffic's origin
+
 	err := eni.checkNilPreviousEdge(previousEdge)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate forward edges: %v", err)
@@ -159,7 +161,7 @@ func (eni ElasticNetworkInterface) flow(tuple reach.IPTuple, previousEdgeConnect
 
 func (eni ElasticNetworkInterface) checkNilPreviousEdge(previousEdge *reach.Edge) error {
 	if previousEdge == nil {
-		return errors.New("reach does not currently support an Elastic Network Interface being the first point in a path")
+		return errors.New("reach does not support an Elastic Network Interface being the first point in a path")
 	}
 	return nil
 }

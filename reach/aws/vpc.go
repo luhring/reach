@@ -31,3 +31,23 @@ func (vpc VPC) ResourceReference() reach.ResourceReference {
 		ID:     vpc.ID,
 	}
 }
+
+func (vpc VPC) contains(ip net.IP) bool {
+	for _, network := range vpc.IPv4CIDRs {
+		if network.Contains(ip) {
+			return true
+		}
+	}
+
+	for _, network := range vpc.IPv6CIDRs {
+		if network.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (vpc VPC) subnetThatContains(client DomainClient, ip net.IP) (*Subnet, error) {
+	panic("implement me!")
+}

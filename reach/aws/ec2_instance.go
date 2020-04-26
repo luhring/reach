@@ -60,7 +60,9 @@ func (i EC2Instance) Segments() bool {
 	return false // TODO: If this resource can ever perform NAT, this answer would change.
 }
 
-func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, destinationIPs []net.IP) ([]reach.Edge, error) {
+func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ *reach.UniversalReference, destinationIPs []net.IP) ([]reach.Edge, error) {
+	// TODO: Use previousRef for more intelligent detection of incoming traffic's origin
+
 	var tuples []reach.IPTuple
 	if previousEdge == nil { // This is the first point in the path.
 		t, err := i.firstPointTuples(resolver, destinationIPs)

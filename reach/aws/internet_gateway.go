@@ -1,6 +1,10 @@
 package aws
 
-import "github.com/luhring/reach/reach"
+import (
+	"net"
+
+	"github.com/luhring/reach/reach"
+)
 
 // ResourceKindInternetGateway specifies the unique name for the Internet gateway kind of resource.
 const ResourceKindInternetGateway reach.Kind = "InternetGateway"
@@ -17,4 +21,28 @@ func (igw InternetGateway) Resource() reach.Resource {
 		Kind:       ResourceKindInternetGateway,
 		Properties: igw,
 	}
+}
+
+func (igw InternetGateway) Ref() reach.UniversalReference {
+	panic("implement me")
+}
+
+func (igw InternetGateway) Visitable(alreadyVisited bool) bool {
+	panic("implement me")
+}
+
+func (igw InternetGateway) Segments() bool {
+	panic("implement me")
+}
+
+func (igw InternetGateway) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.UniversalReference, destinationIPs []net.IP) ([]reach.Edge, error) {
+	panic("implement me")
+}
+
+func (igw InternetGateway) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
+	panic("implement me")
+}
+
+func (igw InternetGateway) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
+	panic("implement me")
 }

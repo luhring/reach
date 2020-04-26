@@ -13,14 +13,17 @@ type DomainClient interface {
 	EC2Instance(id string) (*EC2Instance, error)
 	EC2InstanceByENI(eniID string) (*EC2Instance, error)
 	ElasticNetworkInterface(id string) (*ElasticNetworkInterface, error)
+	ElasticNetworkInterfaceByIP(ip net.IP) (*ElasticNetworkInterface, error)
 	InternetGateway(id string) (*InternetGateway, error)
 	NATGateway(id string) (*NATGateway, error)
 	NetworkACL(id string) (*NetworkACL, error)
 	ResolveSecurityGroupReference(sgID string) ([]net.IPNet, error)
 	RouteTable(id string) (*RouteTable, error)
+	RouteTableForGateway(id string) (*RouteTable, error)
 	SecurityGroup(id string) (*SecurityGroup, error)
 	SecurityGroupReference(id, accountID string) (*SecurityGroupReference, error)
 	Subnet(id string) (*Subnet, error)
+	SubnetsByVPC(id string) ([]Subnet, error)
 	VPC(id string) (*VPC, error)
 }
 

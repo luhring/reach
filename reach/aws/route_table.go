@@ -1,6 +1,12 @@
 package aws
 
-import "github.com/luhring/reach/reach"
+import (
+	"fmt"
+	"net"
+	"sort"
+
+	"github.com/luhring/reach/reach"
+)
 
 // ResourceKindRouteTable specifies the unique name for the route table kind of resource.
 const ResourceKindRouteTable reach.Kind = "RouteTable"
@@ -18,4 +24,21 @@ func (rt RouteTable) Resource() reach.Resource {
 		Kind:       ResourceKindRouteTable,
 		Properties: rt,
 	}
+}
+
+func (rt RouteTable) routeTarget(ip net.IP) (*RouteTableRouteTarget, error) {
+	routes := rt.routesBySpecificity()
+	for _, route := range routes {
+		if route.contains(ip) && route.State == RouteStateActive {
+			return &route.Target, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no active RouteTableRouteTarget found for %s", ip)
+}
+
+func (rt RouteTable) routesBySpecificity() []RouteTableRoute {
+	routes := rt.Routes
+	sort.Sort(byRouteDestinationSpecificity(routes))
+	return routes
 }

@@ -66,7 +66,7 @@ func routeTableRoutesFromAPI(routes []*ec2.Route) ([]reachAWS.RouteTableRoute, e
 	return result, nil
 }
 
-func routeStateFromAPI(v string) reachAWS.RouteState {
+func routeStateFromAPI(v string) reachAWS.RouteTableRouteState {
 	switch v {
 	case ec2.RouteStateActive:
 		return reachAWS.RouteStateActive

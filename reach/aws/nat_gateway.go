@@ -25,3 +25,27 @@ func (ngw NATGateway) Resource() reach.Resource {
 		Properties: ngw,
 	}
 }
+
+func (ngw NATGateway) Ref() reach.UniversalReference {
+	panic("implement me")
+}
+
+func (ngw NATGateway) Visitable(alreadyVisited bool) bool {
+	panic("implement me")
+}
+
+func (ngw NATGateway) Segments() bool {
+	panic("implement me")
+}
+
+func (ngw NATGateway) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.UniversalReference, destinationIPs []net.IP) ([]reach.Edge, error) {
+	panic("implement me")
+}
+
+func (ngw NATGateway) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
+	panic("implement me")
+}
+
+func (ngw NATGateway) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
+	panic("implement me")
+}

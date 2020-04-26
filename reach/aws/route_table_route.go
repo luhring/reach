@@ -2,63 +2,34 @@ package aws
 
 import (
 	"net"
-	"strings"
 )
 
 // A RouteTableRoute resource representation.
 type RouteTableRoute struct {
 	Destination *net.IPNet
-	State       RouteState
+	State       RouteTableRouteState
 	Target      RouteTableRouteTarget
 }
 
-type RouteTableRouteTarget struct {
-	Type RouteTargetType
-	ID   string
+func (route RouteTableRoute) maskZeros() int {
+	ones, bits := route.Destination.Mask.Size()
+	return bits - ones
 }
 
-type RouteTargetType int
-
-const (
-	RouteTargetTypeInternetGateway RouteTargetType = iota
-	RouteTargetTypeNATGateway
-	RouteTargetTypeNATInstance
-	RouteTargetTypeVirtualPrivateGateway
-	RouteTargetTypeLocalGateway // TODO: Look up how this works; reference: https://docs.aws.amazon.com/vpc/latest/userguide/route-table-options.html#route-tables-lgw
-	RouteTargetTypeVPCPeeringConnection
-	RouteTargetTypeGatewayVPCEndpoint
-	RouteTargetTypeEgressOnlyInternetGateway
-	RouteTargetTypeTransitGateway
-	RouteTargetTypeUnknown
-)
-
-func RouteTargetTypeFromPrefix(id string) RouteTargetType {
-	prefix := strings.Split(id, "-")[0]
-
-	switch prefix {
-	case "igw":
-		return RouteTargetTypeInternetGateway
-	case "vgw":
-		return RouteTargetTypeVirtualPrivateGateway
-	case "lgw":
-		return RouteTargetTypeLocalGateway
-	case "pcx":
-		return RouteTargetTypeVPCPeeringConnection
-	case "vpce":
-		return RouteTargetTypeGatewayVPCEndpoint
-	case "eigw":
-		return RouteTargetTypeEgressOnlyInternetGateway
-	case "tgw":
-		return RouteTargetTypeTransitGateway
-	default:
-		return RouteTargetTypeUnknown
-	}
+func (route RouteTableRoute) contains(ip net.IP) bool {
+	return route.Destination.Contains(ip)
 }
 
-type RouteState int
+type byRouteDestinationSpecificity []RouteTableRoute
 
-const (
-	RouteStateActive RouteState = iota
-	RouteStateBlackhole
-	RouteStateUnknown
-)
+func (s byRouteDestinationSpecificity) Len() int {
+	return len(s)
+}
+
+func (s byRouteDestinationSpecificity) Less(i, j int) bool {
+	return s[i].maskZeros() < s[j].maskZeros()
+}
+
+func (s byRouteDestinationSpecificity) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
