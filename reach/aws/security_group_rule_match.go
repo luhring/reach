@@ -1,14 +1,15 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 )
 
 type securityGroupRuleMatch struct {
 	IP           net.IP
-	MatchedIPNet *net.IPNet
-	MatchedSGRef *SecurityGroupReference
+	MatchedIPNet *net.IPNet              `json:",omitempty"`
+	MatchedSGRef *SecurityGroupReference `json:",omitempty"`
 }
 
 func matchSecurityGroupRule(
@@ -53,6 +54,28 @@ func matchSecurityGroupRule(
 	}
 
 	return nil, nil
+}
+
+func (m securityGroupRuleMatch) MarshalJSON() ([]byte, error) {
+	var matchedIPNet string
+	if m.MatchedIPNet != nil {
+		matchedIPNet = m.MatchedIPNet.String()
+	}
+
+	var matchedSGRef string
+	if m.MatchedSGRef != nil {
+		matchedSGRef = m.MatchedSGRef.ID
+	}
+
+	return json.Marshal(struct {
+		IP           string
+		MatchedIPNet string `json:",omitempty"`
+		MatchedSGRef string `json:",omitempty"`
+	}{
+		IP:           m.IP.String(),
+		MatchedIPNet: matchedIPNet,
+		MatchedSGRef: matchedSGRef,
+	})
 }
 
 func (m securityGroupRuleMatch) Basis() securityGroupRuleMatchBasis {
