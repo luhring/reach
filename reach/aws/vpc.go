@@ -24,8 +24,8 @@ func (vpc VPC) Resource() reach.Resource {
 	}
 }
 
-func (vpc VPC) ResourceReference() reach.ResourceReference {
-	return reach.ResourceReference{
+func (vpc VPC) Ref() reach.UniversalReference {
+	return reach.UniversalReference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindVPC,
 		ID:     vpc.ID,

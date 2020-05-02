@@ -2,24 +2,19 @@ package reach
 
 import "fmt"
 
+// UniversalReference uniquely identifies a Resource used by Reach. It specifies the resource's Domain (e.g. AWS), Kind (e.g. EC2 instance), and ID (e.g. "i-0136d3233f0ef1924").
 type UniversalReference struct {
-	Implicit bool // Is infrastructure implied by referenced resource instead of being the resource itself
-	R        ResourceReference
+	Domain Domain
+	Kind   Kind
+	ID     string
 }
 
-func (i UniversalReference) Equal(other UniversalReference) bool {
-	if i.Implicit != other.Implicit {
-		return false
-	}
-
-	return i.R.Equal(other.R)
+// Equal returns a bool to indicate whether or not two UniversalReferences are equivalent.
+func (r UniversalReference) Equal(other UniversalReference) bool {
+	return r.Domain == other.Domain && r.Kind == other.Kind && r.ID == other.ID
 }
 
-func (i UniversalReference) String() string {
-	var implicitSuffix string
-	if i.Implicit {
-		implicitSuffix = " (implicit infrastructure)"
-	}
-
-	return fmt.Sprintf("%s%s", i.R, implicitSuffix)
+// String returns the string representation of the UniversalReference.
+func (r UniversalReference) String() string {
+	return fmt.Sprintf("%s->%s->%s", r.Domain, r.Kind, r.ID)
 }

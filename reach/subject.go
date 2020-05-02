@@ -31,12 +31,9 @@ type Subject struct {
 
 func (s Subject) Ref() UniversalReference {
 	return UniversalReference{
-		Implicit: false,
-		R: ResourceReference{
-			Domain: s.Domain,
-			Kind:   s.Kind,
-			ID:     s.ID,
-		},
+		Domain: s.Domain,
+		Kind:   s.Kind,
+		ID:     s.ID,
 	}
 }
 
@@ -48,14 +45,6 @@ func (s *Subject) SetRoleToSource() {
 // SetRoleToDestination sets the subject's role to "destination".
 func (s *Subject) SetRoleToDestination() {
 	s.setRole(SubjectRoleDestination)
-}
-
-func (s *Subject) ResourceReference() ResourceReference {
-	return ResourceReference{
-		Domain: s.Domain,
-		Kind:   s.Kind,
-		ID:     s.ID,
-	}
 }
 
 // ValidSubjectRole returns a boolean indicating whether or not the specified subject role is valid.

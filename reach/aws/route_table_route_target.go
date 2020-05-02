@@ -26,12 +26,9 @@ func (t RouteTableRouteTarget) Ref() reach.UniversalReference {
 	}
 
 	return reach.UniversalReference{
-		Implicit: false,
-		R: reach.ResourceReference{
-			Domain: ResourceDomainAWS,
-			Kind:   kind,
-			ID:     id,
-		},
+		Domain: ResourceDomainAWS,
+		Kind:   kind,
+		ID:     id,
 	}
 }
 

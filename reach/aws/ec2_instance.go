@@ -27,15 +27,6 @@ func (i EC2Instance) Resource() reach.Resource {
 	}
 }
 
-// ResourceReference returns a resource reference to uniquely identify the EC2 instance.
-func (i EC2Instance) ResourceReference() reach.ResourceReference {
-	return reach.ResourceReference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindEC2Instance,
-		ID:     i.ID,
-	}
-}
-
 // Name returns the instance's ID, and, if available, its name tag value.
 func (i EC2Instance) Name() string {
 	if name := strings.TrimSpace(i.NameTag); name != "" {
@@ -48,7 +39,9 @@ func (i EC2Instance) Name() string {
 
 func (i EC2Instance) Ref() reach.UniversalReference {
 	return reach.UniversalReference{
-		R: i.ResourceReference(),
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindEC2Instance,
+		ID:     i.ID,
 	}
 }
 
@@ -195,7 +188,7 @@ func (i EC2Instance) newInstanceStateFactor() reach.Factor {
 
 	return reach.Factor{
 		Kind:          FactorKindInstanceState,
-		Resource:      i.ResourceReference(),
+		Resource:      i.Ref(),
 		Traffic:       traffic,
 		ReturnTraffic: returnTraffic,
 	}

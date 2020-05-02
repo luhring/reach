@@ -20,13 +20,13 @@ func NewReferenceResolver(clientResolver reach.DomainClientResolver) (*Reference
 }
 
 func (r *ReferenceResolver) Resolve(ref reach.UniversalReference) (*reach.Resource, error) {
-	if ref.R.Domain != ResourceDomainGeneric {
-		return nil, fmt.Errorf("%s resolver cannot resolve references for domain '%s'", ResourceDomainGeneric, ref.R.Domain)
+	if ref.Domain != ResourceDomainGeneric {
+		return nil, fmt.Errorf("%s resolver cannot resolve references for domain '%s'", ResourceDomainGeneric, ref.Domain)
 	}
 
-	switch ref.R.Kind {
+	switch ref.Kind {
 	case ResourceKindHostname:
-		hostname, err := r.client.Hostname(ref.R.ID)
+		hostname, err := r.client.Hostname(ref.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -34,5 +34,5 @@ func (r *ReferenceResolver) Resolve(ref reach.UniversalReference) (*reach.Resour
 		return &resource, nil
 	}
 
-	return nil, fmt.Errorf("%s resolver encountered an unexpected resource kind '%s'", ResourceDomainGeneric, ref.R.Kind)
+	return nil, fmt.Errorf("%s resolver encountered an unexpected resource kind '%s'", ResourceDomainGeneric, ref.Kind)
 }

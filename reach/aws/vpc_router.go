@@ -34,8 +34,9 @@ func (r VPCRouter) Resource() reach.Resource {
 
 func (r VPCRouter) Ref() reach.UniversalReference {
 	return reach.UniversalReference{
-		Implicit: true,
-		R:        r.VPC.ResourceReference(),
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindVPCRouter,
+		ID:     r.VPC.ID,
 	}
 }
 
@@ -165,10 +166,10 @@ func (r VPCRouter) routeTable(client DomainClient, tuple reach.IPTuple, previous
 	// Figure out where the traffic came from. (IGW or VGW —— If neither, we have a problem.)
 	// Get gateway route table for that gateway, and use it to determine next ref.
 
-	if previousRef.R.Domain == ResourceDomainAWS {
-		switch previousRef.R.Kind {
+	if previousRef.Domain == ResourceDomainAWS {
+		switch previousRef.Kind {
 		case ResourceKindInternetGateway:
-			igw, err := client.InternetGateway(previousRef.R.ID)
+			igw, err := client.InternetGateway(previousRef.ID)
 			if err != nil {
 				return nil, fmt.Errorf("could not load Internet Gateway (the previous point) to get route table: %v", err)
 			}
@@ -179,7 +180,7 @@ func (r VPCRouter) routeTable(client DomainClient, tuple reach.IPTuple, previous
 			return igwRouteTable, nil
 		}
 
-		return nil, fmt.Errorf("VPC router is unable to find route table for traffic (%s), src infrastructure (%s) is either unrecognized or not yet supported by Reach", tuple, previousRef.R.Kind)
+		return nil, fmt.Errorf("VPC router is unable to find route table for traffic (%s), src infrastructure (%s) is either unrecognized or not yet supported by Reach", tuple, previousRef.Kind)
 	}
 
 	//noinspection GoErrorStringFormat

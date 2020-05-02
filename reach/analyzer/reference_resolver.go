@@ -19,9 +19,7 @@ func NewReferenceResolver(clientResolver reach.DomainClientResolver) ReferenceRe
 }
 
 func (r *ReferenceResolver) Resolve(ref reach.UniversalReference) (*reach.Resource, error) {
-	r.clientResolver.Resolve(ref.R.Domain) // todo: delete?
-
-	switch ref.R.Domain {
+	switch ref.Domain {
 	case aws.ResourceDomainAWS:
 		awsResolver, err := aws.NewReferenceResolver(r.clientResolver)
 		if err != nil {
@@ -36,5 +34,5 @@ func (r *ReferenceResolver) Resolve(ref reach.UniversalReference) (*reach.Resour
 		return genericResolver.Resolve(ref)
 	}
 
-	return nil, fmt.Errorf("root resolver encountered an unexpected domain '%s'", ref.R.Domain)
+	return nil, fmt.Errorf("root resolver encountered an unexpected domain '%s'", ref.Domain)
 }

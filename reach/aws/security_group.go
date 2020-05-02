@@ -27,9 +27,8 @@ func (sg SecurityGroup) Resource() reach.Resource {
 	}
 }
 
-// ResourceReference returns a resource reference to uniquely identify the security group.
-func (sg SecurityGroup) ResourceReference() reach.ResourceReference {
-	return reach.ResourceReference{
+func (sg SecurityGroup) Ref() reach.UniversalReference {
+	return reach.UniversalReference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindSecurityGroup,
 		ID:     sg.ID,

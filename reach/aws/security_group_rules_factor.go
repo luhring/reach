@@ -52,7 +52,7 @@ func (eni ElasticNetworkInterface) securityGroupRulesFactor(
 
 	factor := &reach.Factor{
 		Kind:          FactorKindSecurityGroupRules,
-		Resource:      eni.ResourceReference(),
+		Resource:      eni.Ref(),
 		Traffic:       traffic,
 		ReturnTraffic: reach.TrafficContent{},
 		Properties: securityGroupRulesFactor{

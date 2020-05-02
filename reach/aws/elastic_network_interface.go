@@ -41,20 +41,13 @@ func (eni ElasticNetworkInterface) Resource() reach.Resource {
 	}
 }
 
-// ResourceReference returns a resource reference to uniquely identify the elastic network interface.
-func (eni ElasticNetworkInterface) ResourceReference() reach.ResourceReference {
-	return reach.ResourceReference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindElasticNetworkInterface,
-		ID:     eni.ID,
-	}
-}
-
 // ———— Implementing Traceable ————
 
 func (eni ElasticNetworkInterface) Ref() reach.UniversalReference {
 	return reach.UniversalReference{
-		R: eni.ResourceReference(),
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindElasticNetworkInterface,
+		ID:     eni.ID,
 	}
 }
 

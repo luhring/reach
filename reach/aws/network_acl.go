@@ -20,9 +20,8 @@ func (nacl NetworkACL) Resource() reach.Resource {
 	}
 }
 
-// ResourceReference returns a resource reference to uniquely identify the network ACL.
-func (nacl NetworkACL) ResourceReference() reach.ResourceReference {
-	return reach.ResourceReference{
+func (nacl NetworkACL) Ref() reach.UniversalReference {
+	return reach.UniversalReference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindNetworkACL,
 		ID:     nacl.ID,
