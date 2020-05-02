@@ -89,7 +89,18 @@ func (r *ReferenceResolver) Resolve(ref reach.UniversalReference) (*reach.Resour
 		resource := subnet.Resource()
 		return &resource, nil
 	case ResourceKindVPC:
-		vpc, err := r.client.VPC(ref.R.ID)
+		vpcID := ref.R.ID
+
+		if ref.Implicit {
+			vpcRouter, err := NewVPCRouter(r.client, vpcID)
+			if err != nil {
+				return nil, err
+			}
+			resource := vpcRouter.Resource()
+			return &resource, nil
+		}
+
+		vpc, err := r.client.VPC(vpcID)
 		if err != nil {
 			return nil, err
 		}

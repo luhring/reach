@@ -8,6 +8,8 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+const ResourceKindVPCRouter reach.Kind = "VPCRouter"
+
 type VPCRouter struct {
 	VPC VPC
 }
@@ -19,6 +21,13 @@ func NewVPCRouter(client DomainClient, id string) (*VPCRouter, error) {
 	}
 
 	return &VPCRouter{VPC: *vpc}, nil
+}
+
+func (r VPCRouter) Resource() reach.Resource {
+	return reach.Resource{
+		Kind:       ResourceKindVPCRouter,
+		Properties: r,
+	}
 }
 
 // ———— Implementing Traceable ————
@@ -72,7 +81,43 @@ func (r VPCRouter) EdgesForward(resolver reach.DomainClientResolver, previousEdg
 }
 
 func (r VPCRouter) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
-	panic("implement me")
+	tuple := previousEdge.Tuple
+	client, err := unpackDomainClient(resolver)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get client: %v", err)
+	}
+
+	srcSubnet, srcSubnetExists, err := r.VPC.subnetThatContains(client, tuple.Src)
+	if err != nil {
+		return nil, fmt.Errorf("unable to determine if traffic stays within a subnet: %v", err)
+	}
+	dstSubnet, dstSubnetExists, err := r.VPC.subnetThatContains(client, tuple.Dst)
+	if err != nil {
+		return nil, fmt.Errorf("unable to determine if traffic stays within a subnet: %v", err)
+	}
+	if srcSubnetExists && dstSubnetExists && srcSubnet.equal(*dstSubnet) {
+		// Same subnet —— no factors to return!
+		return nil, nil
+	}
+
+	var factors []reach.Factor
+
+	if srcSubnetExists {
+		factor, err := r.networkACLRulesFactor(client, *srcSubnet, networkACLRuleDirectionOutbound, tuple)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get network ACL rules for src subnet: %v", err)
+		}
+		factors = append(factors, *factor)
+	}
+	if dstSubnetExists {
+		factor, err := r.networkACLRulesFactor(client, *dstSubnet, networkACLRuleDirectionInbound, tuple)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get network ACL rules for dst subnet: %v", err)
+		}
+		factors = append(factors, *factor)
+	}
+
+	return factors, nil
 }
 
 func (r VPCRouter) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
@@ -99,9 +144,12 @@ func (r VPCRouter) newEdges(tuple reach.IPTuple, ref reach.UniversalReference) [
 
 func (r VPCRouter) routeTable(client DomainClient, tuple reach.IPTuple, previousRef reach.UniversalReference) (*RouteTable, error) {
 	if r.VPC.contains(tuple.Src) {
-		srcSubnet, err := r.VPC.subnetThatContains(client, tuple.Src)
+		srcSubnet, exists, err := r.VPC.subnetThatContains(client, tuple.Src)
 		if err != nil {
 			return nil, fmt.Errorf("VPC router cannot find originating subnet for tuple (%s): %v", tuple, err)
+		}
+		if !exists {
+			return nil, fmt.Errorf("unable to find src's subnet (tuple: %s)", tuple)
 		}
 		subnetRouteTable, err := client.RouteTable(srcSubnet.RouteTableID)
 		if err != nil {

@@ -21,10 +21,7 @@ func (client *DomainClient) EC2Instance(id string) (*reachAWS.EC2Instance, error
 		return nil, err
 	}
 
-	instances, err := extractEC2Instances(result.Reservations)
-	if err != nil {
-		return nil, err
-	}
+	instances := extractEC2Instances(result.Reservations)
 
 	if len(instances) == 0 {
 		return nil, fmt.Errorf("AWS API returned no instances for ID '%s'", id)
@@ -49,16 +46,32 @@ func (client *DomainClient) AllEC2Instances() ([]reachAWS.EC2Instance, error) {
 	}
 
 	reservations := describeInstancesOutput.Reservations
-	instances, err := extractEC2Instances(reservations)
-	if err != nil {
-		return nil, fmt.Errorf(errFormat, err)
-	}
+	instances := extractEC2Instances(reservations)
 
 	return instances, nil
 }
 
 func (client *DomainClient) EC2InstanceByENI(eniID string) (*reachAWS.EC2Instance, error) {
-	panic("implement me!")
+	input := &ec2.DescribeInstancesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("network-interface.network-interface-id"),
+				Values: aws.StringSlice([]string{eniID}),
+			},
+		},
+	}
+
+	results, err := client.ec2.DescribeInstances(input)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get EC2 instance by ENI (ENI ID: %s): %v", eniID, err)
+	}
+
+	instances := extractEC2Instances(results.Reservations)
+	if err = ensureSingleResult(len(instances), reachAWS.ResourceKindEC2Instance, eniID); err != nil {
+		return nil, fmt.Errorf("unable to get EC2 instance by ENI (ENI ID: %s): %v", eniID, err)
+	}
+
+	return &instances[0], nil
 }
 
 func newEC2InstanceFromAPI(instance *ec2.Instance) reachAWS.EC2Instance {
@@ -70,7 +83,7 @@ func newEC2InstanceFromAPI(instance *ec2.Instance) reachAWS.EC2Instance {
 	}
 }
 
-func extractEC2Instances(reservations []*ec2.Reservation) ([]reachAWS.EC2Instance, error) {
+func extractEC2Instances(reservations []*ec2.Reservation) []reachAWS.EC2Instance {
 	var instances []reachAWS.EC2Instance
 
 	for _, r := range reservations {
@@ -80,7 +93,7 @@ func extractEC2Instances(reservations []*ec2.Reservation) ([]reachAWS.EC2Instanc
 		}
 	}
 
-	return instances, nil
+	return instances
 }
 
 func networkInterfaceAttachments(instance *ec2.Instance) []reachAWS.NetworkInterfaceAttachment {

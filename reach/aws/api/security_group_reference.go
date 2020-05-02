@@ -1,7 +1,10 @@
 package api
 
 import (
-	"net"
+	"fmt"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
@@ -24,6 +27,28 @@ func (client *DomainClient) SecurityGroupReference(id, accountID string) (*reach
 	}, nil
 }
 
-func (client *DomainClient) ResolveSecurityGroupReference(sgID string) ([]net.IPNet, error) {
-	panic("implement me!")
+func (client *DomainClient) ResolveSecurityGroupReference(sgID string) ([]reachAWS.ElasticNetworkInterface, error) {
+	input := &ec2.DescribeNetworkInterfacesInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("group-id"),
+				Values: aws.StringSlice([]string{sgID}),
+			},
+		},
+	}
+
+	var enis []reachAWS.ElasticNetworkInterface
+
+	results, err := client.ec2.DescribeNetworkInterfaces(input)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get network interfaces by security group ID: %v", err)
+	}
+	for _, resultENI := range results.NetworkInterfaces {
+		eni := newElasticNetworkInterfaceFromAPI(resultENI)
+		enis = append(enis, eni)
+	}
+
+	// TODO: Check other resources besides ENIs?
+
+	return enis, nil
 }

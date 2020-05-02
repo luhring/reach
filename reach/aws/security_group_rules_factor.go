@@ -15,10 +15,10 @@ type securityGroupRulesFactor struct {
 }
 
 func (eni ElasticNetworkInterface) securityGroupRulesFactor(
-	resources DomainClient,
+	client DomainClient,
 	previousEdge reach.Edge,
 ) (*reach.Factor, error) {
-	sgs, err := eni.securityGroups(resources)
+	sgs, err := eni.securityGroups(client)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get ENI's security groups: %v", err)
 	}
@@ -40,7 +40,7 @@ func (eni ElasticNetworkInterface) securityGroupRulesFactor(
 		return nil, fmt.Errorf("determing security group rules factors for flow '%s' is not supported", flow)
 	}
 
-	components, err := applicableSecurityGroupRules(resources, sgs, ip, rules, direction)
+	components, err := applicableSecurityGroupRules(client, sgs, ip, rules, direction)
 	if err != nil {
 		return nil, err
 	}
@@ -62,12 +62,18 @@ func (eni ElasticNetworkInterface) securityGroupRulesFactor(
 	return factor, nil
 }
 
-func applicableSecurityGroupRules(resources DomainClient, sgs []SecurityGroup, ip net.IP, rules func(sg SecurityGroup) []SecurityGroupRule, direction securityGroupRuleDirection) ([]securityGroupRulesFactorComponent, error) {
+func applicableSecurityGroupRules(
+	client DomainClient,
+	sgs []SecurityGroup,
+	ip net.IP,
+	rules func(sg SecurityGroup) []SecurityGroupRule,
+	direction securityGroupRuleDirection,
+) ([]securityGroupRulesFactorComponent, error) {
 	var components []securityGroupRulesFactorComponent
 
 	for _, sg := range sgs {
 		for index, rule := range rules(sg) {
-			match, err := matchSecurityGroupRule(resources, rule, ip)
+			match, err := matchSecurityGroupRule(client, rule, ip)
 			if err != nil {
 				return nil, fmt.Errorf("unable to get applicable security group rules: %v", err)
 			}

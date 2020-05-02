@@ -12,7 +12,7 @@ type securityGroupRuleMatch struct {
 }
 
 func matchSecurityGroupRule(
-	resources DomainClient,
+	client DomainClient,
 	rule SecurityGroupRule,
 	ip net.IP,
 ) (*securityGroupRuleMatch, error) {
@@ -20,21 +20,35 @@ func matchSecurityGroupRule(
 	var sgRef *SecurityGroupReference
 
 	sgRefID := rule.TargetSecurityGroupReferenceID
+
 	if sgRefID != "" {
 		var err error
-		targetIPNets, err = resources.ResolveSecurityGroupReference(sgRefID)
+
+		sgRef, err = client.SecurityGroupReference(sgRefID, "") // TODO: Address accountID
 		if err != nil {
 			return nil, fmt.Errorf("unable to determine rule match: %v", err)
 		}
-		sgRef, err = resources.SecurityGroupReference(sgRefID, "") // TODO: Address accountID
+
+		enis, err := client.ResolveSecurityGroupReference(sgRefID)
 		if err != nil {
 			return nil, fmt.Errorf("unable to determine rule match: %v", err)
 		}
-	} else {
-		targetIPNets = rule.TargetIPNetworks
+
+		for _, eni := range enis {
+			if eni.owns(ip) {
+				match := &securityGroupRuleMatch{
+					IPNetsRequired:         nil,
+					IP:                     ip,
+					SecurityGroupReference: sgRef,
+				}
+				return match, nil
+			}
+		}
+
+		return nil, nil
 	}
 
-	for _, network := range targetIPNets {
+	for _, network := range rule.TargetIPNetworks {
 		if network.Contains(ip) {
 			match := &securityGroupRuleMatch{
 				IPNetsRequired:         targetIPNets,

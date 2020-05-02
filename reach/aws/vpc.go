@@ -48,6 +48,21 @@ func (vpc VPC) contains(ip net.IP) bool {
 	return false
 }
 
-func (vpc VPC) subnetThatContains(client DomainClient, ip net.IP) (*Subnet, error) {
-	panic("implement me!")
+func (vpc VPC) subnetThatContains(client DomainClient, ip net.IP) (*Subnet, bool, error) {
+	if vpc.contains(ip) == false {
+		return nil, false, nil
+	}
+
+	subnets, err := client.SubnetsByVPC(vpc.ID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	for _, s := range subnets {
+		if s.contains(ip) {
+			return &s, true, nil
+		}
+	}
+
+	return nil, false, nil
 }

@@ -43,7 +43,6 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 
 	for result := range results {
 		if result.error != nil {
-			// _, _ = fmt.Fprintln(os.Stderr, result.error) // TODO: Log more intelligently!
 			return nil, result.error
 		}
 		paths = append(paths, *result.path)
@@ -142,7 +141,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 				}
 
 				resultChannels := make([]<-chan traceResult, numEdges)
-				for _, edge := range edges {
+				for i, edge := range edges {
 					j := traceJob{
 						ref:            edge.EndRef,
 						path:           path,
@@ -151,7 +150,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 						destinationRef: job.destinationRef,
 						destinationIPs: job.destinationIPs,
 					}
-					resultChannels = append(resultChannels, t.tracePoint(done, j))
+					resultChannels[i] = t.tracePoint(done, j)
 				}
 
 				// Wait for downstream results to come in and pass them upstream.
@@ -163,6 +162,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 					case results <- r:
 					}
 				}
+				return
 			}
 		}
 	}()

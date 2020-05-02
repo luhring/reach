@@ -17,7 +17,7 @@ type DomainClient interface {
 	InternetGateway(id string) (*InternetGateway, error)
 	NATGateway(id string) (*NATGateway, error)
 	NetworkACL(id string) (*NetworkACL, error)
-	ResolveSecurityGroupReference(sgID string) ([]net.IPNet, error)
+	ResolveSecurityGroupReference(sgID string) ([]ElasticNetworkInterface, error)
 	RouteTable(id string) (*RouteTable, error)
 	RouteTableForGateway(id string) (*RouteTable, error)
 	SecurityGroup(id string) (*SecurityGroup, error)

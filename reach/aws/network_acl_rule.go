@@ -54,8 +54,8 @@ func (r NetworkACLRule) Denies() bool {
 func (r NetworkACLRule) matchByIP(ip net.IP) *networkACLRuleMatch {
 	if r.TargetIPNetwork.Contains(ip) {
 		return &networkACLRuleMatch{
-			Requirement: *r.TargetIPNetwork,
-			Value:       ip,
+			IPNetRequired: *r.TargetIPNetwork,
+			IP:            ip,
 		}
 	}
 

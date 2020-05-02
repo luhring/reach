@@ -52,24 +52,3 @@ func (sg SecurityGroup) Name() string {
 
 	return sg.ID
 }
-
-func (sg SecurityGroup) rule(direction securityGroupRuleDirection, ruleIndex int) (*SecurityGroupRule, error) {
-	errNotFound := fmt.Errorf("rule not found for direction '%s' and index '%d'", direction, ruleIndex)
-
-	var rules []SecurityGroupRule
-
-	switch direction {
-	case securityGroupRuleDirectionInbound:
-		rules = sg.InboundRules
-	case securityGroupRuleDirectionOutbound:
-		rules = sg.OutboundRules
-	default:
-		return nil, errNotFound
-	}
-
-	if ruleIndex < 0 || ruleIndex >= len(rules) {
-		return nil, errNotFound
-	}
-
-	return &rules[ruleIndex], nil
-}

@@ -30,3 +30,15 @@ func (s Subnet) Resource() reach.Resource {
 func (s Subnet) equal(other Subnet) bool {
 	return s.ID == other.ID
 }
+
+func (s Subnet) contains(ip net.IP) bool {
+	if s.IPv4CIDR.Contains(ip) {
+		return true
+	}
+
+	if s.IPv6CIDR != nil && s.IPv6CIDR.Contains(ip) {
+		return true
+	}
+
+	return false
+}
