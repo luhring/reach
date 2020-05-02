@@ -24,85 +24,63 @@ func (r *ReferenceResolver) Resolve(ref reach.UniversalReference) (*reach.Resour
 		return nil, fmt.Errorf("%s resolver cannot resolve references for domain '%s'", ResourceDomainAWS, ref.Domain)
 	}
 
+	var get func(id string) (reach.Resourceable, error)
+
 	switch ref.Kind {
 	case ResourceKindEC2Instance:
-		ec2Instance, err := r.client.EC2Instance(ref.ID)
-		if err != nil {
-			return nil, err
+		get = func(id string) (reach.Resourceable, error) {
+			return r.client.EC2Instance(id)
 		}
-		resource := ec2Instance.Resource()
-		return &resource, nil
 	case ResourceKindElasticNetworkInterface:
-		eni, err := r.client.ElasticNetworkInterface(ref.ID)
-		if err != nil {
-			return nil, err
+		get = func(id string) (reach.Resourceable, error) {
+			return r.client.ElasticNetworkInterface(id)
 		}
-		resource := eni.Resource()
-		return &resource, nil
 	case ResourceKindInternetGateway:
-		igw, err := r.client.InternetGateway(ref.ID)
-		if err != nil {
-			return nil, err
+		get = func(id string) (reach.Resourceable, error) {
+			return r.client.InternetGateway(id)
 		}
-		resource := igw.Resource()
-		return &resource, nil
 	case ResourceKindNATGateway:
-		natgw, err := r.client.NATGateway(ref.ID)
-		if err != nil {
-			return nil, err
+		get = func(id string) (reach.Resourceable, error) {
+			return r.client.NATGateway(id)
 		}
-		resource := natgw.Resource()
-		return &resource, nil
 	case ResourceKindNetworkACL:
-		nacl, err := r.client.NetworkACL(ref.ID)
-		if err != nil {
-			return nil, err
+		get = func(id string) (reach.Resourceable, error) {
+			return r.client.NetworkACL(id)
 		}
-		resource := nacl.Resource()
-		return &resource, nil
 	case ResourceKindRouteTable:
-		rt, err := r.client.RouteTable(ref.ID)
-		if err != nil {
-			return nil, err
+		get = func(id string) (reach.Resourceable, error) {
+			return r.client.RouteTable(id)
 		}
-		resource := rt.Resource()
-		return &resource, nil
 	case ResourceKindSecurityGroup:
-		sg, err := r.client.SecurityGroup(ref.ID)
-		if err != nil {
-			return nil, err
+		get = func(id string) (reach.Resourceable, error) {
+			return r.client.SecurityGroup(id)
 		}
-		resource := sg.Resource()
-		return &resource, nil
 	case ResourceKindSecurityGroupReference:
-		sgRef, err := r.client.SecurityGroupReference(ref.ID, "") // TODO: Handle accountID
-		if err != nil {
-			return nil, err
+		get = func(id string) (reach.Resourceable, error) {
+			// TODO: Handle accountID
+			return r.client.SecurityGroupReference(id, "")
 		}
-		resource := sgRef.Resource()
-		return &resource, nil
 	case ResourceKindSubnet:
-		subnet, err := r.client.Subnet(ref.ID)
-		if err != nil {
-			return nil, err
+		get = func(id string) (reach.Resourceable, error) {
+			return r.client.Subnet(id)
 		}
-		resource := subnet.Resource()
-		return &resource, nil
 	case ResourceKindVPC:
-		vpc, err := r.client.VPC(ref.ID)
-		if err != nil {
-			return nil, err
+		get = func(id string) (reach.Resourceable, error) {
+			return r.client.VPC(id)
 		}
-		resource := vpc.Resource()
-		return &resource, nil
 	case ResourceKindVPCRouter:
-		vpcRouter, err := NewVPCRouter(r.client, ref.ID)
-		if err != nil {
-			return nil, err
+		get = func(id string) (reach.Resourceable, error) {
+			return NewVPCRouter(r.client, id)
 		}
-		resource := vpcRouter.Resource()
-		return &resource, nil
+	default:
+		return nil, fmt.Errorf("%s resolver encountered an unexpected resource kind '%s'", ResourceDomainAWS, ref.Kind)
 	}
 
-	return nil, fmt.Errorf("%s resolver encountered an unexpected resource kind '%s'", ResourceDomainAWS, ref.Kind)
+	result, err := get(ref.ID)
+	if err != nil {
+		return nil, fmt.Errorf("%s resource resolution failed (ref: %s): %v", ResourceDomainAWS, ref, err)
+	}
+
+	resource := result.Resource()
+	return &resource, nil
 }

@@ -3,7 +3,7 @@ package reach
 import "net"
 
 type Traceable interface {
-	Ref() UniversalReference
+	Referable
 	Visitable(alreadyVisited bool) bool
 	Segments() bool
 	EdgesForward(resolver DomainClientResolver, previousEdge *Edge, previousRef *UniversalReference, destinationIPs []net.IP) ([]Edge, error)
