@@ -6,9 +6,9 @@ import (
 )
 
 type securityGroupRuleMatch struct {
-	IPNetsRequired         []net.IPNet
-	IP                     net.IP
-	SecurityGroupReference *SecurityGroupReference
+	IP           net.IP
+	MatchedIPNet *net.IPNet
+	MatchedSGRef *SecurityGroupReference
 }
 
 func matchSecurityGroupRule(
@@ -16,15 +16,10 @@ func matchSecurityGroupRule(
 	rule SecurityGroupRule,
 	ip net.IP,
 ) (*securityGroupRuleMatch, error) {
-	var targetIPNets []net.IPNet
-	var sgRef *SecurityGroupReference
-
-	sgRefID := rule.TargetSecurityGroupReferenceID
-
-	if sgRefID != "" {
+	if sgRefID := rule.TargetSecurityGroupReferenceID; sgRefID != "" {
 		var err error
 
-		sgRef, err = client.SecurityGroupReference(sgRefID, "") // TODO: Address accountID
+		sgRef, err := client.SecurityGroupReference(sgRefID, "") // TODO: Address accountID
 		if err != nil {
 			return nil, fmt.Errorf("unable to determine rule match: %v", err)
 		}
@@ -37,9 +32,9 @@ func matchSecurityGroupRule(
 		for _, eni := range enis {
 			if eni.owns(ip) {
 				match := &securityGroupRuleMatch{
-					IPNetsRequired:         nil,
-					IP:                     ip,
-					SecurityGroupReference: sgRef,
+					IP:           ip,
+					MatchedIPNet: nil,
+					MatchedSGRef: sgRef,
 				}
 				return match, nil
 			}
@@ -51,9 +46,9 @@ func matchSecurityGroupRule(
 	for _, network := range rule.TargetIPNetworks {
 		if network.Contains(ip) {
 			match := &securityGroupRuleMatch{
-				IPNetsRequired:         targetIPNets,
-				IP:                     ip,
-				SecurityGroupReference: sgRef,
+				IP:           ip,
+				MatchedIPNet: &network,
+				MatchedSGRef: nil,
 			}
 			return match, nil
 		}
@@ -63,7 +58,7 @@ func matchSecurityGroupRule(
 }
 
 func (m securityGroupRuleMatch) Basis() securityGroupRuleMatchBasis {
-	if m.SecurityGroupReference != nil {
+	if m.MatchedSGRef != nil {
 		return securityGroupRuleMatchBasisSGRef
 	}
 
