@@ -33,7 +33,6 @@ func matchSecurityGroupRule(
 			if eni.owns(ip) {
 				match := &securityGroupRuleMatch{
 					IP:           ip,
-					MatchedIPNet: nil,
 					MatchedSGRef: sgRef,
 				}
 				return match, nil
@@ -48,7 +47,6 @@ func matchSecurityGroupRule(
 			match := &securityGroupRuleMatch{
 				IP:           ip,
 				MatchedIPNet: &network,
-				MatchedSGRef: nil,
 			}
 			return match, nil
 		}
