@@ -28,11 +28,7 @@ func (sg SecurityGroup) Resource() reach.Resource {
 }
 
 func (sg SecurityGroup) Ref() reach.UniversalReference {
-	return reach.UniversalReference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindSecurityGroup,
-		ID:     sg.ID,
-	}
+	return SecurityGroupRef(sg.ID)
 }
 
 // Name returns the security group's ID, and, if available, its name tag value (or group name).
@@ -50,4 +46,12 @@ func (sg SecurityGroup) Name() string {
 	}
 
 	return sg.ID
+}
+
+func SecurityGroupRef(id string) reach.UniversalReference {
+	return reach.UniversalReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindSecurityGroup,
+		ID:     id,
+	}
 }

@@ -27,7 +27,7 @@ func (ngw NATGateway) Resource() reach.Resource {
 }
 
 func (ngw NATGateway) Ref() reach.UniversalReference {
-	panic("implement me")
+	return NATGatewayRef(ngw.ID)
 }
 
 func (ngw NATGateway) Visitable(alreadyVisited bool) bool {
@@ -48,4 +48,12 @@ func (ngw NATGateway) FactorsForward(resolver reach.DomainClientResolver, previo
 
 func (ngw NATGateway) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
 	panic("implement me")
+}
+
+func NATGatewayRef(id string) reach.UniversalReference {
+	return reach.UniversalReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindNATGateway,
+		ID:     id,
+	}
 }

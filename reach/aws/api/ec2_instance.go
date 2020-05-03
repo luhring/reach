@@ -11,6 +11,12 @@ import (
 
 // EC2Instance queries the AWS API for an EC2 instance matching the given ID.
 func (client *DomainClient) EC2Instance(id string) (*reachAWS.EC2Instance, error) {
+	if r := client.cachedResource(reachAWS.EC2InstanceRef(id)); r != nil {
+		if v, ok := r.(*reachAWS.EC2Instance); ok {
+			return v, nil
+		}
+	}
+
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{
 			aws.String(id),
@@ -32,6 +38,7 @@ func (client *DomainClient) EC2Instance(id string) (*reachAWS.EC2Instance, error
 	}
 
 	instance := instances[0]
+	client.cacheResource(instance)
 	return &instance, nil
 }
 
@@ -47,11 +54,15 @@ func (client *DomainClient) AllEC2Instances() ([]reachAWS.EC2Instance, error) {
 
 	reservations := describeInstancesOutput.Reservations
 	instances := extractEC2Instances(reservations)
-
+	for _, i := range instances {
+		client.cacheResource(i)
+	}
 	return instances, nil
 }
 
 func (client *DomainClient) EC2InstanceByENI(eniID string) (*reachAWS.EC2Instance, error) {
+	// TODO: Intelligently cache the result of this query
+
 	input := &ec2.DescribeInstancesInput{
 		Filters: []*ec2.Filter{
 			{
@@ -71,7 +82,9 @@ func (client *DomainClient) EC2InstanceByENI(eniID string) (*reachAWS.EC2Instanc
 		return nil, fmt.Errorf("unable to get EC2 instance by ENI (ENI ID: %s): %v", eniID, err)
 	}
 
-	return &instances[0], nil
+	i := instances[0]
+	client.cacheResource(i)
+	return &i, nil
 }
 
 func newEC2InstanceFromAPI(instance *ec2.Instance) reachAWS.EC2Instance {

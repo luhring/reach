@@ -44,11 +44,7 @@ func (eni ElasticNetworkInterface) Resource() reach.Resource {
 // ———— Implementing Traceable ————
 
 func (eni ElasticNetworkInterface) Ref() reach.UniversalReference {
-	return reach.UniversalReference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindElasticNetworkInterface,
-		ID:     eni.ID,
-	}
+	return ElasticNetworkInterfaceRef(eni.ID)
 }
 
 func (eni ElasticNetworkInterface) Visitable(_ bool) bool {
@@ -230,4 +226,12 @@ func (eni ElasticNetworkInterface) connectedVPCRouter(client DomainClient) (*VPC
 		return nil, fmt.Errorf("unable to get connected VPC router: %v", err)
 	}
 	return router, nil
+}
+
+func ElasticNetworkInterfaceRef(id string) reach.UniversalReference {
+	return reach.UniversalReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindElasticNetworkInterface,
+		ID:     id,
+	}
 }

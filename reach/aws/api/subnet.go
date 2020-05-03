@@ -9,6 +9,12 @@ import (
 
 // Subnet queries the AWS API for a subnet matching the given ID.
 func (client *DomainClient) Subnet(id string) (*reachAWS.Subnet, error) {
+	if r := client.cachedResource(reachAWS.SubnetRef(id)); r != nil {
+		if v, ok := r.(*reachAWS.Subnet); ok {
+			return v, nil
+		}
+	}
+
 	input := &ec2.DescribeSubnetsInput{
 		SubnetIds: []*string{
 			aws.String(id),
@@ -36,6 +42,7 @@ func (client *DomainClient) Subnet(id string) (*reachAWS.Subnet, error) {
 	}
 
 	subnet := newSubnetFromAPI(result.Subnets[0], networkACLID, routeTableID)
+	client.cacheResource(subnet)
 	return &subnet, nil
 }
 

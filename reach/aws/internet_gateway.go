@@ -24,7 +24,7 @@ func (igw InternetGateway) Resource() reach.Resource {
 }
 
 func (igw InternetGateway) Ref() reach.UniversalReference {
-	panic("implement me")
+	return InternetGatewayRef(igw.ID)
 }
 
 func (igw InternetGateway) Visitable(alreadyVisited bool) bool {
@@ -45,4 +45,12 @@ func (igw InternetGateway) FactorsForward(resolver reach.DomainClientResolver, p
 
 func (igw InternetGateway) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
 	panic("implement me")
+}
+
+func InternetGatewayRef(id string) reach.UniversalReference {
+	return reach.UniversalReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindInternetGateway,
+		ID:     id,
+	}
 }

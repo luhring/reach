@@ -11,6 +11,12 @@ import (
 
 // VPC queries the AWS API for a VPC matching the given ID.
 func (client *DomainClient) VPC(id string) (*reachAWS.VPC, error) {
+	if r := client.cachedResource(reachAWS.VPCRef(id)); r != nil {
+		if v, ok := r.(*reachAWS.VPC); ok {
+			return v, nil
+		}
+	}
+
 	input := &ec2.DescribeVpcsInput{
 		VpcIds: []*string{
 			aws.String(id),
@@ -26,6 +32,7 @@ func (client *DomainClient) VPC(id string) (*reachAWS.VPC, error) {
 	}
 
 	vpc := newVPCFromAPI(result.Vpcs[0])
+	client.cacheResource(vpc)
 	return &vpc, nil
 }
 

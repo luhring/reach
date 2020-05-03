@@ -26,6 +26,10 @@ func (rt RouteTable) Resource() reach.Resource {
 	}
 }
 
+func (rt RouteTable) Ref() reach.UniversalReference {
+	return RouteTableRef(rt.ID)
+}
+
 func (rt RouteTable) routeTarget(ip net.IP) (*RouteTableRouteTarget, error) {
 	routes := rt.routesBySpecificity()
 	for _, route := range routes {
@@ -41,4 +45,12 @@ func (rt RouteTable) routesBySpecificity() []RouteTableRoute {
 	routes := rt.Routes
 	sort.Sort(byRouteDestinationSpecificity(routes))
 	return routes
+}
+
+func RouteTableRef(id string) reach.UniversalReference {
+	return reach.UniversalReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindRouteTable,
+		ID:     id,
+	}
 }

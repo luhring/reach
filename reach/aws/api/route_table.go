@@ -9,6 +9,12 @@ import (
 
 // RouteTable queries the AWS API for a route table matching the given ID.
 func (client *DomainClient) RouteTable(id string) (*reachAWS.RouteTable, error) {
+	if r := client.cachedResource(reachAWS.RouteTableRef(id)); r != nil {
+		if v, ok := r.(*reachAWS.RouteTable); ok {
+			return v, nil
+		}
+	}
+
 	input := &ec2.DescribeRouteTablesInput{
 		RouteTableIds: []*string{
 			aws.String(id),
@@ -27,7 +33,7 @@ func (client *DomainClient) RouteTable(id string) (*reachAWS.RouteTable, error) 
 	if err != nil {
 		return nil, err
 	}
-
+	client.cacheResource(routeTable)
 	return &routeTable, nil
 }
 

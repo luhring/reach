@@ -19,10 +19,11 @@ import (
 type DomainClient struct {
 	session *session.Session
 	ec2     *ec2.EC2
+	cache   reach.Cache
 }
 
 // NewDomainClient returns a reference to a new DomainClient for the AWS API.
-func NewDomainClient() *DomainClient {
+func NewDomainClient(cache reach.Cache) *DomainClient {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	})) // TODO: Don't call session.Must —- return error, and don't panic, this is a library after all!
@@ -32,7 +33,16 @@ func NewDomainClient() *DomainClient {
 	return &DomainClient{
 		session: sess,
 		ec2:     ec2Client,
+		cache:   cache,
 	}
+}
+
+func (client *DomainClient) cacheResource(r reach.Referable) {
+	client.cache.Put(r.Ref().String(), r)
+}
+
+func (client *DomainClient) cachedResource(ref reach.UniversalReference) interface{} {
+	return client.cache.Get(ref.String())
 }
 
 func (client *DomainClient) ElasticNetworkInterfaceByIP(ip net.IP) (*reachAWS.ElasticNetworkInterface, error) {

@@ -27,6 +27,10 @@ func (s Subnet) Resource() reach.Resource {
 	}
 }
 
+func (s Subnet) Ref() reach.UniversalReference {
+	return SubnetRef(s.ID)
+}
+
 func (s Subnet) equal(other Subnet) bool {
 	return s.ID == other.ID
 }
@@ -41,4 +45,12 @@ func (s Subnet) contains(ip net.IP) bool {
 	}
 
 	return false
+}
+
+func SubnetRef(id string) reach.UniversalReference {
+	return reach.UniversalReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindSubnet,
+		ID:     id,
+	}
 }

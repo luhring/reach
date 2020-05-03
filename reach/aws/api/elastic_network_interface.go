@@ -11,6 +11,12 @@ import (
 
 // ElasticNetworkInterface queries the AWS API for an elastic network interface matching the given ID.
 func (client *DomainClient) ElasticNetworkInterface(id string) (*reachAWS.ElasticNetworkInterface, error) {
+	if r := client.cachedResource(reachAWS.ElasticNetworkInterfaceRef(id)); r != nil {
+		if v, ok := r.(*reachAWS.ElasticNetworkInterface); ok {
+			return v, nil
+		}
+	}
+
 	input := &ec2.DescribeNetworkInterfacesInput{
 		NetworkInterfaceIds: []*string{
 			aws.String(id),
@@ -21,11 +27,12 @@ func (client *DomainClient) ElasticNetworkInterface(id string) (*reachAWS.Elasti
 		return nil, err
 	}
 
-	if err = ensureSingleResult(len(result.NetworkInterfaces), "elastic network interface", id); err != nil {
+	if err = ensureSingleResult(len(result.NetworkInterfaces), reachAWS.ResourceKindElasticNetworkInterface, id); err != nil {
 		return nil, err
 	}
 
 	networkInterface := newElasticNetworkInterfaceFromAPI(result.NetworkInterfaces[0])
+	client.cacheResource(networkInterface)
 	return &networkInterface, nil
 }
 

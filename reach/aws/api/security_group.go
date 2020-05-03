@@ -14,6 +14,12 @@ import (
 
 // SecurityGroup queries the AWS API for a security group matching the given ID.
 func (client *DomainClient) SecurityGroup(id string) (*reachAWS.SecurityGroup, error) {
+	if r := client.cachedResource(reachAWS.SecurityGroupRef(id)); r != nil {
+		if v, ok := r.(*reachAWS.SecurityGroup); ok {
+			return v, nil
+		}
+	}
+
 	input := &ec2.DescribeSecurityGroupsInput{
 		GroupIds: []*string{
 			aws.String(id),
@@ -29,6 +35,7 @@ func (client *DomainClient) SecurityGroup(id string) (*reachAWS.SecurityGroup, e
 	}
 
 	securityGroup := newSecurityGroupFromAPI(result.SecurityGroups[0])
+	client.cacheResource(securityGroup)
 	return &securityGroup, nil
 }
 

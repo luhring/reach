@@ -12,6 +12,7 @@ import (
 	"github.com/luhring/reach/reach/analyzer"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/aws/api"
+	"github.com/luhring/reach/reach/cache"
 	"github.com/luhring/reach/reach/generic"
 	"github.com/luhring/reach/reach/generic/standard"
 )
@@ -49,7 +50,8 @@ See https://github.com/luhring/reach for documentation.`,
 		destinationInput := args[1]
 
 		catalog := reach.NewDomainClientCatalog()
-		catalog.Store(aws.ResourceDomainAWS, api.NewDomainClient())
+		c := cache.New()
+		catalog.Store(aws.ResourceDomainAWS, api.NewDomainClient(&c))
 		catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
 
 		source, err := resolveSubject(sourceInput, os.Stderr, catalog)

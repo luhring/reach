@@ -13,6 +13,12 @@ import (
 
 // NetworkACL queries the AWS API for a network ACL matching the given ID.
 func (client *DomainClient) NetworkACL(id string) (*reachAWS.NetworkACL, error) {
+	if r := client.cachedResource(reachAWS.NetworkACLRef(id)); r != nil {
+		if v, ok := r.(*reachAWS.NetworkACL); ok {
+			return v, nil
+		}
+	}
+
 	input := &ec2.DescribeNetworkAclsInput{
 		NetworkAclIds: []*string{
 			aws.String(id),
@@ -28,6 +34,7 @@ func (client *DomainClient) NetworkACL(id string) (*reachAWS.NetworkACL, error) 
 	}
 
 	networkACL := newNetworkACLFromAPI(result.NetworkAcls[0])
+	client.cacheResource(networkACL)
 	return &networkACL, nil
 }
 

@@ -11,6 +11,12 @@ import (
 
 // NATGateway queries the AWS API for a NAT gateway matching the given ID.
 func (client *DomainClient) NATGateway(id string) (*reachAWS.NATGateway, error) {
+	if r := client.cachedResource(reachAWS.NATGatewayRef(id)); r != nil {
+		if v, ok := r.(*reachAWS.NATGateway); ok {
+			return v, nil
+		}
+	}
+
 	input := &ec2.DescribeNatGatewaysInput{
 		NatGatewayIds: []*string{aws.String(id)},
 	}
@@ -23,15 +29,17 @@ func (client *DomainClient) NATGateway(id string) (*reachAWS.NATGateway, error) 
 		return nil, err
 	}
 
-	ngw := result.NatGateways[0]
+	natGateway := result.NatGateways[0]
 
-	return &reachAWS.NATGateway{
+	ngw := reachAWS.NATGateway{
 		ID:        id,
-		SubnetID:  aws.StringValue(ngw.SubnetId),
-		VPCID:     aws.StringValue(ngw.VpcId),
-		PrivateIP: privateIPForNATGateway(ngw),
-		PublicIP:  publicIPForNATGateway(ngw),
-	}, nil
+		SubnetID:  aws.StringValue(natGateway.SubnetId),
+		VPCID:     aws.StringValue(natGateway.VpcId),
+		PrivateIP: privateIPForNATGateway(natGateway),
+		PublicIP:  publicIPForNATGateway(natGateway),
+	}
+	client.cacheResource(ngw)
+	return &ngw, nil
 }
 
 func privateIPForNATGateway(ngw *ec2.NatGateway) net.IP {
