@@ -38,11 +38,7 @@ func (i EC2Instance) Name() string {
 // ———— Implementing Traceable ————
 
 func (i EC2Instance) Ref() reach.UniversalReference {
-	return reach.UniversalReference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindEC2Instance,
-		ID:     i.ID,
-	}
+	return EC2InstanceRef(i.ID)
 }
 
 func (i EC2Instance) Visitable(alreadyVisited bool) bool {
@@ -222,4 +218,12 @@ func (i EC2Instance) elasticNetworkInterfaces(client DomainClient) ([]ElasticNet
 	}
 
 	return enis, nil
+}
+
+func EC2InstanceRef(id string) reach.UniversalReference {
+	return reach.UniversalReference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindEC2Instance,
+		ID:     id,
+	}
 }
