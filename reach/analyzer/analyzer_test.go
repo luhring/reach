@@ -7,6 +7,11 @@ import (
 	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/acceptance"
 	"github.com/luhring/reach/reach/acceptance/terraform"
+	"github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/aws/api"
+	"github.com/luhring/reach/reach/cache"
+	"github.com/luhring/reach/reach/generic"
+	"github.com/luhring/reach/reach/generic/standard"
 	"github.com/luhring/reach/reach/set"
 )
 
@@ -206,53 +211,52 @@ func TestAnalyze(t *testing.T) {
 						t.Fatal(err)
 					}
 
-					// sourceID, err := tf.Output("source_id")
-					// if err != nil {
-					// 	t.Fatal(err)
-					// }
-					// destinationID, err := tf.Output("destination_id")
-					// if err != nil {
-					// 	t.Fatal(err)
-					// }
+					sourceID, err := tf.Output("source_id")
+					if err != nil {
+						t.Fatal(err)
+					}
+					destinationID, err := tf.Output("destination_id")
+					if err != nil {
+						t.Fatal(err)
+					}
 
-					// source, err := aws.NewEC2InstanceSubjectWithRole(sourceID, reach.SubjectRoleSource)
-					// if err != nil {
-					// 	t.Fatal(err)
-					// }
-					// destination, err := aws.NewEC2InstanceSubjectWithRole(destinationID, reach.SubjectRoleDestination)
-					// if err != nil {
-					// 	t.Fatal(err)
-					// }
+					source, err := aws.NewEC2InstanceSubjectWithRole(sourceID, reach.SubjectRoleSource)
+					if err != nil {
+						t.Fatal(err)
+					}
+					destination, err := aws.NewEC2InstanceSubjectWithRole(destinationID, reach.SubjectRoleDestination)
+					if err != nil {
+						t.Fatal(err)
+					}
 
 					// Analyze
 
-					// catalog := &reach.DomainClientCatalog{}
-					// catalog.Store(aws.ResourceDomainAWS, api.NewDomainClient())
-					// catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
-					// analyzer := New(catalog)
+					catalog := reach.NewDomainClientCatalog()
+					c := cache.New()
+					catalog.Store(aws.ResourceDomainAWS, api.NewDomainClient(&c))
+					catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
+					analyzer := New(catalog)
 
 					log.Print("analyzing...")
-					log.Print("skipping analysis for now.")
-					// analysis, err := analyzer.Analyze(*source, *destination)
-					// if err != nil {
-					// 	t.Fatal(err)
-					// }
+					analysis, err := analyzer.Analyze(*source, *destination)
+					if err != nil {
+						t.Fatal(err)
+					}
 
 					// Tests
 
-					// log.Print("verifying analysis results...")
-					//
-					// if forwardTraffic := analysis.NetworkVectors[0].Traffic; forwardTraffic.String() != tc.expectedForwardTraffic.String() { // TODO: consider a better comparison method besides strings
-					// 	t.Errorf("forward traffic -- expected:\n%v\nbut was:\n%v\n", tc.expectedForwardTraffic, forwardTraffic)
-					// } else {
-					// 	log.Print("✓ forward traffic content is correct")
-					// }
-					//
-					// if returnTraffic := analysis.NetworkVectors[0].ReturnTraffic; returnTraffic.String() != tc.expectedReturnTraffic.String() {
-					// 	t.Errorf("return traffic -- expected:\n%v\nbut was:\n%v\n", tc.expectedReturnTraffic, returnTraffic)
-					// } else {
-					// 	log.Print("✓ return traffic content is correct")
-					// }
+					log.Print("verifying analysis results...")
+
+					ft, err := analysis.Paths[0].TrafficForward()
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if ft.String() != tc.expectedForwardTraffic.String() { // TODO: consider a better comparison method besides strings
+						t.Errorf("forward traffic -- expected:\n%v\nbut was:\n%v\n", tc.expectedForwardTraffic, ft)
+					} else {
+						log.Print("✓ forward traffic content is correct")
+					}
 				})
 			}
 		})

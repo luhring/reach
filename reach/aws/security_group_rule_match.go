@@ -8,8 +8,8 @@ import (
 
 type securityGroupRuleMatch struct {
 	IP           net.IP
-	MatchedIPNet *net.IPNet              `json:",omitempty"`
-	MatchedSGRef *SecurityGroupReference `json:",omitempty"`
+	MatchedIPNet *net.IPNet
+	MatchedSGRef *SecurityGroupReference
 }
 
 func matchSecurityGroupRule(

@@ -1,6 +1,9 @@
 package api
 
 import (
+	"fmt"
+	"net"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
@@ -31,33 +34,80 @@ func (client *DomainClient) Subnet(id string) (*reachAWS.Subnet, error) {
 
 	awsSubnet := result.Subnets[0]
 
-	networkACLID, err := client.networkACLIDFromSubnetID(aws.StringValue(awsSubnet.SubnetId))
+	subnet, err := client.newSubnetFromAPI(awsSubnet)
 	if err != nil {
 		return nil, err
 	}
 
-	routeTableID, err := client.routeTableIDFromSubnetID(aws.StringValue(awsSubnet.SubnetId))
-	if err != nil {
-		return nil, err
-	}
-
-	subnet := newSubnetFromAPI(result.Subnets[0], networkACLID, routeTableID)
-	client.cacheResource(subnet)
-	return &subnet, nil
+	client.cacheResource(*subnet)
+	return subnet, nil
 }
 
-func newSubnetFromAPI(subnet *ec2.Subnet, networkACLID, routeTableID string) reachAWS.Subnet {
-	return reachAWS.Subnet{
+func (client *DomainClient) newSubnetFromAPI(subnet *ec2.Subnet) (*reachAWS.Subnet, error) {
+	networkACLID, err := client.networkACLIDFromSubnet(subnet)
+	if err != nil {
+		return nil, err
+	}
+
+	routeTableID, err := client.routeTableIDFromSubnetID(subnet)
+	if err != nil {
+		return nil, err
+	}
+
+	ipv4CIDR, err := ipv4CIDRFromSubnet(subnet)
+	if err != nil {
+		return nil, err
+	}
+	ipv6CIDR, err := ipv6CIDRFromSubnet(subnet)
+	if err != nil {
+		return nil, err
+	}
+
+	return &reachAWS.Subnet{
 		ID:           aws.StringValue(subnet.SubnetId),
 		NetworkACLID: networkACLID,
 		RouteTableID: routeTableID,
 		VPCID:        aws.StringValue(subnet.VpcId),
-	}
+		IPv4CIDR:     *ipv4CIDR,
+		IPv6CIDR:     ipv6CIDR,
+	}, nil
 }
 
-func (client *DomainClient) networkACLIDFromSubnetID(id string) (string, error) {
+func ipv4CIDRFromSubnet(subnet *ec2.Subnet) (*net.IPNet, error) {
+	_, cidr, err := net.ParseCIDR(aws.StringValue(subnet.CidrBlock))
+	if err != nil {
+		return nil, err
+	}
+	return cidr, nil
+}
+
+func ipv6CIDRFromSubnet(subnet *ec2.Subnet) (*net.IPNet, error) {
+	set := subnet.Ipv6CidrBlockAssociationSet
+	if set == nil {
+		return nil, nil
+	}
+
+	if numSets := len(set); numSets != 1 {
+		return nil, fmt.Errorf("could not obtain IPv6 CIDR block for subnet, expected response to contain exactly 1 association set (%d sets found)", numSets)
+	}
+
+	assoc := set[0]
+	_, cidr, err := net.ParseCIDR(aws.StringValue(assoc.Ipv6CidrBlock))
+	if err != nil {
+		return nil, err
+	}
+	return cidr, nil
+}
+
+func (client *DomainClient) networkACLIDFromSubnet(subnet *ec2.Subnet) (string, error) {
+	subnetID := subnet.SubnetId
 	input := &ec2.DescribeNetworkAclsInput{
-		Filters: generateEC2Filters(id),
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("association.subnet-id"),
+				Values: []*string{subnetID},
+			},
+		},
 	}
 
 	result, err := client.ec2.DescribeNetworkAcls(input)
@@ -65,16 +115,22 @@ func (client *DomainClient) networkACLIDFromSubnetID(id string) (string, error) 
 		return "", err
 	}
 
-	if err = ensureSingleResult(len(result.NetworkAcls), "network ACL (via subnet)", id); err != nil {
+	if err = ensureSingleResult(len(result.NetworkAcls), "network ACL (via subnet)", *subnetID); err != nil {
 		return "", err
 	}
 
 	return aws.StringValue(result.NetworkAcls[0].NetworkAclId), nil
 }
 
-func (client *DomainClient) routeTableIDFromSubnetID(id string) (string, error) {
+func (client *DomainClient) routeTableIDFromSubnetID(subnet *ec2.Subnet) (string, error) {
+	subnetID := subnet.SubnetId
 	input := &ec2.DescribeRouteTablesInput{
-		Filters: generateEC2Filters(id),
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("association.subnet-id"),
+				Values: []*string{subnetID},
+			},
+		},
 	}
 
 	result, err := client.ec2.DescribeRouteTables(input)
@@ -82,20 +138,9 @@ func (client *DomainClient) routeTableIDFromSubnetID(id string) (string, error) 
 		return "", nil
 	}
 
-	if err = ensureSingleResult(len(result.RouteTables), "route table (via subnet)", id); err != nil {
+	if err = ensureSingleResult(len(result.RouteTables), "route table (via subnet)", *subnetID); err != nil {
 		return "", nil
 	}
 
 	return aws.StringValue(result.RouteTables[0].RouteTableId), nil
-}
-
-func generateEC2Filters(subnetID string) []*ec2.Filter {
-	return []*ec2.Filter{
-		{
-			Name: aws.String("association.subnet-subnetID"),
-			Values: []*string{
-				aws.String(subnetID),
-			},
-		},
-	}
 }

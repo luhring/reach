@@ -6,11 +6,21 @@ type Segment struct {
 	Edges  []Edge
 }
 
-func (s Segment) Factors() []Factor {
+func (s Segment) FactorsForward() []Factor {
 	var result []Factor
 
 	for _, point := range s.Points {
-		result = append(result, point.Factors...)
+		result = append(result, point.FactorsForward...)
+	}
+
+	return result
+}
+
+func (s Segment) FactorsReturn() []Factor {
+	var result []Factor
+
+	for _, point := range s.Points {
+		result = append(result, point.FactorsReturn...)
 	}
 
 	return result

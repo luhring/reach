@@ -99,18 +99,12 @@ func (client *DomainClient) SubnetsByVPC(id string) ([]reachAWS.Subnet, error) {
 
 	var subnets []reachAWS.Subnet
 	for _, s := range results.Subnets {
-		networkACLID, err := client.networkACLIDFromSubnetID(aws.StringValue(s.SubnetId))
+		subnet, err := client.newSubnetFromAPI(s)
 		if err != nil {
 			return nil, err
 		}
-
-		routeTableID, err := client.routeTableIDFromSubnetID(aws.StringValue(s.SubnetId))
-		if err != nil {
-			return nil, err
-		}
-
-		subnet := newSubnetFromAPI(s, networkACLID, routeTableID)
-		subnets = append(subnets, subnet)
+		client.cacheResource(*subnet)
+		subnets = append(subnets, *subnet)
 	}
 
 	return subnets, nil

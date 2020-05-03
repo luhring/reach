@@ -134,28 +134,6 @@ func MergeTraffic(tcs ...TrafficContent) (TrafficContent, error) {
 	return NewTrafficContentFromIntersectingMultiple(tcs)
 }
 
-// TrafficContentsFromFactors returns distinct TrafficContent representations from the input factors.
-func TrafficContentsFromFactors(factors []Factor) []TrafficContent {
-	var result []TrafficContent
-
-	for _, factor := range factors {
-		result = append(result, factor.Traffic)
-	}
-
-	return result
-}
-
-// ReturnTrafficContentsFromFactors returns distinct TrafficContent representations from the input factors's return traffic.
-func ReturnTrafficContentsFromFactors(factors []Factor) []TrafficContent {
-	var result []TrafficContent
-
-	for _, factor := range factors {
-		result = append(result, factor.ReturnTraffic)
-	}
-
-	return result
-}
-
 // Merge performs a set merge operation on two TrafficContents.
 func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 	if tc.All() || other.All() {
@@ -433,14 +411,18 @@ func (tc TrafficContent) None() bool {
 	return tc.indicator == trafficContentIndicatorNone || (tc.indicator == trafficContentIndicatorUnset && len(tc.protocols) == 0)
 }
 
-func TrafficContentsFromPaths(paths []Path) []TrafficContent {
+func TrafficContentsFromPaths(paths []Path) ([]TrafficContent, error) {
 	var result []TrafficContent
 
 	for _, p := range paths {
-		result = append(result, p.ForwardTraffic())
+		ft, err := p.TrafficForward()
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, ft)
 	}
 
-	return result
+	return result, nil
 }
 
 // RestrictedProtocol describes an IP protocol whose return traffic has been restricted

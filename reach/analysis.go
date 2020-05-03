@@ -2,6 +2,7 @@ package reach
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 )
 
@@ -33,7 +34,10 @@ func (a *Analysis) MergedTraffic() (TrafficContent, error) {
 	result := newTrafficContent()
 
 	for _, path := range a.Paths {
-		t := path.ForwardTraffic()
+		t, err := path.TrafficForward()
+		if err != nil {
+			return TrafficContent{}, fmt.Errorf("unable to merge traffic: %v", err)
+		}
 		mergedTrafficContent, err := result.Merge(t)
 		if err != nil {
 			return TrafficContent{}, err

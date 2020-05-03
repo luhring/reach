@@ -51,28 +51,43 @@ func (p Path) Add(edge Edge, point Point, newSegment bool) Path {
 	return p
 }
 
-func (p Path) Factors() []Factor {
+func (p Path) FactorsForward() []Factor {
 	var factors []Factor
 
 	for _, s := range p.Segments {
-		factors = append(factors, s.Factors()...)
+		factors = append(factors, s.FactorsForward()...)
 	}
 
 	return factors
 }
 
-func (p Path) ForwardTraffic() TrafficContent { // TODO: Consider moving this for analyzer to conclude
-	var tcs []TrafficContent
+func (p Path) FactorsReturn() []Factor {
+	var factors []Factor
 
-	for _, factor := range p.Factors() {
-		t := factor.Traffic
-		tcs = append(tcs, t)
+	for _, s := range p.Segments {
+		factors = append(factors, s.FactorsReturn()...)
 	}
 
+	return factors
+}
+
+func (p Path) TrafficForward() (TrafficContent, error) {
+	tcs := TrafficFromFactors(p.FactorsForward())
 	result, err := NewTrafficContentFromIntersectingMultiple(tcs)
 	if err != nil {
-		panic(err) // TODO: Don't panic
+		return TrafficContent{}, err
 	}
 
-	return result
+	return result, nil
+}
+
+func (p Path) TrafficReturn() (TrafficContent, error) {
+	// TODO: This method shouldn't exist — return traffic should not be intersected across multiple segments!
+	tcs := TrafficFromFactors(p.FactorsReturn())
+	result, err := NewTrafficContentFromIntersectingMultiple(tcs)
+	if err != nil {
+		return TrafficContent{}, err
+	}
+
+	return result, nil
 }

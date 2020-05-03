@@ -36,11 +36,10 @@ func (r VPCRouter) networkACLRulesFactor(
 	}
 
 	factor := &reach.Factor{
-		Kind:          FactorKindNetworkACLRules,
-		Resource:      r.Ref(),
-		Traffic:       traffic,
-		ReturnTraffic: reach.TrafficContent{},
-		Properties:    networkACLRulesFactor{RuleComponents: components},
+		Kind:       FactorKindNetworkACLRules,
+		Resource:   r.Ref(),
+		Traffic:    traffic,
+		Properties: networkACLRulesFactor{RuleComponents: components},
 	}
 	return factor, nil
 }

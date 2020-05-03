@@ -88,7 +88,10 @@ See https://github.com/luhring/reach for documentation.`,
 			fmt.Print(strings.Join(pathDescriptions, "\n"))
 		} else {
 			paths := analysis.Paths
-			tcs := reach.TrafficContentsFromPaths(paths)
+			tcs, err := reach.TrafficContentsFromPaths(paths)
+			if err != nil {
+				exitWithError(err)
+			}
 			mergedTraffic, err := reach.MergeTraffic(tcs...)
 			if err != nil {
 				exitWithError(err)

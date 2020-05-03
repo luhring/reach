@@ -110,7 +110,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 				}
 
 				factors, err := traceable.FactorsForward(t.domainClientResolver, previousEdge)
-				point := reach.Point{Ref: job.ref, Factors: factors}
+				point := reach.Point{Ref: job.ref, FactorsForward: factors}
 
 				var path reach.Path
 				if isFirstTraceJob {

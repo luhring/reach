@@ -26,20 +26,5 @@ func (a *Analyzer) Analyze(source, destination reach.Subject) (*reach.Analysis, 
 		return nil, fmt.Errorf("unable to complete trace of network paths: %v", err)
 	}
 
-	// var analyzedPaths []analyzedPath
-	//
-	// var pa interface{} // path analyzer
-	//
-	// for _, path := range paths {
-	// 	ft := pa.ForwardTraffic(path)
-	// 	rt := pa.ReturnTraffic(path)
-	//
-	// 	analyzedPaths = append(analyzedPaths, analyzedPath{
-	// 		path:           &path,
-	// 		forwardTraffic: ft,
-	// 		returnTraffic:  rt,
-	// 	})
-	// }
-
 	return reach.NewAnalysis([]reach.Subject{source, destination}, paths), nil
 }
