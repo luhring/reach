@@ -25,7 +25,16 @@ func (r VPCRouter) networkACLRulesFactor(
 		return nil, fmt.Errorf("unable to get factors: %v", err)
 	}
 
-	components, err := applicableNetworkACLRules(*nacl, dir, tuple.Dst)
+	var ip net.IP
+	switch dir {
+	case networkACLRuleDirectionOutbound:
+		ip = tuple.Dst
+	case networkACLRuleDirectionInbound:
+		ip = tuple.Src
+	default:
+		return nil, fmt.Errorf("unexpected network ACL rule direction: %s", dir)
+	}
+	components, err := applicableNetworkACLRules(*nacl, dir, ip)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate network ACL rules factor: %v", err)
 	}
@@ -69,28 +78,30 @@ func applicableNetworkACLRules(
 	for _, rule := range rules {
 		match := matchNetworkACLRule(rule, ip)
 		if match != nil {
-			effectiveTraffic, err := rule.TrafficContent.Subtract(decided)
+			if rule.Allows() {
+				effectiveTraffic, err := rule.TrafficContent.Subtract(decided)
+				if err != nil {
+					return nil, err
+				}
+
+				c := networkACLRulesFactorComponent{
+					NetworkACLID:  nacl.ID,
+					RuleDirection: dir,
+					RuleIndex:     rule.Number,
+					Match:         *match,
+					Traffic:       effectiveTraffic,
+				}
+				components = append(components, c)
+			}
+
+			var err error
+			decided, err = reach.NewTrafficContentFromMergingMultiple([]reach.TrafficContent{
+				decided,
+				rule.TrafficContent,
+			})
 			if err != nil {
 				return nil, err
 			}
-
-			c := networkACLRulesFactorComponent{
-				NetworkACLID:  nacl.ID,
-				RuleDirection: dir,
-				RuleIndex:     rule.Number,
-				Match:         *match,
-				Traffic:       effectiveTraffic,
-			}
-			components = append(components, c)
-		}
-
-		var err error
-		decided, err = reach.NewTrafficContentFromMergingMultiple([]reach.TrafficContent{
-			decided,
-			rule.TrafficContent,
-		})
-		if err != nil {
-			return nil, err
 		}
 	}
 
