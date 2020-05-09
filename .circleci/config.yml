@@ -11,6 +11,15 @@ jobs:
       - checkout
       - run: ./build.sh
 
+  lint:
+    docker:
+      - image: circleci/golang:1.13.1
+      working_directory: ~/repo
+      steps:
+        - checkout
+        - run: sudo apt install golint
+        - run: golint -set_exit_status ./...
+
   unit_tests:
     docker:
       - image: circleci/golang:1.13.1
@@ -33,6 +42,7 @@ workflows:
   push:
     jobs:
       - build
+      - lint
       - unit_tests
   nightly:
     triggers:
