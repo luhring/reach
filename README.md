@@ -2,7 +2,7 @@
 
 [![CircleCI](https://circleci.com/gh/luhring/reach.svg?style=svg)](https://circleci.com/gh/luhring/reach)
 [![Go Report Card](https://goreportcard.com/badge/github.com/luhring/reach)](https://goreportcard.com/report/github.com/luhring/reach)
-[![GitHub license](https://img.shields.io/badge/license-LGPLv3-blue.svg)](https://github.com/luhring/reach/blob/master/COPYING.LESSER)
+[![GitHub license](https://img.shields.io/badge/license-MPLv2-blue.svg)](https://github.com/luhring/reach/blob/master/LICENSE)
 
 Reach is a tool for analyzing the network traffic allowed to flow in AWS. Reach doesn't need any access to your network — it simply queries the AWS API for your network configuration.
 
