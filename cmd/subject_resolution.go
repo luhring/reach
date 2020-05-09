@@ -15,9 +15,9 @@ func resolveSubject(input string, progressWriter io.Writer, domains reach.Domain
 
 	if q != nil {
 		return resolveSubjectExplicitly(*q, domains)
-	} else {
-		return resolveSubjectImplicitly(input, progressWriter, domains)
 	}
+
+	return resolveSubjectImplicitly(input, progressWriter, domains)
 }
 
 func getQualifiedSubject(input string) *qualifiedSubject {
