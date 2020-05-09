@@ -8,11 +8,13 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// Tracer is the analyzer-specific implementation of the interface reach.Tracer. This implementation features a mechanism for tracing paths that concurrently follows all possible paths of network traffic from source to destination.
 type Tracer struct {
 	referenceResolver    reach.ReferenceResolver
 	domainClientResolver reach.DomainClientResolver
 }
 
+// NewTracer returns a reference to a new instance of a Tracer.
 func NewTracer(domainClientResolver reach.DomainClientResolver) *Tracer {
 	referenceResolver := NewReferenceResolver(domainClientResolver)
 
@@ -22,6 +24,7 @@ func NewTracer(domainClientResolver reach.DomainClientResolver) *Tracer {
 	}
 }
 
+// Trace uses available information to map all possible network paths from the specified source to the specified destination. If Trace is unable to provide a complete set of paths, it returns an error.
 func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) {
 	dstIPs, err := t.subjectIPs(destination)
 	if err != nil {
