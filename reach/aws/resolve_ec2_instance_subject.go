@@ -6,7 +6,7 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
-// ResolveEC2InstanceSubject looks up an EC2 instance using the given provider and returns it as a new subject.
+// ResolveEC2InstanceSubject looks up an EC2Instance using the given provider and returns it as a new subject.
 func ResolveEC2InstanceSubject(identifier string, domains reach.DomainClientResolver) (*reach.Subject, error) {
 	resources, err := unpackDomainClient(domains)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// ResolveHostnameSubject looks up a Hostname using the given provider and returns it as a new subject.
 func ResolveHostnameSubject(identifier string) (*reach.Subject, error) {
 	err := CheckHostname(identifier)
 	if err != nil {
