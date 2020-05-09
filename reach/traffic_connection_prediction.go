@@ -1,5 +1,6 @@
 package reach
 
-type TrafficConnectionPrediction struct {
-	protocols map[Protocol]ProtocolConnectionPrediction
-}
+//
+// type TrafficConnectionPrediction struct {
+// 	protocols map[Protocol]ProtocolConnectionPrediction
+// }

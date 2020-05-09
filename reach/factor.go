@@ -8,6 +8,7 @@ type Factor struct {
 	Properties interface{} `json:"Properties,omitempty"`
 }
 
+// TrafficFromFactors returns a set of TrafficContents found among the input factors.
 func TrafficFromFactors(factors []Factor) []TrafficContent {
 	var result []TrafficContent
 

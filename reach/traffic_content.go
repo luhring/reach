@@ -411,6 +411,7 @@ func (tc TrafficContent) None() bool {
 	return tc.indicator == trafficContentIndicatorNone || (tc.indicator == trafficContentIndicatorUnset && len(tc.protocols) == 0)
 }
 
+// TrafficContentsFromPaths returns the set of forward-bound traffic that can traverse the entirety of any of the input paths.
 func TrafficContentsFromPaths(paths []Path) ([]TrafficContent, error) {
 	var result []TrafficContent
 
@@ -425,7 +426,7 @@ func TrafficContentsFromPaths(paths []Path) ([]TrafficContent, error) {
 	return result, nil
 }
 
-// RestrictedProtocol describes an IP protocol whose return traffic has been restricted
+// RestrictedProtocol describes an IP protocol whose return traffic has been restricted.
 type RestrictedProtocol struct {
 	Protocol        Protocol
 	NoReturnTraffic bool

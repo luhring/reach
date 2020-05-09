@@ -29,6 +29,7 @@ type Subject struct {
 	Role   SubjectRole
 }
 
+// Ref returns a reference for the subject.
 func (s Subject) Ref() Reference {
 	return Reference{
 		Domain: s.Domain,
