@@ -20,6 +20,14 @@ jobs:
       - run: sudo apt install golint
       - run: golint -set_exit_status ./...
 
+  vet:
+    docker:
+      - image: circleci/golang:1.13.1
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run: go vet ./...
+
   unit_tests:
     docker:
       - image: circleci/golang:1.13.1
