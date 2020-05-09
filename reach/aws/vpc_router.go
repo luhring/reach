@@ -8,12 +8,15 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// ResourceKindVPCRouter specifies the unique name for the VPCRouter kind of resource.
 const ResourceKindVPCRouter reach.Kind = "VPCRouter"
 
+// VPCRouter represents the router implicitly present within each AWS VPC.
 type VPCRouter struct {
 	VPC VPC
 }
 
+// NewVPCRouter returns a pointer to a new instance of a VPCRouter. NewVPCRouter returns an error if it is unable to gather enough information required to represent a VPC's router.
 func NewVPCRouter(client DomainClient, id string) (*VPCRouter, error) {
 	vpc, err := client.VPC(id)
 	if err != nil {
@@ -23,6 +26,16 @@ func NewVPCRouter(client DomainClient, id string) (*VPCRouter, error) {
 	return &VPCRouter{VPC: *vpc}, nil
 }
 
+// VPCRouterRef returns a Reference for a VPCRouter with the specified ID.
+func VPCRouterRef(id string) reach.Reference {
+	return reach.Reference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindVPCRouter,
+		ID:     id,
+	}
+}
+
+// Resource returns the VPCRouter converted to a generalized Reach resource.
 func (r VPCRouter) Resource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindVPCRouter,
@@ -32,22 +45,26 @@ func (r VPCRouter) Resource() reach.Resource {
 
 // ———— Implementing Traceable ————
 
+// Ref returns a Reference for the VPCRouter.
 func (r VPCRouter) Ref() reach.Reference {
-	return reach.Reference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindVPCRouter,
-		ID:     r.VPC.ID,
-	}
+	return VPCRouterRef(r.VPC.ID)
 }
 
+// Visitable returns a boolean to indicate whether a tracer is allowed to add this resource to the path it's currently constructing.
+//
+// The Visitable method for VPCRouter always returns true because there is no limit to the number of times a tracer can visit a VPCRouter.
 func (r VPCRouter) Visitable(_ bool) bool {
 	return true
 }
 
+// Segments returns a boolean to indicate whether a tracer should create a new path segment at this point in the path.
+//
+// The Segments method for VPCRouter always returns false because VPC routers never perform NAT.
 func (r VPCRouter) Segments() bool {
 	return false
 }
 
+// EdgesForward returns the set of all possible edges forward given this point in a path that a tracer is constructing. EdgesForward returns an empty slice of edges if there are no further points for the specified network traffic to travel as it attempts to reach its intended network destination.
 func (r VPCRouter) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.Reference, _ []net.IP) ([]reach.Edge, error) {
 	err := r.checkNilPreviousEdge(previousEdge)
 	if err != nil {
@@ -81,6 +98,7 @@ func (r VPCRouter) EdgesForward(resolver reach.DomainClientResolver, previousEdg
 	return r.newEdges(tuple, target.Ref()), nil
 }
 
+// FactorsForward returns a set of factors that impact the traffic traveling through this point in the direction of source to destination.
 func (r VPCRouter) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
 	tuple := previousEdge.Tuple
 	client, err := unpackDomainClient(resolver)
@@ -121,6 +139,7 @@ func (r VPCRouter) FactorsForward(resolver reach.DomainClientResolver, previousE
 	return factors, nil
 }
 
+// FactorsReturn returns a set of factors that impact the traffic traveling through this point in the direction of destination to source.
 func (r VPCRouter) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
 	panic("implement me")
 }

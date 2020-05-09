@@ -27,6 +27,7 @@ func (client *DomainClient) SecurityGroupReference(id, accountID string) (*reach
 	}, nil
 }
 
+// ResolveSecurityGroupReference queries the AWS API to determine the set of ElasticNetworkInterfaces to which the specified SecurityGroup is attached.
 func (client *DomainClient) ResolveSecurityGroupReference(sgID string) ([]reachAWS.ElasticNetworkInterface, error) {
 	input := &ec2.DescribeNetworkInterfacesInput{
 		Filters: []*ec2.Filter{

@@ -19,6 +19,15 @@ type SecurityGroup struct {
 	OutboundRules []SecurityGroupRule
 }
 
+// SecurityGroupRef returns a Reference for a SecurityGroup with the specified ID.
+func SecurityGroupRef(id string) reach.Reference {
+	return reach.Reference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindSecurityGroup,
+		ID:     id,
+	}
+}
+
 // Resource returns the security group converted to a generalized Reach resource.
 func (sg SecurityGroup) Resource() reach.Resource {
 	return reach.Resource{
@@ -27,11 +36,12 @@ func (sg SecurityGroup) Resource() reach.Resource {
 	}
 }
 
+// Ref returns a Reference for the SecurityGroup.
 func (sg SecurityGroup) Ref() reach.Reference {
 	return SecurityGroupRef(sg.ID)
 }
 
-// Name returns the security group's ID, and, if available, its name tag value (or group name).
+// Name returns the SecurityGroup's ID, and, if available, its name tag value (or group name).
 func (sg SecurityGroup) Name() string {
 	var name string
 
@@ -46,12 +56,4 @@ func (sg SecurityGroup) Name() string {
 	}
 
 	return sg.ID
-}
-
-func SecurityGroupRef(id string) reach.Reference {
-	return reach.Reference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindSecurityGroup,
-		ID:     id,
-	}
 }

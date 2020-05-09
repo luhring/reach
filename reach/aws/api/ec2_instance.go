@@ -60,6 +60,7 @@ func (client *DomainClient) AllEC2Instances() ([]reachAWS.EC2Instance, error) {
 	return instances, nil
 }
 
+// EC2InstanceByENI queries the AWS API for the EC2Instance that's associated with the specified ID of an ElasticNetworkInterface.
 func (client *DomainClient) EC2InstanceByENI(eniID string) (*reachAWS.EC2Instance, error) {
 	// TODO: Intelligently cache the result of this query
 

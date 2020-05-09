@@ -37,6 +37,10 @@ func (client *DomainClient) RouteTable(id string) (*reachAWS.RouteTable, error) 
 	return &routeTable, nil
 }
 
+// func (client *DomainClient) RouteTableForGateway(id string) (*reachAWS.RouteTable, error) {
+// 	panic("implement me")
+// }
+
 func newRouteTableFromAPI(routeTable *ec2.RouteTable) (reachAWS.RouteTable, error) {
 	routes, err := routeTableRoutesFromAPI(routeTable.Routes)
 	if err != nil {

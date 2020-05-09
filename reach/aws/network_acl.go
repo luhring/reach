@@ -12,7 +12,16 @@ type NetworkACL struct {
 	OutboundRules []NetworkACLRule
 }
 
-// Resource returns the network ACL converted to a generalized Reach resource.
+// NetworkACLRef returns a Reference for a NetworkACL with the specified ID.
+func NetworkACLRef(id string) reach.Reference {
+	return reach.Reference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindNetworkACL,
+		ID:     id,
+	}
+}
+
+// Resource returns the NetworkACL converted to a generalized Reach resource.
 func (nacl NetworkACL) Resource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindNetworkACL,
@@ -20,14 +29,7 @@ func (nacl NetworkACL) Resource() reach.Resource {
 	}
 }
 
+// Ref returns a Reference for the NetworkACL.
 func (nacl NetworkACL) Ref() reach.Reference {
 	return NetworkACLRef(nacl.ID)
-}
-
-func NetworkACLRef(id string) reach.Reference {
-	return reach.Reference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindNetworkACL,
-		ID:     id,
-	}
 }

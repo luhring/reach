@@ -9,7 +9,7 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
-// ResourceKindElasticNetworkInterface specifies the unique name for the elastic network interface kind of resource.
+// ResourceKindElasticNetworkInterface specifies the unique name for the ElasticNetworkInterface kind of resource.
 const ResourceKindElasticNetworkInterface reach.Kind = "ElasticNetworkInterface"
 
 // An ElasticNetworkInterface resource representation.
@@ -25,7 +25,16 @@ type ElasticNetworkInterface struct {
 	SrcDstCheck          bool
 }
 
-// Name returns the elastic network interface's ID, and, if available, its name tag value.
+// ElasticNetworkInterfaceRef returns a Reference for an ElasticNetworkInterface with the specified ID.
+func ElasticNetworkInterfaceRef(id string) reach.Reference {
+	return reach.Reference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindElasticNetworkInterface,
+		ID:     id,
+	}
+}
+
+// Name returns the ElasticNetworkInterface's ID, and, if available, its name tag value.
 func (eni ElasticNetworkInterface) Name() string {
 	if name := strings.TrimSpace(eni.NameTag); name != "" {
 		return fmt.Sprintf("\"%s\" (%s)", name, eni.ID)
@@ -33,7 +42,7 @@ func (eni ElasticNetworkInterface) Name() string {
 	return eni.ID
 }
 
-// Resource returns the elastic network interface converted to a generalized Reach resource.
+// Resource returns the ElasticNetworkInterface converted to a generalized Reach resource.
 func (eni ElasticNetworkInterface) Resource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindElasticNetworkInterface,
@@ -43,18 +52,26 @@ func (eni ElasticNetworkInterface) Resource() reach.Resource {
 
 // ———— Implementing Traceable ————
 
+// Ref returns a Reference for the ElasticNetworkInterface.
 func (eni ElasticNetworkInterface) Ref() reach.Reference {
 	return ElasticNetworkInterfaceRef(eni.ID)
 }
 
+// Visitable returns a boolean to indicate whether a tracer is allowed to add this resource to the path it's currently constructing.
+//
+// The Visitable method for ElasticNetworkInterface always returns true because there is no limit to the number of times a tracer can visit an ElasticNetworkInterface.
 func (eni ElasticNetworkInterface) Visitable(_ bool) bool {
 	return true
 }
 
+// Segments returns a boolean to indicate whether a tracer should create a new path segment at this point in the path.
+//
+// The Segments method for ElasticNetworkInterface always returns false because ENIs never perform NAT.
 func (eni ElasticNetworkInterface) Segments() bool {
 	return false
 }
 
+// EdgesForward returns the set of all possible edges forward given this point in a path that a tracer is constructing. EdgesForward returns an empty slice of edges if there are no further points for the specified network traffic to travel as it attempts to reach its intended network destination.
 func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ *reach.Reference, _ []net.IP) ([]reach.Edge, error) {
 	// TODO: Use previousRef for more intelligent detection of incoming traffic's origin
 
@@ -83,6 +100,7 @@ func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResol
 	}
 }
 
+// FactorsForward returns a set of factors that impact the traffic traveling through this point in the direction of source to destination.
 func (eni ElasticNetworkInterface) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
 	err := eni.checkNilPreviousEdge(previousEdge)
 	if err != nil {
@@ -105,12 +123,14 @@ func (eni ElasticNetworkInterface) FactorsForward(resolver reach.DomainClientRes
 	return factors, nil
 }
 
+// FactorsReturn returns a set of factors that impact the traffic traveling through this point in the direction of destination to source.
 func (eni ElasticNetworkInterface) FactorsReturn(_ reach.DomainClientResolver, _ *reach.Edge) ([]reach.Factor, error) {
 	panic("implement me!")
 }
 
 // ———— Implementing IPAddressable ————
 
+// IPs returns the set of IP addresses associated with this resource. This includes both IP addresses known directly by this network interfaces and IP addresses (such as public IPv4 addresses) that are translated (i.e. NAT) to an address associated with this network interface.
 func (eni ElasticNetworkInterface) IPs(_ reach.DomainClientResolver) ([]net.IP, error) {
 	var ips []net.IP
 
@@ -226,12 +246,4 @@ func (eni ElasticNetworkInterface) connectedVPCRouter(client DomainClient) (*VPC
 		return nil, fmt.Errorf("unable to get connected VPC router: %v", err)
 	}
 	return router, nil
-}
-
-func ElasticNetworkInterfaceRef(id string) reach.Reference {
-	return reach.Reference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindElasticNetworkInterface,
-		ID:     id,
-	}
 }

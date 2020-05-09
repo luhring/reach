@@ -8,7 +8,7 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
-// ResourceKindEC2Instance specifies the unique name for the EC2 instance kind of resource.
+// ResourceKindEC2Instance specifies the unique name for the EC2Instance kind of resource.
 const ResourceKindEC2Instance reach.Kind = "EC2Instance"
 
 // An EC2Instance resource representation.
@@ -19,7 +19,16 @@ type EC2Instance struct {
 	NetworkInterfaceAttachments []NetworkInterfaceAttachment
 }
 
-// Resource returns the EC2 instance converted to a generalized Reach resource.
+// EC2InstanceRef returns a Reference for an EC2Instance with the specified ID.
+func EC2InstanceRef(id string) reach.Reference {
+	return reach.Reference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindEC2Instance,
+		ID:     id,
+	}
+}
+
+// Resource returns the EC2Instance converted to a generalized Reach resource.
 func (i EC2Instance) Resource() reach.Resource {
 	return reach.Resource{
 		Kind:       ResourceKindEC2Instance,
@@ -37,18 +46,26 @@ func (i EC2Instance) Name() string {
 
 // ———— Implementing Traceable ————
 
+// Ref returns a Reference for the EC2Instance.
 func (i EC2Instance) Ref() reach.Reference {
 	return EC2InstanceRef(i.ID)
 }
 
+// Visitable returns a boolean to indicate whether a tracer is allowed to add this resource to the path it's currently constructing.
+//
+// In most cases, visiting an EC2 instance multiple times indicates that a network path cycle is occurring, which should be considered fatal for the trace. Network setups that legitimately leverage repeat visits to an EC2Instance are not yet supported by Reach.
 func (i EC2Instance) Visitable(alreadyVisited bool) bool {
 	return alreadyVisited == false
 }
 
+// Segments returns a boolean to indicate whether a tracer should create a new path segment at this point in the path.
+//
+// Segments always returns false. Although it's certainly possible for an EC2Instance to perform NAT, such network setups are not yet supported by Reach.
 func (i EC2Instance) Segments() bool {
 	return false // TODO: If this resource can ever perform NAT, this answer would change.
 }
 
+// EdgesForward returns the set of all possible edges forward given this point in a path that a tracer is constructing. EdgesForward returns an empty slice of edges if there are no further points for the specified network traffic to travel as it attempts to reach its intended network destination.
 func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ *reach.Reference, destinationIPs []net.IP) ([]reach.Edge, error) {
 	// TODO: Use previousRef for more intelligent detection of incoming traffic's origin
 
@@ -88,6 +105,7 @@ func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousE
 	return edges, nil
 }
 
+// FactorsForward returns a set of factors that impact the traffic traveling through this point in the direction of source to destination.
 func (i EC2Instance) FactorsForward(
 	_ reach.DomainClientResolver,
 	_ *reach.Edge,
@@ -96,12 +114,14 @@ func (i EC2Instance) FactorsForward(
 	return []reach.Factor{f}, nil
 }
 
+// FactorsReturn returns a set of factors that impact the traffic traveling through this point in the direction of destination to source.
 func (i EC2Instance) FactorsReturn(_ reach.DomainClientResolver, _ *reach.Edge) ([]reach.Factor, error) {
 	panic("implement me!")
 }
 
 // ———— Implementing IPAddressable ————
 
+// IPs returns the set of IP addresses associated with this resource. This includes both IP addresses known directly by this resource's network interfaces and IP addresses (such as public IPv4 addresses) that are translated (i.e. NAT) to an address associated with this resource's network interface.
 func (i EC2Instance) IPs(resolver reach.DomainClientResolver) ([]net.IP, error) {
 	client, err := unpackDomainClient(resolver)
 	if err != nil {
@@ -125,6 +145,7 @@ func (i EC2Instance) IPs(resolver reach.DomainClientResolver) ([]net.IP, error) 
 	return ips, nil
 }
 
+// InterfaceIPs returns the set of IP addresses that are directly associated with this resource's network interface. Addresses used to reach this resource via address translation are not included.
 func (i EC2Instance) InterfaceIPs(resolver reach.DomainClientResolver) ([]net.IP, error) {
 	client, err := unpackDomainClient(resolver)
 	if err != nil {
@@ -214,12 +235,4 @@ func (i EC2Instance) elasticNetworkInterfaces(client DomainClient) ([]ElasticNet
 	}
 
 	return enis, nil
-}
-
-func EC2InstanceRef(id string) reach.Reference {
-	return reach.Reference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindEC2Instance,
-		ID:     id,
-	}
 }

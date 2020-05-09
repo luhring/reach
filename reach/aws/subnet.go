@@ -19,6 +19,15 @@ type Subnet struct {
 	IPv6CIDR     *net.IPNet
 }
 
+// SubnetRef returns a Reference for a Subnet with the specified ID.
+func SubnetRef(id string) reach.Reference {
+	return reach.Reference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindSubnet,
+		ID:     id,
+	}
+}
+
 // Resource returns the subnet converted to a generalized Reach resource.
 func (s Subnet) Resource() reach.Resource {
 	return reach.Resource{
@@ -27,14 +36,17 @@ func (s Subnet) Resource() reach.Resource {
 	}
 }
 
+// Ref returns a Reference for the Subnet.
 func (s Subnet) Ref() reach.Reference {
 	return SubnetRef(s.ID)
 }
 
+// equal returns a boolean to indicate if two Subnet instances represent the same Subnet.
 func (s Subnet) equal(other Subnet) bool {
 	return s.ID == other.ID
 }
 
+// contains returns a boolean to indicate if the specified IP address is contained within any of the Subnet's CIDR blocks.
 func (s Subnet) contains(ip net.IP) bool {
 	if s.IPv4CIDR.Contains(ip) {
 		return true
@@ -45,12 +57,4 @@ func (s Subnet) contains(ip net.IP) bool {
 	}
 
 	return false
-}
-
-func SubnetRef(id string) reach.Reference {
-	return reach.Reference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindSubnet,
-		ID:     id,
-	}
 }

@@ -6,11 +6,13 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// RouteTableRouteTarget represents a target associated with a given RouteTable route.
 type RouteTableRouteTarget struct {
 	Type RouteTargetType
 	ID   string
 }
 
+// Ref returns a Reference for the underlying resource referred to by the RouteTableRouteTarget.
 func (t RouteTableRouteTarget) Ref() reach.Reference {
 	var kind reach.Kind
 	id := t.ID
@@ -32,8 +34,10 @@ func (t RouteTableRouteTarget) Ref() reach.Reference {
 	}
 }
 
+// RouteTargetType describes the type of target associated with a RouteTable route.
 type RouteTargetType string
 
+// The types of targets that can be associated with a RouteTable route.
 const (
 	RouteTargetTypeInternetGateway           RouteTargetType = "InternetGateway"
 	RouteTargetTypeNATGateway                RouteTargetType = "NATGateway"
@@ -47,6 +51,7 @@ const (
 	RouteTargetTypeUnknown                   RouteTargetType = "Unknown"
 )
 
+// RouteTargetTypeFromPrefix parses the specified resource ID and returns the RouteTargetType associated with the ID's prefix.
 func RouteTargetTypeFromPrefix(id string) RouteTargetType {
 	prefix := strings.Split(id, "-")[0]
 

@@ -18,6 +18,15 @@ type RouteTable struct {
 	Routes []RouteTableRoute
 }
 
+// RouteTableRef returns a Reference for a RouteTable with the specified ID.
+func RouteTableRef(id string) reach.Reference {
+	return reach.Reference{
+		Domain: ResourceDomainAWS,
+		Kind:   ResourceKindRouteTable,
+		ID:     id,
+	}
+}
+
 // Resource returns the route table converted to a generalized Reach resource.
 func (rt RouteTable) Resource() reach.Resource {
 	return reach.Resource{
@@ -26,6 +35,7 @@ func (rt RouteTable) Resource() reach.Resource {
 	}
 }
 
+// Ref returns a Reference for the RouteTable.
 func (rt RouteTable) Ref() reach.Reference {
 	return RouteTableRef(rt.ID)
 }
@@ -45,12 +55,4 @@ func (rt RouteTable) routesBySpecificity() []RouteTableRoute {
 	routes := rt.Routes
 	sort.Sort(byRouteDestinationSpecificity(routes))
 	return routes
-}
-
-func RouteTableRef(id string) reach.Reference {
-	return reach.Reference{
-		Domain: ResourceDomainAWS,
-		Kind:   ResourceKindRouteTable,
-		ID:     id,
-	}
 }

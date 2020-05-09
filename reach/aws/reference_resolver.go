@@ -6,10 +6,12 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// ReferenceResolver is the AWS-specific implementation of the interface reach.ReferenceResolver. This ReferenceResolver can resolve only AWS references.
 type ReferenceResolver struct {
 	client DomainClient
 }
 
+// NewReferenceResolver returns a pointer a new ReferenceResolver. If NewReferenceResolver is unable to find an aws.DomainClient using the provided clientResolver, it returns an error.
 func NewReferenceResolver(clientResolver reach.DomainClientResolver) (*ReferenceResolver, error) {
 	client, err := unpackDomainClient(clientResolver)
 	if err != nil {
@@ -19,6 +21,7 @@ func NewReferenceResolver(clientResolver reach.DomainClientResolver) (*Reference
 	return &ReferenceResolver{client: client}, nil
 }
 
+// Resolve returns a Resource for the specified Reference. Resolve returns the error if the Reference does not specify the AWS domain or if there is an error encountered while querying for the resource itself.
 func (r *ReferenceResolver) Resolve(ref reach.Reference) (*reach.Resource, error) {
 	if ref.Domain != ResourceDomainAWS {
 		return nil, fmt.Errorf("%s resolver cannot resolve references for domain '%s'", ResourceDomainAWS, ref.Domain)

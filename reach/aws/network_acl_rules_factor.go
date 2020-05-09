@@ -8,6 +8,7 @@ import (
 	"github.com/luhring/reach/reach"
 )
 
+// FactorKindNetworkACLRules specifies the unique name for the networkACLRulesFactor kind of Factor.
 const FactorKindNetworkACLRules = "NetworkACLRules"
 
 type networkACLRulesFactor struct {

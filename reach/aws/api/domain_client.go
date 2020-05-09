@@ -3,7 +3,6 @@ package api
 import (
 	"errors"
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/luhring/reach/reach"
-	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
 // DomainClient implements an AWS DomainClient using the AWS API (via the AWS SDK).
@@ -43,71 +41,6 @@ func (client *DomainClient) cacheResource(r reach.Referable) {
 
 func (client *DomainClient) cachedResource(ref reach.Reference) interface{} {
 	return client.cache.Get(ref.String())
-}
-
-func (client *DomainClient) ElasticNetworkInterfaceByIP(ip net.IP) (*reachAWS.ElasticNetworkInterface, error) {
-	filterNames := []string{
-		"private-ip-address",
-		"association.public-ip",
-		"ipv6-addresses.ipv6-address",
-	}
-
-	for _, name := range filterNames {
-		input := &ec2.DescribeNetworkInterfacesInput{
-			Filters: []*ec2.Filter{
-				{
-					Name:   aws.String(name),
-					Values: aws.StringSlice([]string{ip.String()}),
-				},
-			},
-		}
-
-		result, err := client.ec2.DescribeNetworkInterfaces(input)
-		if err != nil {
-			// TODO: Try to differentiate a "Not Found" error vs. more serious errors
-			continue
-		}
-		if err := ensureSingleResult(len(result.NetworkInterfaces), reachAWS.ResourceKindElasticNetworkInterface, ip.String()); err != nil {
-			return nil, err
-		}
-
-		eniResult := result.NetworkInterfaces[0]
-		eni := newElasticNetworkInterfaceFromAPI(eniResult)
-		return &eni, nil
-	}
-
-	return nil, fmt.Errorf("unable to find matching elastic network interface for IP (%s), either because no such ENI exists or because a more serious error has occurred (such as with the network connection or with AWS authentication)", ip)
-}
-
-func (client *DomainClient) RouteTableForGateway(id string) (*reachAWS.RouteTable, error) {
-	panic("implement me")
-}
-
-func (client *DomainClient) SubnetsByVPC(id string) ([]reachAWS.Subnet, error) {
-	input := &ec2.DescribeSubnetsInput{
-		Filters: []*ec2.Filter{
-			{
-				Name:   aws.String("vpc-id"),
-				Values: aws.StringSlice([]string{id}),
-			},
-		},
-	}
-	results, err := client.ec2.DescribeSubnets(input)
-	if err != nil {
-		return nil, err
-	}
-
-	var subnets []reachAWS.Subnet
-	for _, s := range results.Subnets {
-		subnet, err := client.newSubnetFromAPI(s)
-		if err != nil {
-			return nil, err
-		}
-		client.cacheResource(*subnet)
-		subnets = append(subnets, *subnet)
-	}
-
-	return subnets, nil
 }
 
 func nameTag(tags []*ec2.Tag) string {

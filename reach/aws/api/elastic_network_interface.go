@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -9,7 +10,7 @@ import (
 	reachAWS "github.com/luhring/reach/reach/aws"
 )
 
-// ElasticNetworkInterface queries the AWS API for an elastic network interface matching the given ID.
+// ElasticNetworkInterface queries the AWS API for an ElasticNetworkInterface matching the given ID.
 func (client *DomainClient) ElasticNetworkInterface(id string) (*reachAWS.ElasticNetworkInterface, error) {
 	if r := client.cachedResource(reachAWS.ElasticNetworkInterfaceRef(id)); r != nil {
 		if v, ok := r.(*reachAWS.ElasticNetworkInterface); ok {
@@ -34,6 +35,41 @@ func (client *DomainClient) ElasticNetworkInterface(id string) (*reachAWS.Elasti
 	networkInterface := newElasticNetworkInterfaceFromAPI(result.NetworkInterfaces[0])
 	client.cacheResource(networkInterface)
 	return &networkInterface, nil
+}
+
+// ElasticNetworkInterfaceByIP queries the AWS API for the ElasticNetworkInterface that's associated with the specified IP address.
+func (client *DomainClient) ElasticNetworkInterfaceByIP(ip net.IP) (*reachAWS.ElasticNetworkInterface, error) {
+	filterNames := []string{
+		"private-ip-address",
+		"association.public-ip",
+		"ipv6-addresses.ipv6-address",
+	}
+
+	for _, name := range filterNames {
+		input := &ec2.DescribeNetworkInterfacesInput{
+			Filters: []*ec2.Filter{
+				{
+					Name:   aws.String(name),
+					Values: aws.StringSlice([]string{ip.String()}),
+				},
+			},
+		}
+
+		result, err := client.ec2.DescribeNetworkInterfaces(input)
+		if err != nil {
+			// TODO: Try to differentiate a "Not Found" error vs. more serious errors
+			continue
+		}
+		if err := ensureSingleResult(len(result.NetworkInterfaces), reachAWS.ResourceKindElasticNetworkInterface, ip.String()); err != nil {
+			return nil, err
+		}
+
+		eniResult := result.NetworkInterfaces[0]
+		eni := newElasticNetworkInterfaceFromAPI(eniResult)
+		return &eni, nil
+	}
+
+	return nil, fmt.Errorf("unable to find matching elastic network interface for IP (%s), either because no such ENI exists or because a more serious error has occurred (such as with the network connection or with AWS authentication)", ip)
 }
 
 func newElasticNetworkInterfaceFromAPI(eni *ec2.NetworkInterface) reachAWS.ElasticNetworkInterface {

@@ -43,6 +43,34 @@ func (client *DomainClient) Subnet(id string) (*reachAWS.Subnet, error) {
 	return subnet, nil
 }
 
+// SubnetsByVPC returns the set of Subnets that exist within the specified VPC.
+func (client *DomainClient) SubnetsByVPC(id string) ([]reachAWS.Subnet, error) {
+	input := &ec2.DescribeSubnetsInput{
+		Filters: []*ec2.Filter{
+			{
+				Name:   aws.String("vpc-id"),
+				Values: aws.StringSlice([]string{id}),
+			},
+		},
+	}
+	results, err := client.ec2.DescribeSubnets(input)
+	if err != nil {
+		return nil, err
+	}
+
+	var subnets []reachAWS.Subnet
+	for _, s := range results.Subnets {
+		subnet, err := client.newSubnetFromAPI(s)
+		if err != nil {
+			return nil, err
+		}
+		client.cacheResource(*subnet)
+		subnets = append(subnets, *subnet)
+	}
+
+	return subnets, nil
+}
+
 func (client *DomainClient) newSubnetFromAPI(subnet *ec2.Subnet) (*reachAWS.Subnet, error) {
 	networkACLID, err := client.networkACLIDFromSubnet(subnet)
 	if err != nil {
