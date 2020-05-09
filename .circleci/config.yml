@@ -14,11 +14,11 @@ jobs:
   lint:
     docker:
       - image: circleci/golang:1.13.1
-      working_directory: ~/repo
-      steps:
-        - checkout
-        - run: sudo apt install golint
-        - run: golint -set_exit_status ./...
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run: sudo apt install golint
+      - run: golint -set_exit_status ./...
 
   unit_tests:
     docker:
