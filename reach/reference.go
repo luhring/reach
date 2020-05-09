@@ -2,7 +2,7 @@ package reach
 
 import "fmt"
 
-// Reference uniquely identifies a Resource used by Reach. It specifies the resource's Domain (e.g. AWS), Kind (e.g. EC2 instance), and ID (e.g. "i-0136d3233f0ef1924").
+// Reference uniquely identifies an infrastructure resource used by Reach. It specifies the resource's Domain (e.g. AWS), Kind (e.g. EC2 instance), and ID (e.g. "i-0136d3233f0ef1924").
 type Reference struct {
 	Domain Domain
 	Kind   Kind
