@@ -5,7 +5,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: circleci/golang:1.13.1
+      - image: circleci/golang:1.14.2
     working_directory: ~/repo
     steps:
       - checkout
@@ -13,7 +13,7 @@ jobs:
 
   lint:
     docker:
-      - image: circleci/golang:1.13.1
+      - image: circleci/golang:1.14.2
     working_directory: ~/repo
     steps:
       - checkout
@@ -22,7 +22,7 @@ jobs:
 
   vet:
     docker:
-      - image: circleci/golang:1.13.1
+      - image: circleci/golang:1.14.2
     working_directory: ~/repo
     steps:
       - checkout
@@ -30,7 +30,7 @@ jobs:
 
   unit_tests:
     docker:
-      - image: circleci/golang:1.13.1
+      - image: circleci/golang:1.14.2
     working_directory: ~/repo
     steps:
       - checkout
@@ -38,7 +38,7 @@ jobs:
 
   acceptance_tests:
     docker:
-      - image: circleci/golang:1.13.1
+      - image: circleci/golang:1.14.2
     working_directory: ~/repo
     steps:
       - checkout
