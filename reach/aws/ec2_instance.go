@@ -37,7 +37,7 @@ func (i EC2Instance) Name() string {
 
 // ———— Implementing Traceable ————
 
-func (i EC2Instance) Ref() reach.UniversalReference {
+func (i EC2Instance) Ref() reach.Reference {
 	return EC2InstanceRef(i.ID)
 }
 
@@ -49,7 +49,7 @@ func (i EC2Instance) Segments() bool {
 	return false // TODO: If this resource can ever perform NAT, this answer would change.
 }
 
-func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ *reach.UniversalReference, destinationIPs []net.IP) ([]reach.Edge, error) {
+func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ *reach.Reference, destinationIPs []net.IP) ([]reach.Edge, error) {
 	// TODO: Use previousRef for more intelligent detection of incoming traffic's origin
 
 	var tuples []reach.IPTuple
@@ -216,8 +216,8 @@ func (i EC2Instance) elasticNetworkInterfaces(client DomainClient) ([]ElasticNet
 	return enis, nil
 }
 
-func EC2InstanceRef(id string) reach.UniversalReference {
-	return reach.UniversalReference{
+func EC2InstanceRef(id string) reach.Reference {
+	return reach.Reference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindEC2Instance,
 		ID:     id,

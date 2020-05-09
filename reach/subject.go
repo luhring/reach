@@ -29,8 +29,8 @@ type Subject struct {
 	Role   SubjectRole
 }
 
-func (s Subject) Ref() UniversalReference {
-	return UniversalReference{
+func (s Subject) Ref() Reference {
+	return Reference{
 		Domain: s.Domain,
 		Kind:   s.Kind,
 		ID:     s.ID,

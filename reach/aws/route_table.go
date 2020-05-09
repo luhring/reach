@@ -26,7 +26,7 @@ func (rt RouteTable) Resource() reach.Resource {
 	}
 }
 
-func (rt RouteTable) Ref() reach.UniversalReference {
+func (rt RouteTable) Ref() reach.Reference {
 	return RouteTableRef(rt.ID)
 }
 
@@ -47,8 +47,8 @@ func (rt RouteTable) routesBySpecificity() []RouteTableRoute {
 	return routes
 }
 
-func RouteTableRef(id string) reach.UniversalReference {
-	return reach.UniversalReference{
+func RouteTableRef(id string) reach.Reference {
+	return reach.Reference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindRouteTable,
 		ID:     id,

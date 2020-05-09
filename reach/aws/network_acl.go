@@ -20,12 +20,12 @@ func (nacl NetworkACL) Resource() reach.Resource {
 	}
 }
 
-func (nacl NetworkACL) Ref() reach.UniversalReference {
+func (nacl NetworkACL) Ref() reach.Reference {
 	return NetworkACLRef(nacl.ID)
 }
 
-func NetworkACLRef(id string) reach.UniversalReference {
-	return reach.UniversalReference{
+func NetworkACLRef(id string) reach.Reference {
+	return reach.Reference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindNetworkACL,
 		ID:     id,

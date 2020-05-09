@@ -43,7 +43,7 @@ func (eni ElasticNetworkInterface) Resource() reach.Resource {
 
 // ———— Implementing Traceable ————
 
-func (eni ElasticNetworkInterface) Ref() reach.UniversalReference {
+func (eni ElasticNetworkInterface) Ref() reach.Reference {
 	return ElasticNetworkInterfaceRef(eni.ID)
 }
 
@@ -55,7 +55,7 @@ func (eni ElasticNetworkInterface) Segments() bool {
 	return false
 }
 
-func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ *reach.UniversalReference, _ []net.IP) ([]reach.Edge, error) {
+func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ *reach.Reference, _ []net.IP) ([]reach.Edge, error) {
 	// TODO: Use previousRef for more intelligent detection of incoming traffic's origin
 
 	err := eni.checkNilPreviousEdge(previousEdge)
@@ -228,8 +228,8 @@ func (eni ElasticNetworkInterface) connectedVPCRouter(client DomainClient) (*VPC
 	return router, nil
 }
 
-func ElasticNetworkInterfaceRef(id string) reach.UniversalReference {
-	return reach.UniversalReference{
+func ElasticNetworkInterfaceRef(id string) reach.Reference {
+	return reach.Reference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindElasticNetworkInterface,
 		ID:     id,

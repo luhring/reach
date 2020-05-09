@@ -102,7 +102,7 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 				isFirstTraceJob := job.path.Zero()
 
 				var previousEdge *reach.Edge
-				var previousRef *reach.UniversalReference
+				var previousRef *reach.Reference
 				if isFirstTraceJob == false {
 					previousEdge = &job.edge
 					r := job.path.LastPoint().Ref

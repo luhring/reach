@@ -30,7 +30,7 @@ func (p Path) LastEdge() Edge {
 	return lastEdge
 }
 
-func (p Path) Contains(ref UniversalReference) bool {
+func (p Path) Contains(ref Reference) bool {
 	for _, s := range p.Segments {
 		if s.Contains(ref) {
 			return true

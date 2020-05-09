@@ -27,7 +27,7 @@ func (sg SecurityGroup) Resource() reach.Resource {
 	}
 }
 
-func (sg SecurityGroup) Ref() reach.UniversalReference {
+func (sg SecurityGroup) Ref() reach.Reference {
 	return SecurityGroupRef(sg.ID)
 }
 
@@ -48,8 +48,8 @@ func (sg SecurityGroup) Name() string {
 	return sg.ID
 }
 
-func SecurityGroupRef(id string) reach.UniversalReference {
-	return reach.UniversalReference{
+func SecurityGroupRef(id string) reach.Reference {
+	return reach.Reference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindSecurityGroup,
 		ID:     id,

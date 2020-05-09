@@ -11,7 +11,7 @@ type RouteTableRouteTarget struct {
 	ID   string
 }
 
-func (t RouteTableRouteTarget) Ref() reach.UniversalReference {
+func (t RouteTableRouteTarget) Ref() reach.Reference {
 	var kind reach.Kind
 	id := t.ID
 
@@ -25,7 +25,7 @@ func (t RouteTableRouteTarget) Ref() reach.UniversalReference {
 		id = "Unknown"
 	}
 
-	return reach.UniversalReference{
+	return reach.Reference{
 		Domain: ResourceDomainAWS,
 		Kind:   kind,
 		ID:     id,

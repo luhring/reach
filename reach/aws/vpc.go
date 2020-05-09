@@ -24,7 +24,7 @@ func (vpc VPC) Resource() reach.Resource {
 	}
 }
 
-func (vpc VPC) Ref() reach.UniversalReference {
+func (vpc VPC) Ref() reach.Reference {
 	return VPCRef(vpc.ID)
 }
 
@@ -63,8 +63,8 @@ func (vpc VPC) subnetThatContains(client DomainClient, ip net.IP) (*Subnet, bool
 	return nil, false, nil
 }
 
-func VPCRef(id string) reach.UniversalReference {
-	return reach.UniversalReference{
+func VPCRef(id string) reach.Reference {
+	return reach.Reference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindVPC,
 		ID:     id,

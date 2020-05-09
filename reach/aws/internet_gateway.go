@@ -23,7 +23,7 @@ func (igw InternetGateway) Resource() reach.Resource {
 	}
 }
 
-func (igw InternetGateway) Ref() reach.UniversalReference {
+func (igw InternetGateway) Ref() reach.Reference {
 	return InternetGatewayRef(igw.ID)
 }
 
@@ -35,7 +35,7 @@ func (igw InternetGateway) Segments() bool {
 	panic("implement me")
 }
 
-func (igw InternetGateway) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.UniversalReference, destinationIPs []net.IP) ([]reach.Edge, error) {
+func (igw InternetGateway) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.Reference, destinationIPs []net.IP) ([]reach.Edge, error) {
 	panic("implement me")
 }
 
@@ -47,8 +47,8 @@ func (igw InternetGateway) FactorsReturn(resolver reach.DomainClientResolver, ne
 	panic("implement me")
 }
 
-func InternetGatewayRef(id string) reach.UniversalReference {
-	return reach.UniversalReference{
+func InternetGatewayRef(id string) reach.Reference {
+	return reach.Reference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindInternetGateway,
 		ID:     id,

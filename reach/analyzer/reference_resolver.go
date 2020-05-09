@@ -18,18 +18,18 @@ func NewReferenceResolver(clientResolver reach.DomainClientResolver) ReferenceRe
 	}
 }
 
-func (r *ReferenceResolver) Resolve(ref reach.UniversalReference) (*reach.Resource, error) {
+func (r *ReferenceResolver) Resolve(ref reach.Reference) (*reach.Resource, error) {
 	switch ref.Domain {
 	case aws.ResourceDomainAWS:
 		awsResolver, err := aws.NewReferenceResolver(r.clientResolver)
 		if err != nil {
-			return nil, fmt.Errorf("cannot resolve UniversalReference: %v", err)
+			return nil, fmt.Errorf("cannot resolve Reference: %v", err)
 		}
 		return awsResolver.Resolve(ref)
 	case generic.ResourceDomainGeneric:
 		genericResolver, err := generic.NewReferenceResolver(r.clientResolver)
 		if err != nil {
-			return nil, fmt.Errorf("cannot resolve UniversalReference: %v", err)
+			return nil, fmt.Errorf("cannot resolve Reference: %v", err)
 		}
 		return genericResolver.Resolve(ref)
 	}

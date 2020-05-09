@@ -26,7 +26,7 @@ func (ngw NATGateway) Resource() reach.Resource {
 	}
 }
 
-func (ngw NATGateway) Ref() reach.UniversalReference {
+func (ngw NATGateway) Ref() reach.Reference {
 	return NATGatewayRef(ngw.ID)
 }
 
@@ -38,7 +38,7 @@ func (ngw NATGateway) Segments() bool {
 	panic("implement me")
 }
 
-func (ngw NATGateway) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.UniversalReference, destinationIPs []net.IP) ([]reach.Edge, error) {
+func (ngw NATGateway) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.Reference, destinationIPs []net.IP) ([]reach.Edge, error) {
 	panic("implement me")
 }
 
@@ -50,8 +50,8 @@ func (ngw NATGateway) FactorsReturn(resolver reach.DomainClientResolver, nextEdg
 	panic("implement me")
 }
 
-func NATGatewayRef(id string) reach.UniversalReference {
-	return reach.UniversalReference{
+func NATGatewayRef(id string) reach.Reference {
+	return reach.Reference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindNATGateway,
 		ID:     id,

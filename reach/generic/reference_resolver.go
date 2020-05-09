@@ -19,7 +19,7 @@ func NewReferenceResolver(clientResolver reach.DomainClientResolver) (*Reference
 	return &ReferenceResolver{client: client}, nil
 }
 
-func (r *ReferenceResolver) Resolve(ref reach.UniversalReference) (*reach.Resource, error) {
+func (r *ReferenceResolver) Resolve(ref reach.Reference) (*reach.Resource, error) {
 	if ref.Domain != ResourceDomainGeneric {
 		return nil, fmt.Errorf("%s resolver cannot resolve references for domain '%s'", ResourceDomainGeneric, ref.Domain)
 	}

@@ -32,8 +32,8 @@ func (r VPCRouter) Resource() reach.Resource {
 
 // ———— Implementing Traceable ————
 
-func (r VPCRouter) Ref() reach.UniversalReference {
-	return reach.UniversalReference{
+func (r VPCRouter) Ref() reach.Reference {
+	return reach.Reference{
 		Domain: ResourceDomainAWS,
 		Kind:   ResourceKindVPCRouter,
 		ID:     r.VPC.ID,
@@ -48,7 +48,7 @@ func (r VPCRouter) Segments() bool {
 	return false
 }
 
-func (r VPCRouter) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.UniversalReference, _ []net.IP) ([]reach.Edge, error) {
+func (r VPCRouter) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.Reference, _ []net.IP) ([]reach.Edge, error) {
 	err := r.checkNilPreviousEdge(previousEdge)
 	if err != nil {
 		return nil, fmt.Errorf("unablee to generate forward edges: %v", err)
@@ -134,7 +134,7 @@ func (r VPCRouter) checkNilPreviousEdge(previousEdge *reach.Edge) error {
 	return nil
 }
 
-func (r VPCRouter) newEdges(tuple reach.IPTuple, ref reach.UniversalReference) []reach.Edge {
+func (r VPCRouter) newEdges(tuple reach.IPTuple, ref reach.Reference) []reach.Edge {
 	edge := reach.Edge{
 		Tuple:             tuple,
 		EndRef:            ref,
@@ -143,7 +143,7 @@ func (r VPCRouter) newEdges(tuple reach.IPTuple, ref reach.UniversalReference) [
 	return []reach.Edge{edge}
 }
 
-func (r VPCRouter) routeTable(client DomainClient, tuple reach.IPTuple, previousRef reach.UniversalReference) (*RouteTable, error) {
+func (r VPCRouter) routeTable(client DomainClient, tuple reach.IPTuple, previousRef reach.Reference) (*RouteTable, error) {
 	if r.VPC.contains(tuple.Src) {
 		srcSubnet, exists, err := r.VPC.subnetThatContains(client, tuple.Src)
 		if err != nil {

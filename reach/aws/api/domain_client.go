@@ -41,7 +41,7 @@ func (client *DomainClient) cacheResource(r reach.Referable) {
 	client.cache.Put(r.Ref().String(), r)
 }
 
-func (client *DomainClient) cachedResource(ref reach.UniversalReference) interface{} {
+func (client *DomainClient) cachedResource(ref reach.Reference) interface{} {
 	return client.cache.Get(ref.String())
 }
 

@@ -20,8 +20,8 @@ func (h Hostname) Resource() reach.Resource {
 	}
 }
 
-func (h Hostname) Ref() reach.UniversalReference {
-	return reach.UniversalReference{
+func (h Hostname) Ref() reach.Reference {
+	return reach.Reference{
 		Domain: ResourceDomainGeneric,
 		Kind:   ResourceKindHostname,
 		ID:     h.Name,
