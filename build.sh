@@ -39,7 +39,7 @@ function build_for_os {
   mkdir -p "./$REACH_DIR_FOR_OS"
 
   GOOS=$GOOS go build -a -v -tags netgo -o "./$REACH_DIR_FOR_OS/$REACH_EXECUTABLE" ..
-  cp -nv ../COPYING ../COPYING.LESSER ../README.md "./$REACH_DIR_FOR_OS/"
+  cp -nv ../LICENSE ../README.md "./$REACH_DIR_FOR_OS/"
 
   if [[ "$GOOS" == "windows" ]]
   then
