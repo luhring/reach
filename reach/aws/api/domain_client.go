@@ -11,7 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/luhring/reach/reach"
+	reachAWS "github.com/luhring/reach/reach/aws"
 )
+
+var _ reachAWS.DomainClient = (*DomainClient)(nil)
 
 // DomainClient implements an AWS DomainClient using the AWS API (via the AWS SDK).
 type DomainClient struct {

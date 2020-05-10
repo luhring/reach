@@ -11,6 +11,9 @@ import (
 // ResourceKindEC2Instance specifies the unique name for the EC2Instance kind of resource.
 const ResourceKindEC2Instance reach.Kind = "EC2Instance"
 
+var _ reach.Traceable = (*EC2Instance)(nil)
+var _ reach.IPAddressable = (*EC2Instance)(nil)
+
 // An EC2Instance resource representation.
 type EC2Instance struct {
 	ID                          string

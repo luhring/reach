@@ -12,6 +12,9 @@ import (
 // ResourceKindElasticNetworkInterface specifies the unique name for the ElasticNetworkInterface kind of resource.
 const ResourceKindElasticNetworkInterface reach.Kind = "ElasticNetworkInterface"
 
+var _ reach.Traceable = (*ElasticNetworkInterface)(nil)
+var _ reach.IPAddressable = (*ElasticNetworkInterface)(nil)
+
 // An ElasticNetworkInterface resource representation.
 type ElasticNetworkInterface struct {
 	ID                   string
@@ -142,7 +145,11 @@ func (eni ElasticNetworkInterface) IPs(_ reach.DomainClientResolver) ([]net.IP, 
 	return ips, nil
 }
 
-// TODO: Either implement method InterfaceIPs, or modify interface
+func (eni ElasticNetworkInterface) InterfaceIPs(_ reach.DomainClientResolver) ([]net.IP, error) {
+	// TODO: Either implement method InterfaceIPs, or modify interface
+
+	panic("implement me")
+}
 
 // ———— Supporting methods ————
 

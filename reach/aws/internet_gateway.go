@@ -9,6 +9,8 @@ import (
 // ResourceKindInternetGateway specifies the unique name for the InternetGateway kind of resource.
 const ResourceKindInternetGateway reach.Kind = "InternetGateway"
 
+var _ reach.Traceable = (*InternetGateway)(nil)
+
 // An InternetGateway resource representation.
 type InternetGateway struct {
 	ID    string

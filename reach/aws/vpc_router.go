@@ -11,6 +11,8 @@ import (
 // ResourceKindVPCRouter specifies the unique name for the VPCRouter kind of resource.
 const ResourceKindVPCRouter reach.Kind = "VPCRouter"
 
+var _ reach.Traceable = (*VPCRouter)(nil)
+
 // VPCRouter represents the router implicitly present within each AWS VPC.
 type VPCRouter struct {
 	VPC VPC

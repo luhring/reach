@@ -9,6 +9,8 @@ import (
 // ResourceKindNATGateway specifies the unique name for the NAT gateway kind of resource.
 const ResourceKindNATGateway reach.Kind = "NATGateway"
 
+var _ reach.Traceable = (*NATGateway)(nil)
+
 // A NATGateway resource representation.
 type NATGateway struct {
 	ID        string
