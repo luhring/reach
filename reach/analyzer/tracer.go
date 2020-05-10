@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -38,10 +39,10 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 		destinationIPs: dstIPs,
 	}
 
-	done := make(chan interface{})
-	defer close(done)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	results := t.tracePoint(done, initialJob)
+	results := t.tracePoint(ctx, initialJob)
 	var paths []reach.Path
 
 	for result := range results {
@@ -72,14 +73,14 @@ func (t *Tracer) subjectIPs(s reach.Subject) ([]net.IP, error) {
 	return ips, nil
 }
 
-func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceResult {
+func (t *Tracer) tracePoint(ctx context.Context, job traceJob) <-chan traceResult {
 	results := make(chan traceResult)
 
 	go func() {
 		defer close(results)
 		for {
 			select {
-			case <-done:
+			case <-ctx.Done():
 				return
 			default:
 				// We need to turn the ref into a Traceable
@@ -153,14 +154,14 @@ func (t *Tracer) tracePoint(done <-chan interface{}, job traceJob) <-chan traceR
 						destinationRef: job.destinationRef,
 						destinationIPs: job.destinationIPs,
 					}
-					resultChannels[i] = t.tracePoint(done, j)
+					resultChannels[i] = t.tracePoint(ctx, j)
 				}
 
 				// Wait for downstream results to come in and pass them upstream.
-				downstreamResults := fanIn(done, resultChannels)
+				downstreamResults := fanIn(ctx, resultChannels)
 				for r := range downstreamResults {
 					select {
-					case <-done:
+					case <-ctx.Done():
 						return
 					case results <- r:
 					}
@@ -183,7 +184,7 @@ func ensureNoPathCycles(path reach.Path, traceable reach.Traceable) error {
 	return nil
 }
 
-func fanIn(done <-chan interface{}, channels []<-chan traceResult) <-chan traceResult {
+func fanIn(ctx context.Context, channels []<-chan traceResult) <-chan traceResult {
 	var wg sync.WaitGroup
 	multiplexedStream := make(chan traceResult)
 
@@ -191,7 +192,7 @@ func fanIn(done <-chan interface{}, channels []<-chan traceResult) <-chan traceR
 		defer wg.Done()
 		for i := range c {
 			select {
-			case <-done:
+			case <-ctx.Done():
 				return
 			case multiplexedStream <- i:
 			}
