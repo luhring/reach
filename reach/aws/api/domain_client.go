@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -37,7 +36,7 @@ func NewDomainClient(cache reach.Cache) (*DomainClient, error) {
 			msg = awsErr.Message()
 		}
 		// TODO: log this
-		return nil, reacherr.New(time.Now(), err, msg)
+		return nil, reacherr.New(err, msg)
 	}
 
 	ec2Client := ec2.New(sess)
