@@ -9,7 +9,7 @@ import (
 func findEC2InstanceID(searchText string, provider DomainClient) (string, error) {
 	instances, err := provider.AllEC2Instances()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to find EC2 instance using search text '%s': %v", searchText, err)
 	}
 
 	var matchesOnID []int

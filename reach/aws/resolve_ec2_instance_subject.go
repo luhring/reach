@@ -17,7 +17,7 @@ func ResolveEC2InstanceSubject(identifier string, domains reach.DomainClientReso
 	// Later, we might use this string to recognize different kinds of AWS resources.
 	ec2InstanceID, err := findEC2InstanceID(identifier, resources)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to resolve EC2 instance subject: %v", err)
 	}
 
 	subject := NewEC2InstanceSubject(ec2InstanceID)

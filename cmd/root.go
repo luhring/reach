@@ -17,6 +17,7 @@ import (
 	"github.com/luhring/reach/reach/generic/standard"
 )
 
+const githubURL = "https://github.com/luhring/reach"
 const explainFlag = "explain"
 const pathsFlag = "paths"
 const jsonFlag = "json"
@@ -50,8 +51,14 @@ See https://github.com/luhring/reach for documentation.`,
 		destinationInput := args[1]
 
 		catalog := reach.NewDomainClientCatalog()
+
 		c := cache.New()
-		catalog.Store(aws.ResourceDomainAWS, api.NewDomainClient(&c))
+		awsClient, err := api.NewDomainClient(&c)
+		if err != nil {
+			handleError(err)
+		}
+
+		catalog.Store(aws.ResourceDomainAWS, awsClient)
 		catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
 
 		source, err := resolveSubject(sourceInput, os.Stderr, catalog)

@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/luhring/reach/reach"
 	reachAWS "github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 var _ reachAWS.DomainClient = (*DomainClient)(nil)
@@ -24,10 +27,18 @@ type DomainClient struct {
 }
 
 // NewDomainClient returns a reference to a new DomainClient for the AWS API.
-func NewDomainClient(cache reach.Cache) *DomainClient {
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
+func NewDomainClient(cache reach.Cache) (*DomainClient, error) {
+	sess, err := session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
-	})) // TODO: Don't call session.Must —- return error, and don't panic, this is a library after all!
+	})
+	if err != nil {
+		msg := "unable to start an AWS SDK session"
+		if awsErr, ok := err.(awserr.Error); ok {
+			msg = awsErr.Message()
+		}
+		// TODO: log this
+		return nil, reacherr.New(time.Now(), err, msg)
+	}
 
 	ec2Client := ec2.New(sess)
 
@@ -35,7 +46,7 @@ func NewDomainClient(cache reach.Cache) *DomainClient {
 		session: sess,
 		ec2:     ec2Client,
 		cache:   cache,
-	}
+	}, nil
 }
 
 func (client *DomainClient) cacheResource(r reach.Referable) {
