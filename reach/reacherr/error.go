@@ -3,21 +3,18 @@ package reacherr
 import (
 	"fmt"
 	"runtime/debug"
-	"time"
 )
 
 type ReachErr struct {
-	Time       time.Time
 	StackTrace string
 	Inner      error
 	Message    string
 }
 
-func New(time time.Time, err error, messagef string, messageArgs ...interface{}) ReachErr {
+func New(err error, messagef string, messageArgs ...interface{}) ReachErr {
 	return ReachErr{
-		Inner:      err,
 		StackTrace: string(debug.Stack()),
-		Time:       time,
+		Inner:      err,
 		Message:    fmt.Sprintf(messagef, messageArgs...),
 	}
 }

@@ -19,6 +19,8 @@ func fatal(message string) {
 }
 
 func handleError(err error) {
+	// TODO: provide the user with info to include in the bug report
+
 	msg := "An unexpected error occurred; please open a new issue to report this: " + githubURL
 	if _, ok := err.(reacherr.ReachErr); ok {
 		msg = err.Error()
