@@ -8,6 +8,7 @@ import (
 	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/generic"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 func resolveSubject(input string, progressWriter io.Writer, domains reach.DomainClientResolver) (*reach.Subject, error) {
@@ -66,6 +67,6 @@ func resolveSubjectExplicitly(qualifiedSubject qualifiedSubject, domains reach.D
 	case "ec2":
 		return aws.ResolveEC2InstanceSubject(qualifiedSubject.identifier, domains)
 	default:
-		return nil, fmt.Errorf("unable to resolve subject with identifier '%s' because subject type prefix '%s' is not recognized", qualifiedSubject.identifier, qualifiedSubject.typePrefix)
+		return nil, reacherr.New(nil, "unable to resolve subject with identifier '%s' because subject type '%s' is not recognized", qualifiedSubject.identifier, qualifiedSubject.typePrefix)
 	}
 }

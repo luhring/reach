@@ -1,4 +1,4 @@
-package api
+package apiclient
 
 import (
 	"github.com/aws/aws-sdk-go/aws"

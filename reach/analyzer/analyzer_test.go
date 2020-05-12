@@ -8,7 +8,7 @@ import (
 	"github.com/luhring/reach/reach/acceptance"
 	"github.com/luhring/reach/reach/acceptance/terraform"
 	"github.com/luhring/reach/reach/aws"
-	"github.com/luhring/reach/reach/aws/api"
+	"github.com/luhring/reach/reach/aws/apiclient"
 	"github.com/luhring/reach/reach/cache"
 	"github.com/luhring/reach/reach/generic"
 	"github.com/luhring/reach/reach/generic/standard"
@@ -233,7 +233,7 @@ func TestAnalyze(t *testing.T) {
 
 					catalog := reach.NewDomainClientCatalog()
 					c := cache.New()
-					catalog.Store(aws.ResourceDomainAWS, api.NewDomainClient(&c))
+					catalog.Store(aws.ResourceDomainAWS, apiclient.NewDomainClient(&c))
 					catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
 					analyzer := New(catalog)
 

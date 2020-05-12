@@ -11,7 +11,7 @@ import (
 	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/analyzer"
 	"github.com/luhring/reach/reach/aws"
-	"github.com/luhring/reach/reach/aws/api"
+	"github.com/luhring/reach/reach/aws/apiclient"
 	"github.com/luhring/reach/reach/cache"
 	"github.com/luhring/reach/reach/generic"
 	"github.com/luhring/reach/reach/generic/standard"
@@ -53,7 +53,7 @@ See https://github.com/luhring/reach for documentation.`,
 		catalog := reach.NewDomainClientCatalog()
 
 		c := cache.New()
-		awsClient, err := api.NewDomainClient(&c)
+		awsClient, err := apiclient.NewDomainClient(&c)
 		if err != nil {
 			handleError(err)
 		}
@@ -63,13 +63,13 @@ See https://github.com/luhring/reach for documentation.`,
 
 		source, err := resolveSubject(sourceInput, os.Stderr, catalog)
 		if err != nil {
-			exitWithError(err)
+			handleError(err)
 		}
 		source.SetRoleToSource()
 
 		destination, err := resolveSubject(destinationInput, os.Stderr, catalog)
 		if err != nil {
-			exitWithError(err)
+			handleError(err)
 		}
 		destination.SetRoleToDestination()
 

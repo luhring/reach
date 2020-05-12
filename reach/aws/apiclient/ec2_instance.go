@@ -1,12 +1,14 @@
-package api
+package apiclient
 
 import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	reachAWS "github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // EC2Instance queries the AWS API for an EC2 instance matching the given ID.
@@ -47,9 +49,13 @@ func (client *DomainClient) AllEC2Instances() ([]reachAWS.EC2Instance, error) {
 	const errFormat = "unable to get all EC2 instances: %v"
 
 	describeInstancesOutput, err := client.ec2.DescribeInstances(nil)
-
 	if err != nil {
-		return nil, fmt.Errorf(errFormat, err)
+		msg := err.Error()
+		if awsErr, ok := err.(awserr.Error); ok {
+			msg = awsErrMessage(awsErr)
+			return nil, reacherr.New(err, msg)
+		}
+		return nil, err
 	}
 
 	reservations := describeInstancesOutput.Reservations

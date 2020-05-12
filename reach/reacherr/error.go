@@ -5,20 +5,39 @@ import (
 	"runtime/debug"
 )
 
-type ReachErr struct {
-	StackTrace string
-	Inner      error
-	Message    string
+type ReachErr interface {
+	error
+	Inner() error
+	StackTrace() string
+	Message() string
 }
 
 func New(err error, messagef string, messageArgs ...interface{}) ReachErr {
-	return ReachErr{
-		StackTrace: string(debug.Stack()),
-		Inner:      err,
-		Message:    fmt.Sprintf(messagef, messageArgs...),
+	return &reachErr{
+		inner:      err,
+		stackTrace: string(debug.Stack()),
+		message:    fmt.Sprintf(messagef, messageArgs...),
 	}
 }
 
-func (e ReachErr) Error() string {
-	return e.Message
+type reachErr struct {
+	inner      error
+	stackTrace string
+	message    string
+}
+
+func (e reachErr) Inner() error {
+	return e.inner
+}
+
+func (e reachErr) StackTrace() string {
+	return e.stackTrace
+}
+
+func (e reachErr) Message() string {
+	return e.message
+}
+
+func (e reachErr) Error() string {
+	return e.Message()
 }

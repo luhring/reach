@@ -3,13 +3,15 @@ package aws
 import (
 	"fmt"
 	"strings"
+
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // findEC2InstanceID looks up the instance ID for an EC2 instance using a given resource provider (e.g. an AWS API client) based on the specified search text. The search text can match the entire value or beginning substring for an instance's ID or name tag value, as long as the text matches exactly one EC2 instance.
 func findEC2InstanceID(searchText string, provider DomainClient) (string, error) {
 	instances, err := provider.AllEC2Instances()
 	if err != nil {
-		return "", fmt.Errorf("unable to find EC2 instance using search text '%s': %v", searchText, err)
+		return "", err
 	}
 
 	var matchesOnID []int
@@ -49,7 +51,7 @@ func findEC2InstanceID(searchText string, provider DomainClient) (string, error)
 			}
 
 			matches := strings.Join(ids, ", ")
-			return "", fmt.Errorf("error: search text matches multiple EC2 instances' IDs (matches for search text '%s': %s)", searchText, matches)
+			return "", reacherr.New(nil, "search text ('%s') matches multiple EC2 instances' IDs: %s", searchText, matches)
 		}
 	}
 
@@ -72,11 +74,11 @@ func findEC2InstanceID(searchText string, provider DomainClient) (string, error)
 			}
 
 			matches := strings.Join(matchedInstances, ", ")
-			return "", fmt.Errorf("error: search text matches multiple EC2 instances' name tags (matches for search text '%s': %s)", searchText, matches)
+			return "", reacherr.New(nil, "search text ('%s') matches multiple EC2 instances' name tags: %s", searchText, matches)
 		}
 	}
 
-	return "", fmt.Errorf("error: search text '%s' did not match the ID or name tag of any EC2 instances", searchText)
+	return "", reacherr.New(nil, "search text ('%s') did not match the ID or name tag of any EC2 instances", searchText)
 }
 
 func isInstanceID(text string) bool {
