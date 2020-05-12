@@ -5,6 +5,9 @@ import (
 	"runtime/debug"
 )
 
+// ReachErr is the interface used to wrap known errors within the Reach library.
+//
+// Consumers of the Reach library should expect that if a ReachErr is returned (determined via an interface check), the error is a known edge case. Any errors returned that are not wrapped in a ReachErr can be considered bugs and should be reported.
 type ReachErr interface {
 	error
 	Inner() error
@@ -12,6 +15,7 @@ type ReachErr interface {
 	Message() string
 }
 
+// New returns a new instance of a ReachErr.
 func New(err error, messagef string, messageArgs ...interface{}) ReachErr {
 	return &reachErr{
 		inner:      err,

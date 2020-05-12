@@ -232,8 +232,14 @@ func TestAnalyze(t *testing.T) {
 					// Analyze
 
 					catalog := reach.NewDomainClientCatalog()
+
 					c := cache.New()
-					catalog.Store(aws.ResourceDomainAWS, apiclient.NewDomainClient(&c))
+					awsClient, err := apiclient.NewDomainClient(&c)
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					catalog.Store(aws.ResourceDomainAWS, awsClient)
 					catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
 					analyzer := New(catalog)
 

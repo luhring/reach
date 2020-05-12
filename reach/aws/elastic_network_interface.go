@@ -145,6 +145,7 @@ func (eni ElasticNetworkInterface) IPs(_ reach.DomainClientResolver) ([]net.IP, 
 	return ips, nil
 }
 
+// InterfaceIPs returns the set of IP addresses that are directly associated with this network interface. Addresses used to reach this resource via address translation are not included.
 func (eni ElasticNetworkInterface) InterfaceIPs(_ reach.DomainClientResolver) ([]net.IP, error) {
 	// TODO: Either implement method InterfaceIPs, or modify interface
 
