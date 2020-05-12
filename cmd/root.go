@@ -36,8 +36,8 @@ var rootCmd = &cobra.Command{
 	Long: `reach examines network reachability issues in AWS
 See https://github.com/luhring/reach for documentation.`,
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) < 2 {
-			return errors.New("requires at least two arguments")
+		if len(args) != 2 {
+			return errors.New("requires exactly two arguments")
 		}
 
 		if assertReachable && assertNotReachable {
