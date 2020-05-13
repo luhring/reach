@@ -6,6 +6,7 @@ import (
 	"github.com/luhring/reach/reach"
 	"github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/generic"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // ReferenceResolver is the analyzer-specific implementation of the interface reach.ReferenceResolver.
@@ -37,5 +38,5 @@ func (r *ReferenceResolver) Resolve(ref reach.Reference) (*reach.Resource, error
 		return genericResolver.Resolve(ref)
 	}
 
-	return nil, fmt.Errorf("root resolver encountered an unexpected domain '%s'", ref.Domain)
+	return nil, reacherr.New(nil, "cannot resolve references for domain '%s'", ref.Domain)
 }

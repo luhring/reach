@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // The DomainClient interface wraps all of the necessary methods for accessing AWS-specific resources.
@@ -30,10 +31,10 @@ type DomainClient interface {
 func unpackDomainClient(resolver reach.DomainClientResolver) (DomainClient, error) {
 	d := resolver.Resolve(ResourceDomainAWS)
 	if d == nil {
-		return nil, fmt.Errorf("DomainClientResolver has no entry for domain '%s'", ResourceDomainAWS)
+		return nil, reacherr.New(nil, "DomainClientResolver has no entry for domain '%s'", ResourceDomainAWS)
 	}
 	domainClient, ok := d.(DomainClient)
-	if !ok {
+	if !ok { // TODO: Has this been fully mitigated with a compile-time interface check?
 		return nil, fmt.Errorf("DomainClient interface not implemented correctly for domain '%s'", ResourceDomainAWS)
 	}
 	return domainClient, nil
