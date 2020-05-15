@@ -7,6 +7,7 @@ require (
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.3 // indirect
+	go.uber.org/zap v1.15.0
 	golang.org/x/sys v0.0.0-20191018095205-727590c5006e
 )
 

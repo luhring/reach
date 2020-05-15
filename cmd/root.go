@@ -15,6 +15,7 @@ import (
 	"github.com/luhring/reach/reach/cache"
 	"github.com/luhring/reach/reach/generic"
 	"github.com/luhring/reach/reach/generic/standard"
+	"github.com/luhring/reach/reach/reachlog"
 )
 
 const githubURL = "https://github.com/luhring/reach"
@@ -29,6 +30,8 @@ var showPaths bool
 var outputJSON bool
 var assertReachable bool
 var assertNotReachable bool
+
+var logger = reachlog.New()
 
 var rootCmd = &cobra.Command{
 	Use:   "reach",
@@ -55,6 +58,7 @@ See https://github.com/luhring/reach for documentation.`,
 		c := cache.New()
 		awsClient, err := apiclient.NewDomainClient(&c)
 		if err != nil {
+			logger.Error("unable to create a new AWS DomainClient", "error", err)
 			handleError(err)
 		}
 
