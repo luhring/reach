@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/luhring/reach/reach"
@@ -11,14 +10,14 @@ import (
 	"github.com/luhring/reach/reach/reacherr"
 )
 
-func resolveSubject(input string, progressWriter io.Writer, domains reach.DomainClientResolver) (*reach.Subject, error) {
+func resolveSubject(input string, domains reach.DomainClientResolver) (*reach.Subject, error) {
 	q := getQualifiedSubject(input)
 
 	if q != nil {
 		return resolveSubjectExplicitly(*q, domains)
 	}
 
-	return resolveSubjectImplicitly(input, progressWriter, domains)
+	return resolveSubjectImplicitly(input, domains)
 }
 
 func getQualifiedSubject(input string) *qualifiedSubject {
@@ -39,18 +38,19 @@ type qualifiedSubject struct {
 	identifier string
 }
 
-func resolveSubjectImplicitly(input string, progressWriter io.Writer, domains reach.DomainClientResolver) (*reach.Subject, error) {
+func resolveSubjectImplicitly(input string, domains reach.DomainClientResolver) (*reach.Subject, error) {
+	logger.Info("resolving subject implicitly", "input", input)
 	// 1. Try IP address format.
 	err := generic.CheckIPAddress(input)
 	if err == nil {
-		_, _ = fmt.Fprintf(progressWriter, "'%s' is being interpreted as an IP address\n", input)
+		logger.Info("subject resolution input appears to be an IP address", "input", input)
 		return generic.NewIPAddressSubject(input), nil
 	}
 
 	// 2. Try hostname format.
 	err = generic.CheckHostname(input)
 	if err == nil {
-		_, _ = fmt.Fprintf(progressWriter, "'%s' is being interpreted as a hostname\n", input)
+		logger.Info("subject resolution input appears to be a hostname", "input", input)
 		return generic.NewHostnameSubject(input), nil
 	}
 
@@ -59,6 +59,7 @@ func resolveSubjectImplicitly(input string, progressWriter io.Writer, domains re
 }
 
 func resolveSubjectExplicitly(qualifiedSubject qualifiedSubject, domains reach.DomainClientResolver) (*reach.Subject, error) {
+	logger.Info("resolving subject explicitly", "qualifiedSubject", fmt.Sprintf("%+v", qualifiedSubject))
 	switch qualifiedSubject.typePrefix {
 	case "ip":
 		return generic.ResolveIPAddressSubject(qualifiedSubject.identifier)

@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -30,8 +29,9 @@ var showPaths bool
 var outputJSON bool
 var assertReachable bool
 var assertNotReachable bool
+var verbose bool
 
-var logger = reachlog.New()
+var logger = reachlog.New(reachlog.LevelNone)
 
 var rootCmd = &cobra.Command{
 	Use:   "reach",
@@ -50,6 +50,10 @@ See https://github.com/luhring/reach for documentation.`,
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if verbose {
+			logger = reachlog.New(reachlog.LevelDebug)
+		}
+
 		sourceInput := args[0]
 		destinationInput := args[1]
 
@@ -65,13 +69,14 @@ See https://github.com/luhring/reach for documentation.`,
 		catalog.Store(aws.ResourceDomainAWS, awsClient)
 		catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
 
-		source, err := resolveSubject(sourceInput, os.Stderr, catalog)
+		source, err := resolveSubject(sourceInput, catalog)
 		if err != nil {
+			logger.Error("unable to resolve subject", "err", err)
 			handleError(err)
 		}
 		source.SetRoleToSource()
 
-		destination, err := resolveSubject(destinationInput, os.Stderr, catalog)
+		destination, err := resolveSubject(destinationInput, catalog)
 		if err != nil {
 			handleError(err)
 		}
@@ -142,4 +147,5 @@ func init() {
 	rootCmd.Flags().BoolVar(&outputJSON, jsonFlag, false, "output full analysis as JSON (overrides other display flags)")
 	rootCmd.Flags().BoolVar(&assertReachable, assertReachableFlag, false, "exit non-zero if no traffic is allowed from source to destination")
 	rootCmd.Flags().BoolVar(&assertNotReachable, assertNotReachableFlag, false, "exit non-zero if any traffic can reach destination from source")
+	rootCmd.Flags().BoolVarP(&verbose, "", "v", false, "show verbose output (displays full log output)")
 }
