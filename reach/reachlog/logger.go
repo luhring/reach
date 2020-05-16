@@ -36,7 +36,7 @@ type zapWrapper struct {
 // New returns a new, implemented instance of a Logger type
 func New(minLevel Level) Logger {
 	var l zapcore.Level
-	outputPaths := []string{"stdout"}
+	outputPaths := []string{"stderr"}
 
 	switch minLevel {
 	case LevelNone:
