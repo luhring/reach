@@ -2,7 +2,6 @@ package aws
 
 import (
 	"github.com/luhring/reach/reach"
-	"github.com/luhring/reach/reach/reacherr"
 )
 
 // ResolveEC2InstanceSubject looks up an EC2Instance using the given provider and returns it as a new subject.
@@ -16,9 +15,6 @@ func ResolveEC2InstanceSubject(identifier string, domains reach.DomainClientReso
 	// Later, we might use this string to recognize different kinds of AWS resources.
 	ec2InstanceID, err := findEC2InstanceID(identifier, resources)
 	if err != nil {
-		if _, ok := err.(reacherr.ReachErr); ok {
-			return nil, reacherr.New(err, "unable to resolve EC2Instance subject")
-		}
 		return nil, err
 	}
 

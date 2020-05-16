@@ -14,9 +14,6 @@ func resolveSubject(input string, domains reach.DomainClientResolver) (*reach.Su
 	if q != nil {
 		subject, err := resolveSubjectExplicitly(*q, domains)
 		if err != nil {
-			if _, ok := err.(reacherr.ReachErr); ok {
-				return nil, reacherr.New(err, "unable to resolve subject input '%s'", input)
-			}
 			return nil, err
 		}
 		return subject, nil
@@ -24,9 +21,6 @@ func resolveSubject(input string, domains reach.DomainClientResolver) (*reach.Su
 
 	subject, err := resolveSubjectImplicitly(input, domains)
 	if err != nil {
-		if _, ok := err.(reacherr.ReachErr); ok {
-			return nil, reacherr.New(err, "unable to resolve subject input '%s'", input)
-		}
 		return nil, err
 	}
 	return subject, nil

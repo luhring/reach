@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/luhring/reach/reach/reacherr"
@@ -28,17 +27,8 @@ func handleError(err error) {
 }
 
 func handleReachError(reachErr reacherr.ReachErr) {
-	errs := reachErr.Unwrap()
-	sort.Slice(errs, func(i, j int) bool {
-		return true // reverse sort
-	})
-
-	for _, e := range errs {
-		logger.Error(e.Error())
-	}
-
-	originalError := errs[len(errs)-1]
-	fatal(originalError.Error())
+	logger.Error(reachErr.Error() + "\n\n" + reachErr.StackTrace())
+	fatal(reachErr.Error())
 }
 
 func handleUnexpectedError(err error) {

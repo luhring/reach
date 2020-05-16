@@ -19,7 +19,7 @@ func awsErrMessage(err awserr.Error) (message string) {
 			"\n" +
 			"Please make sure that:\n" +
 			"  - your credentials are correct\n" +
-			"  - you have the necessary permissions in AWS"
+			"  - you have the necessary permissions in AWS" // TODO: Make sure this is a real cause
 	default:
 		message = err.Message()
 	}
