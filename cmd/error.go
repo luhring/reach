@@ -27,7 +27,7 @@ func handleError(err error) {
 }
 
 func handleReachError(reachErr reacherr.ReachErr) {
-	logger.Error(reachErr.Error() + "\n\n" + reachErr.StackTrace())
+	logger.Error(fmt.Sprintf("%#v\n", reachErr))
 	fatal(reachErr.Error())
 }
 
