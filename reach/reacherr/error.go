@@ -13,6 +13,7 @@ type ReachErr interface {
 	Inner() error
 	StackTrace() string
 	Message() string
+	Unwrap() []error
 }
 
 // New returns a new instance of a ReachErr.
@@ -44,4 +45,22 @@ func (e reachErr) Message() string {
 
 func (e reachErr) Error() string {
 	return e.Message()
+}
+
+func (e reachErr) Unwrap() []error {
+	var errs []error
+	errs = append(errs, e)
+	errs = append(errs, getInners(e)...)
+	return errs
+}
+
+func getInners(err ReachErr) []error {
+	var errs []error
+	if inner := err.Inner(); inner != nil {
+		errs = append(errs, inner)
+		if innerReachErr, ok := inner.(ReachErr); ok {
+			errs = append(errs, getInners(innerReachErr)...)
+		}
+	}
+	return errs
 }

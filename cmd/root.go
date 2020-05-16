@@ -63,7 +63,7 @@ See https://github.com/luhring/reach for documentation.`,
 		awsClient, err := apiclient.NewDomainClient(&c)
 		if err != nil {
 			logger.Error("unable to create a new AWS DomainClient", "error", err)
-			handleError(err)
+			showErrorToUser(err)
 		}
 
 		catalog.Store(aws.ResourceDomainAWS, awsClient)
@@ -71,14 +71,13 @@ See https://github.com/luhring/reach for documentation.`,
 
 		source, err := resolveSubject(sourceInput, catalog)
 		if err != nil {
-			logger.Error("unable to resolve subject", "err", err)
-			handleError(err)
+			showErrorToUser(err)
 		}
 		source.SetRoleToSource()
 
 		destination, err := resolveSubject(destinationInput, catalog)
 		if err != nil {
-			handleError(err)
+			showErrorToUser(err)
 		}
 		destination.SetRoleToDestination()
 
