@@ -50,8 +50,7 @@ func findEC2InstanceID(searchText string, client DomainClient) (string, error) {
 				ids = append(ids, instances[matchIdx].ID)
 			}
 
-			matches := strings.Join(ids, ", ")
-			return "", reacherr.New(nil, "search text ('%s') matches multiple EC2 instances' IDs: %s", searchText, matches)
+			return "", reacherr.New(nil, "search text '%s' matches multiple EC2 instances' IDs: %s", searchText, strings.Join(ids, ", "))
 		}
 	}
 
@@ -73,12 +72,11 @@ func findEC2InstanceID(searchText string, client DomainClient) (string, error) {
 				matchedInstances = append(matchedInstances, fmt.Sprintf("'%s' (%s)", name, id))
 			}
 
-			matches := strings.Join(matchedInstances, ", ")
-			return "", reacherr.New(nil, "search text ('%s') matches multiple EC2 instances' name tags: %s", searchText, matches)
+			return "", reacherr.New(nil, "search text '%s' matches multiple EC2 instances' name tags: %s", searchText, strings.Join(matchedInstances, ", "))
 		}
 	}
 
-	return "", reacherr.New(nil, "search text ('%s') did not match the ID or name tag of any EC2 instances", searchText)
+	return "", reacherr.New(nil, "search text '%s' did not match the ID or name tag of any EC2 instances", searchText)
 }
 
 func isInstanceID(text string) bool {

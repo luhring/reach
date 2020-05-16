@@ -58,26 +58,23 @@ See https://github.com/luhring/reach for documentation.`,
 		destinationInput := args[1]
 
 		catalog := reach.NewDomainClientCatalog()
-
 		c := cache.New()
 		awsClient, err := apiclient.NewDomainClient(&c)
 		if err != nil {
-			logger.Error("unable to create a new AWS DomainClient", "error", err)
-			showErrorToUser(err)
+			handleError(err)
 		}
-
 		catalog.Store(aws.ResourceDomainAWS, awsClient)
 		catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
 
 		source, err := resolveSubject(sourceInput, catalog)
 		if err != nil {
-			showErrorToUser(err)
+			handleError(err)
 		}
 		source.SetRoleToSource()
 
 		destination, err := resolveSubject(destinationInput, catalog)
 		if err != nil {
-			showErrorToUser(err)
+			handleError(err)
 		}
 		destination.SetRoleToDestination()
 

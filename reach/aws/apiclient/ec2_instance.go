@@ -46,8 +46,6 @@ func (client *DomainClient) EC2Instance(id string) (*reachAWS.EC2Instance, error
 
 // AllEC2Instances queries the AWS API for all EC2 instances.
 func (client *DomainClient) AllEC2Instances() ([]reachAWS.EC2Instance, error) {
-	const errFormat = "unable to get all EC2 instances: %v"
-
 	describeInstancesOutput, err := client.ec2.DescribeInstances(nil)
 	if err != nil {
 		msg := err.Error()

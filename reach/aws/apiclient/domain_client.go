@@ -33,10 +33,11 @@ func NewDomainClient(cache reach.Cache) (*DomainClient, error) {
 	if err != nil {
 		msg := "unable to start an AWS SDK session"
 		if awsErr, ok := err.(awserr.Error); ok {
-			msg = awsErr.Message()
+			msg += ": " + awsErr.Message()
+			return nil, reacherr.New(err, msg)
 		}
-		// TODO: log this
-		return nil, reacherr.New(err, msg)
+
+		return nil, err
 	}
 
 	ec2Client := ec2.New(sess)

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/luhring/reach/reach"
@@ -12,12 +11,25 @@ import (
 
 func resolveSubject(input string, domains reach.DomainClientResolver) (*reach.Subject, error) {
 	q := getQualifiedSubject(input)
-
 	if q != nil {
-		return resolveSubjectExplicitly(*q, domains)
+		subject, err := resolveSubjectExplicitly(*q, domains)
+		if err != nil {
+			if _, ok := err.(reacherr.ReachErr); ok {
+				return nil, reacherr.New(err, "unable to resolve subject input '%s'", input)
+			}
+			return nil, err
+		}
+		return subject, nil
 	}
 
-	return resolveSubjectImplicitly(input, domains)
+	subject, err := resolveSubjectImplicitly(input, domains)
+	if err != nil {
+		if _, ok := err.(reacherr.ReachErr); ok {
+			return nil, reacherr.New(err, "unable to resolve subject input '%s'", input)
+		}
+		return nil, err
+	}
+	return subject, nil
 }
 
 func getQualifiedSubject(input string) *qualifiedSubject {
@@ -39,18 +51,19 @@ type qualifiedSubject struct {
 }
 
 func resolveSubjectImplicitly(input string, domains reach.DomainClientResolver) (*reach.Subject, error) {
-	logger.Info("resolving subject implicitly", "input", input)
+	logger.Debug("resolving subject implicitly", "input", input)
+
 	// 1. Try IP address format.
 	err := generic.CheckIPAddress(input)
 	if err == nil {
-		logger.Info("subject resolution input appears to be an IP address", "input", input)
+		logger.Debug("subject resolution input appears to be an IP address", "input", input)
 		return generic.NewIPAddressSubject(input), nil
 	}
 
 	// 2. Try hostname format.
 	err = generic.CheckHostname(input)
 	if err == nil {
-		logger.Info("subject resolution input appears to be a hostname", "input", input)
+		logger.Debug("subject resolution input appears to be a hostname", "input", input)
 		return generic.NewHostnameSubject(input), nil
 	}
 
@@ -58,16 +71,17 @@ func resolveSubjectImplicitly(input string, domains reach.DomainClientResolver) 
 	return aws.ResolveEC2InstanceSubject(input, domains)
 }
 
-func resolveSubjectExplicitly(qualifiedSubject qualifiedSubject, domains reach.DomainClientResolver) (*reach.Subject, error) {
-	logger.Info("resolving subject explicitly", "qualifiedSubject", fmt.Sprintf("%+v", qualifiedSubject))
-	switch qualifiedSubject.typePrefix {
+func resolveSubjectExplicitly(subj qualifiedSubject, domains reach.DomainClientResolver) (*reach.Subject, error) {
+	logger.Debug("resolving subject explicitly", "prefix", subj.typePrefix, "identifier", subj.identifier)
+
+	switch subj.typePrefix {
 	case "ip":
-		return generic.ResolveIPAddressSubject(qualifiedSubject.identifier)
+		return generic.ResolveIPAddressSubject(subj.identifier)
 	case "host":
-		return generic.ResolveHostnameSubject(qualifiedSubject.identifier)
+		return generic.ResolveHostnameSubject(subj.identifier)
 	case "ec2":
-		return aws.ResolveEC2InstanceSubject(qualifiedSubject.identifier, domains)
+		return aws.ResolveEC2InstanceSubject(subj.identifier, domains)
 	default:
-		return nil, reacherr.New(nil, "unable to resolve subject with identifier '%s' because subject type '%s' is not recognized", qualifiedSubject.identifier, qualifiedSubject.typePrefix)
+		return nil, reacherr.New(nil, "unable to resolve subject because subject type '%s' is not recognized", subj.identifier, subj.typePrefix)
 	}
 }
