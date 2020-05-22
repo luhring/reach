@@ -34,7 +34,7 @@ func unpackDomainClient(resolver reach.DomainClientResolver) (DomainClient, erro
 		return nil, reacherr.New(nil, "DomainClientResolver has no entry for domain '%s'", ResourceDomainAWS)
 	}
 	domainClient, ok := d.(DomainClient)
-	if !ok { // TODO: Has this been fully mitigated with a compile-time interface check?
+	if !ok {
 		return nil, fmt.Errorf("DomainClient interface not implemented correctly for domain '%s'", ResourceDomainAWS)
 	}
 	return domainClient, nil

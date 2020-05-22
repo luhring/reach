@@ -1,7 +1,6 @@
 package apiclient
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -38,56 +37,62 @@ func (client *DomainClient) NetworkACL(id string) (*reachAWS.NetworkACL, error) 
 		return nil, err
 	}
 
-	networkACL := newNetworkACLFromAPI(result.NetworkAcls[0])
+	networkACL, err := newNetworkACLFromAPI(result.NetworkAcls[0])
+	if err != nil {
+		return nil, err
+	}
 	client.cacheResource(networkACL)
 	return &networkACL, nil
 }
 
-func newNetworkACLFromAPI(networkACL *ec2.NetworkAcl) reachAWS.NetworkACL {
-	inboundRules := inboundNetworkACLRules(networkACL.Entries)
-	outboundRules := outboundNetworkACLRules(networkACL.Entries)
+func newNetworkACLFromAPI(networkACL *ec2.NetworkAcl) (reachAWS.NetworkACL, error) {
+	inboundRules, err := networkACLRulesForDirection(networkACL.Entries, reachAWS.NetworkACLRuleDirectionInbound)
+	if err != nil {
+		return reachAWS.NetworkACL{}, err
+	}
+	outboundRules, err := networkACLRulesForDirection(networkACL.Entries, reachAWS.NetworkACLRuleDirectionOutbound)
+	if err != nil {
+		return reachAWS.NetworkACL{}, err
+	}
 
 	return reachAWS.NetworkACL{
 		ID:            aws.StringValue(networkACL.NetworkAclId),
 		InboundRules:  inboundRules,
 		OutboundRules: outboundRules,
-	}
+	}, nil
 }
 
-func networkACLRulesForSingleDirection(entries []*ec2.NetworkAclEntry, inbound bool) []reachAWS.NetworkACLRule {
+func networkACLRulesForDirection(entries []*ec2.NetworkAclEntry, direction reachAWS.NetworkACLRuleDirection) ([]reachAWS.NetworkACLRule, error) {
 	if entries == nil {
-		return nil
+		return nil, nil
 	}
 
 	var rules []reachAWS.NetworkACLRule
 
+	directionMatches := func(direction reachAWS.NetworkACLRuleDirection, entry ec2.NetworkAclEntry) bool {
+		outboundEntry := aws.BoolValue(entry.Egress)
+		return outboundEntry && direction == reachAWS.NetworkACLRuleDirectionOutbound
+	}
+
 	for _, entry := range entries {
 		if entry != nil {
-			if inbound != aws.BoolValue(entry.Egress) {
-				rules = append(rules, networkACLRule(entry))
+			if directionMatches(direction, *entry) {
+				rule, err := networkACLRule(*entry)
+				if err != nil {
+					return nil, err
+				}
+				rules = append(rules, rule)
 			}
 		}
 	}
 
-	return rules
+	return rules, nil
 }
 
-func inboundNetworkACLRules(entries []*ec2.NetworkAclEntry) []reachAWS.NetworkACLRule {
-	return networkACLRulesForSingleDirection(entries, true)
-}
-
-func outboundNetworkACLRules(entries []*ec2.NetworkAclEntry) []reachAWS.NetworkACLRule {
-	return networkACLRulesForSingleDirection(entries, false)
-}
-
-func networkACLRule(entry *ec2.NetworkAclEntry) reachAWS.NetworkACLRule { // note: this function ignores rule direction (inbound vs. outbound)
-	if entry == nil {
-		return reachAWS.NetworkACLRule{}
-	}
-
+func networkACLRule(entry ec2.NetworkAclEntry) (reachAWS.NetworkACLRule, error) { // note: this function ignores rule direction (inbound vs. outbound)
 	_, targetIPNetwork, err := net.ParseCIDR(aws.StringValue(entry.CidrBlock))
 	if err != nil {
-		return reachAWS.NetworkACLRule{}
+		return reachAWS.NetworkACLRule{}, err
 	}
 
 	var action reachAWS.NetworkACLRuleAction
@@ -99,9 +104,8 @@ func networkACLRule(entry *ec2.NetworkAclEntry) reachAWS.NetworkACLRule { // not
 	}
 
 	tc, err := newTrafficContentFromAWSNACLEntry(entry)
-
 	if err != nil {
-		panic(err) // TODO: Better error handling
+		return reachAWS.NetworkACLRule{}, err
 	}
 
 	return reachAWS.NetworkACLRule{
@@ -109,15 +113,13 @@ func networkACLRule(entry *ec2.NetworkAclEntry) reachAWS.NetworkACLRule { // not
 		TrafficContent:  tc,
 		TargetIPNetwork: targetIPNetwork,
 		Action:          action,
-	}
+	}, nil
 }
 
-func newTrafficContentFromAWSNACLEntry(entry *ec2.NetworkAclEntry) (reach.TrafficContent, error) { // TODO: BUG! This needs to consider what rules preempt this rule, and handle set subtractions accordingly
-	const errCreation = "unable to create content: %v"
-
+func newTrafficContentFromAWSNACLEntry(entry ec2.NetworkAclEntry) (reach.TrafficContent, error) {
 	protocol, err := convertAWSIPProtocolStringToProtocol(entry.Protocol)
 	if err != nil {
-		return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
+		return reach.TrafficContent{}, err
 	}
 
 	if protocol == reach.ProtocolAll {
@@ -127,7 +129,7 @@ func newTrafficContentFromAWSNACLEntry(entry *ec2.NetworkAclEntry) (reach.Traffi
 	if protocol.UsesPorts() {
 		portSet, err := newPortSetFromAWSPortRange(entry.PortRange)
 		if err != nil {
-			return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
+			return reach.TrafficContent{}, err
 		}
 
 		return reach.NewTrafficContentForPorts(protocol, portSet), nil
@@ -136,7 +138,7 @@ func newTrafficContentFromAWSNACLEntry(entry *ec2.NetworkAclEntry) (reach.Traffi
 	if protocol == reach.ProtocolICMPv4 || protocol == reach.ProtocolICMPv6 {
 		icmpSet, err := newICMPSetFromAWSICMPTypeCode(entry.IcmpTypeCode)
 		if err != nil {
-			return reach.TrafficContent{}, fmt.Errorf(errCreation, err)
+			return reach.TrafficContent{}, err
 		}
 
 		return reach.NewTrafficContentForICMP(protocol, icmpSet), nil

@@ -18,7 +18,7 @@ type networkACLRulesFactor struct {
 func (r VPCRouter) networkACLRulesFactor(
 	client DomainClient,
 	subnet Subnet,
-	dir networkACLRuleDirection,
+	dir NetworkACLRuleDirection,
 	tuple reach.IPTuple,
 ) (*reach.Factor, error) {
 	nacl, err := client.NetworkACL(subnet.NetworkACLID)
@@ -28,9 +28,9 @@ func (r VPCRouter) networkACLRulesFactor(
 
 	var ip net.IP
 	switch dir {
-	case networkACLRuleDirectionOutbound:
+	case NetworkACLRuleDirectionOutbound:
 		ip = tuple.Dst
-	case networkACLRuleDirectionInbound:
+	case NetworkACLRuleDirectionInbound:
 		ip = tuple.Src
 	default:
 		return nil, fmt.Errorf("unexpected network ACL rule direction: %s", dir)
@@ -56,14 +56,14 @@ func (r VPCRouter) networkACLRulesFactor(
 
 func applicableNetworkACLRules(
 	nacl NetworkACL,
-	dir networkACLRuleDirection,
+	dir NetworkACLRuleDirection,
 	ip net.IP,
 ) ([]networkACLRulesFactorComponent, error) {
 	var rules []NetworkACLRule
 	switch dir {
-	case networkACLRuleDirectionOutbound:
+	case NetworkACLRuleDirectionOutbound:
 		rules = nacl.OutboundRules
-	case networkACLRuleDirectionInbound:
+	case NetworkACLRuleDirectionInbound:
 		rules = nacl.InboundRules
 	default:
 		return nil, fmt.Errorf("unexpected network ACL rule direction: %s", dir)

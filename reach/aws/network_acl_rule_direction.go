@@ -1,6 +1,10 @@
 package aws
 
-type networkACLRuleDirection string
+// NetworkACLRuleDirection specifies the direction of traffic to which a network ACL rule applies
+type NetworkACLRuleDirection string
 
-const networkACLRuleDirectionInbound networkACLRuleDirection = "inbound"
-const networkACLRuleDirectionOutbound networkACLRuleDirection = "outbound"
+// Possible values for the NetworkACLRuleDirection type
+const (
+	NetworkACLRuleDirectionInbound  NetworkACLRuleDirection = "inbound"
+	NetworkACLRuleDirectionOutbound NetworkACLRuleDirection = "outbound"
+)

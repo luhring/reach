@@ -125,14 +125,14 @@ func (r VPCRouter) FactorsForward(resolver reach.DomainClientResolver, previousE
 	var factors []reach.Factor
 
 	if srcSubnetExists {
-		factor, err := r.networkACLRulesFactor(client, *srcSubnet, networkACLRuleDirectionOutbound, tuple)
+		factor, err := r.networkACLRulesFactor(client, *srcSubnet, NetworkACLRuleDirectionOutbound, tuple)
 		if err != nil {
 			return nil, err
 		}
 		factors = append(factors, *factor)
 	}
 	if dstSubnetExists {
-		factor, err := r.networkACLRulesFactor(client, *dstSubnet, networkACLRuleDirectionInbound, tuple)
+		factor, err := r.networkACLRulesFactor(client, *dstSubnet, NetworkACLRuleDirectionInbound, tuple)
 		if err != nil {
 			return nil, err
 		}
