@@ -19,23 +19,14 @@ func (r VPCRouter) networkACLRulesFactor(
 	client DomainClient,
 	subnet Subnet,
 	dir NetworkACLRuleDirection,
-	tuple reach.IPTuple,
+	targetIP net.IP,
 ) (*reach.Factor, error) {
 	nacl, err := client.NetworkACL(subnet.NetworkACLID)
 	if err != nil {
 		return nil, err
 	}
 
-	var ip net.IP
-	switch dir {
-	case NetworkACLRuleDirectionOutbound:
-		ip = tuple.Dst
-	case NetworkACLRuleDirectionInbound:
-		ip = tuple.Src
-	default:
-		return nil, fmt.Errorf("unexpected network ACL rule direction: %s", dir)
-	}
-	components, err := applicableNetworkACLRules(*nacl, dir, ip)
+	components, err := applicableNetworkACLRules(*nacl, dir, targetIP)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate network ACL rules factor: %v", err)
 	}

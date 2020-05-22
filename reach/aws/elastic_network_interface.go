@@ -75,23 +75,23 @@ func (eni ElasticNetworkInterface) Segments() bool {
 }
 
 // EdgesForward returns the set of all possible edges forward given this point in a path that a tracer is constructing. EdgesForward returns an empty slice of edges if there are no further points for the specified network traffic to travel as it attempts to reach its intended network destination.
-func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ *reach.Reference, _ []net.IP) ([]reach.Edge, error) {
-	// TODO: Use previousRef for more intelligent detection of incoming traffic's origin
+func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResolver, leftEdge *reach.Edge, _ *reach.Reference, _ []net.IP) ([]reach.Edge, error) {
+	// TODO: Use leftEdge for more intelligent detection of incoming traffic's origin
 
-	err := eni.checkNilPreviousEdge(previousEdge)
+	err := eni.checkNilLeftEdge(leftEdge)
 	if err != nil {
 		return nil, fmt.Errorf("unable to generate forward edges: %v", err)
 	}
 
 	// Elastic Network Interfaces don't mutate the IP tuple
-	tuple := previousEdge.Tuple
+	tuple := leftEdge.Tuple
 
 	client, err := unpackDomainClient(resolver)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get client: %v", err)
 	}
 
-	switch eni.flow(tuple, previousEdge.ConnectsInterface) {
+	switch eni.flow(tuple, leftEdge.ConnectsInterface) {
 	case reach.FlowOutbound:
 		return eni.handleEdgeForVPCRouter(client, tuple)
 	case reach.FlowInbound:
@@ -104,8 +104,8 @@ func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResol
 }
 
 // FactorsForward returns a set of factors that impact the traffic traveling through this point in the direction of source to destination.
-func (eni ElasticNetworkInterface) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
-	err := eni.checkNilPreviousEdge(previousEdge)
+func (eni ElasticNetworkInterface) FactorsForward(resolver reach.DomainClientResolver, leftEdge *reach.Edge) ([]reach.Factor, error) {
+	err := eni.checkNilLeftEdge(leftEdge)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (eni ElasticNetworkInterface) FactorsForward(resolver reach.DomainClientRes
 
 	var factors []reach.Factor
 
-	sgRulesFactor, err := eni.securityGroupRulesFactor(client, *previousEdge)
+	sgRulesFactor, err := eni.securityGroupRulesFactorForward(client, *leftEdge)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,8 @@ func (eni ElasticNetworkInterface) FactorsForward(resolver reach.DomainClientRes
 
 // FactorsReturn returns a set of factors that impact the traffic traveling through this point in the direction of destination to source.
 func (eni ElasticNetworkInterface) FactorsReturn(_ reach.DomainClientResolver, _ *reach.Edge) ([]reach.Factor, error) {
-	panic("implement me!")
+	f := eni.securityGroupRulesFactorReturn()
+	return []reach.Factor{f}, nil
 }
 
 // ———— Implementing IPAddressable ————
@@ -154,7 +155,7 @@ func (eni ElasticNetworkInterface) InterfaceIPs(_ reach.DomainClientResolver) ([
 
 // ———— Supporting methods ————
 
-func (eni ElasticNetworkInterface) flow(tuple reach.IPTuple, previousEdgeConnectsInterface bool) reach.Flow {
+func (eni ElasticNetworkInterface) flow(tuple reach.IPTuple, leftEdgeConnectsInterface bool) reach.Flow {
 	if eni.owns(tuple.Dst) {
 		return reach.FlowInbound
 	}
@@ -164,7 +165,7 @@ func (eni ElasticNetworkInterface) flow(tuple reach.IPTuple, previousEdgeConnect
 	}
 
 	if eni.SrcDstCheck == false {
-		if previousEdgeConnectsInterface {
+		if leftEdgeConnectsInterface {
 			return reach.FlowOutbound
 		}
 
@@ -176,8 +177,8 @@ func (eni ElasticNetworkInterface) flow(tuple reach.IPTuple, previousEdgeConnect
 	return reach.FlowDropped
 }
 
-func (eni ElasticNetworkInterface) checkNilPreviousEdge(previousEdge *reach.Edge) error {
-	if previousEdge == nil {
+func (eni ElasticNetworkInterface) checkNilLeftEdge(edge *reach.Edge) error {
+	if edge == nil {
 		return reacherr.New(nil, "reach does not support an Elastic Network Interface being the first point in a path")
 	}
 	return nil

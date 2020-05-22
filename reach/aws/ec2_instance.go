@@ -69,11 +69,11 @@ func (i EC2Instance) Segments() bool {
 }
 
 // EdgesForward returns the set of all possible edges forward given this point in a path that a tracer is constructing. EdgesForward returns an empty slice of edges if there are no further points for the specified network traffic to travel as it attempts to reach its intended network destination.
-func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, _ *reach.Reference, destinationIPs []net.IP) ([]reach.Edge, error) {
-	// TODO: Use previousRef for more intelligent detection of incoming traffic's origin
+func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, leftEdge *reach.Edge, _ *reach.Reference, destinationIPs []net.IP) ([]reach.Edge, error) {
+	// TODO: Use leftPointRef for more intelligent detection of incoming traffic's origin
 
 	var tuples []reach.IPTuple
-	if previousEdge == nil { // This is the first point in the path.
+	if leftEdge == nil { // This is the first point in the path.
 		t, err := i.firstPointTuples(resolver, destinationIPs)
 		if err != nil {
 			return nil, err
@@ -81,7 +81,7 @@ func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousE
 		tuples = t
 	} else {
 		// Note: If the EC2 instance is changing the IP tuple from a previous tuple state, we don't have visibility into that change, so we'll have to assume no change.
-		tuples = []reach.IPTuple{previousEdge.Tuple}
+		tuples = []reach.IPTuple{leftEdge.Tuple}
 	}
 
 	client, err := unpackDomainClient(resolver)
@@ -109,17 +109,15 @@ func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousE
 }
 
 // FactorsForward returns a set of factors that impact the traffic traveling through this point in the direction of source to destination.
-func (i EC2Instance) FactorsForward(
-	_ reach.DomainClientResolver,
-	_ *reach.Edge,
-) ([]reach.Factor, error) {
+func (i EC2Instance) FactorsForward(_ reach.DomainClientResolver, _ *reach.Edge) ([]reach.Factor, error) {
 	f := i.newInstanceStateFactor()
 	return []reach.Factor{f}, nil
 }
 
 // FactorsReturn returns a set of factors that impact the traffic traveling through this point in the direction of destination to source.
 func (i EC2Instance) FactorsReturn(_ reach.DomainClientResolver, _ *reach.Edge) ([]reach.Factor, error) {
-	panic("implement me!")
+	f := i.newInstanceStateFactor()
+	return []reach.Factor{f}, nil
 }
 
 // ———— Implementing IPAddressable ————

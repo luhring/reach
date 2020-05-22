@@ -55,16 +55,16 @@ func (ngw NATGateway) Segments() bool {
 }
 
 // EdgesForward returns the set of all possible edges forward given this point in a path that a tracer is constructing. EdgesForward returns an empty slice of edges if there are no further points for the specified network traffic to travel as it attempts to reach its intended network destination.
-func (ngw NATGateway) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.Reference, destinationIPs []net.IP) ([]reach.Edge, error) {
+func (ngw NATGateway) EdgesForward(resolver reach.DomainClientResolver, leftEdge *reach.Edge, leftPointRef *reach.Reference, destinationIPs []net.IP) ([]reach.Edge, error) {
 	panic("implement me")
 }
 
 // FactorsForward returns a set of factors that impact the traffic traveling through this point in the direction of source to destination.
-func (ngw NATGateway) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
+func (ngw NATGateway) FactorsForward(resolver reach.DomainClientResolver, leftEdge *reach.Edge) ([]reach.Factor, error) {
 	panic("implement me")
 }
 
 // FactorsReturn returns a set of factors that impact the traffic traveling through this point in the direction of destination to source.
-func (ngw NATGateway) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
+func (ngw NATGateway) FactorsReturn(resolver reach.DomainClientResolver, rightEdge *reach.Edge) ([]reach.Factor, error) {
 	panic("implement me")
 }

@@ -14,9 +14,9 @@ type securityGroupRulesFactor struct {
 	RuleComponents []securityGroupRulesFactorComponent
 }
 
-func (eni ElasticNetworkInterface) securityGroupRulesFactor(
+func (eni ElasticNetworkInterface) securityGroupRulesFactorForward(
 	client DomainClient,
-	previousEdge reach.Edge,
+	leftEdge reach.Edge,
 ) (*reach.Factor, error) {
 	sgs, err := eni.securityGroups(client)
 	if err != nil {
@@ -27,13 +27,13 @@ func (eni ElasticNetworkInterface) securityGroupRulesFactor(
 	var rules func(sg SecurityGroup) []SecurityGroupRule
 	var direction securityGroupRuleDirection
 
-	switch flow := eni.flow(previousEdge.Tuple, previousEdge.ConnectsInterface); flow {
+	switch flow := eni.flow(leftEdge.Tuple, leftEdge.ConnectsInterface); flow {
 	case reach.FlowOutbound:
-		ip = previousEdge.Tuple.Dst
+		ip = leftEdge.Tuple.Dst
 		rules = func(sg SecurityGroup) []SecurityGroupRule { return sg.OutboundRules }
 		direction = securityGroupRuleDirectionOutbound
 	case reach.FlowInbound:
-		ip = previousEdge.Tuple.Src
+		ip = leftEdge.Tuple.Src
 		rules = func(sg SecurityGroup) []SecurityGroupRule { return sg.InboundRules }
 		direction = securityGroupRuleDirectionInbound
 	default:
@@ -59,6 +59,15 @@ func (eni ElasticNetworkInterface) securityGroupRulesFactor(
 		},
 	}
 	return factor, nil
+}
+
+func (eni ElasticNetworkInterface) securityGroupRulesFactorReturn() reach.Factor {
+	return reach.Factor{
+		Kind:       FactorKindSecurityGroupRules,
+		Resource:   eni.Ref(),
+		Traffic:    reach.NewTrafficContentForAllTraffic(),
+		Properties: nil,
+	}
 }
 
 func applicableSecurityGroupRules(

@@ -7,7 +7,7 @@ type Traceable interface {
 	Referable
 	Visitable(alreadyVisited bool) bool
 	Segments() bool
-	EdgesForward(resolver DomainClientResolver, previousEdge *Edge, previousRef *Reference, destinationIPs []net.IP) ([]Edge, error)
-	FactorsForward(resolver DomainClientResolver, previousEdge *Edge) ([]Factor, error)
-	FactorsReturn(resolver DomainClientResolver, nextEdge *Edge) ([]Factor, error)
+	EdgesForward(resolver DomainClientResolver, leftEdge *Edge, leftPointRef *Reference, destinationIPs []net.IP) ([]Edge, error)
+	FactorsForward(resolver DomainClientResolver, leftEdge *Edge) ([]Factor, error)
+	FactorsReturn(resolver DomainClientResolver, rightEdge *Edge) ([]Factor, error)
 }

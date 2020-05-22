@@ -68,14 +68,14 @@ func (r VPCRouter) Segments() bool {
 }
 
 // EdgesForward returns the set of all possible edges forward given this point in a path that a tracer is constructing. EdgesForward returns an empty slice of edges if there are no further points for the specified network traffic to travel as it attempts to reach its intended network destination.
-func (r VPCRouter) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.Reference, _ []net.IP) ([]reach.Edge, error) {
-	err := r.checkNilPreviousEdge(previousEdge)
+func (r VPCRouter) EdgesForward(resolver reach.DomainClientResolver, leftEdge *reach.Edge, leftPointRef *reach.Reference, _ []net.IP) ([]reach.Edge, error) {
+	err := r.checkNilPreviousEdge(leftEdge)
 	if err != nil {
 		return nil, err
 	}
 
 	// VPC Routers don't mutate the IP tuple
-	tuple := previousEdge.Tuple
+	tuple := leftEdge.Tuple
 
 	client, err := unpackDomainClient(resolver)
 	if err != nil {
@@ -90,7 +90,7 @@ func (r VPCRouter) EdgesForward(resolver reach.DomainClientResolver, previousEdg
 		return r.newEdges(tuple, eni.Ref()), nil
 	}
 
-	rt, err := r.routeTable(client, tuple, *previousRef)
+	rt, err := r.routeTable(client, tuple, *leftPointRef)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +102,8 @@ func (r VPCRouter) EdgesForward(resolver reach.DomainClientResolver, previousEdg
 }
 
 // FactorsForward returns a set of factors that impact the traffic traveling through this point in the direction of source to destination.
-func (r VPCRouter) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
-	tuple := previousEdge.Tuple
+func (r VPCRouter) FactorsForward(resolver reach.DomainClientResolver, leftEdge *reach.Edge) ([]reach.Factor, error) {
+	tuple := leftEdge.Tuple
 	client, err := unpackDomainClient(resolver)
 	if err != nil {
 		return nil, err
@@ -125,14 +125,14 @@ func (r VPCRouter) FactorsForward(resolver reach.DomainClientResolver, previousE
 	var factors []reach.Factor
 
 	if srcSubnetExists {
-		factor, err := r.networkACLRulesFactor(client, *srcSubnet, NetworkACLRuleDirectionOutbound, tuple)
+		factor, err := r.networkACLRulesFactor(client, *srcSubnet, NetworkACLRuleDirectionOutbound, tuple.Dst)
 		if err != nil {
 			return nil, err
 		}
 		factors = append(factors, *factor)
 	}
 	if dstSubnetExists {
-		factor, err := r.networkACLRulesFactor(client, *dstSubnet, NetworkACLRuleDirectionInbound, tuple)
+		factor, err := r.networkACLRulesFactor(client, *dstSubnet, NetworkACLRuleDirectionInbound, tuple.Src)
 		if err != nil {
 			return nil, err
 		}
@@ -143,8 +143,44 @@ func (r VPCRouter) FactorsForward(resolver reach.DomainClientResolver, previousE
 }
 
 // FactorsReturn returns a set of factors that impact the traffic traveling through this point in the direction of destination to source.
-func (r VPCRouter) FactorsReturn(resolver reach.DomainClientResolver, nextEdge *reach.Edge) ([]reach.Factor, error) {
-	panic("implement me")
+func (r VPCRouter) FactorsReturn(resolver reach.DomainClientResolver, rightEdge *reach.Edge) ([]reach.Factor, error) {
+	tuple := rightEdge.Tuple
+	client, err := unpackDomainClient(resolver)
+	if err != nil {
+		return nil, err
+	}
+
+	srcSubnet, srcSubnetExists, err := r.VPC.subnetThatContains(client, tuple.Src)
+	if err != nil {
+		return nil, err
+	}
+	dstSubnet, dstSubnetExists, err := r.VPC.subnetThatContains(client, tuple.Dst)
+	if err != nil {
+		return nil, err
+	}
+	if srcSubnetExists && dstSubnetExists && srcSubnet.equal(*dstSubnet) {
+		// Same subnet —— no factors to return!
+		return nil, nil
+	}
+
+	var factors []reach.Factor
+
+	if srcSubnetExists {
+		factor, err := r.networkACLRulesFactor(client, *srcSubnet, NetworkACLRuleDirectionInbound, tuple.Dst)
+		if err != nil {
+			return nil, err
+		}
+		factors = append(factors, *factor)
+	}
+	if dstSubnetExists {
+		factor, err := r.networkACLRulesFactor(client, *dstSubnet, NetworkACLRuleDirectionOutbound, tuple.Src)
+		if err != nil {
+			return nil, err
+		}
+		factors = append(factors, *factor)
+	}
+
+	return factors, nil
 }
 
 // ———— Supporting methods ————
