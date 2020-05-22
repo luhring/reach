@@ -5,4 +5,5 @@ type Point struct {
 	Ref            Reference
 	FactorsForward []Factor
 	FactorsReturn  []Factor
+	SegmentDivider bool
 }

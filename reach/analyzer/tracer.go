@@ -60,7 +60,37 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 		paths = append(paths, *result.path)
 	}
 
-	// TODO: PREVENT RELEASE: Backtrace all paths to fill in return factors
+	t.logger.Debug("beginning return factors calculation")
+
+	for i, path := range paths {
+		updatedPath, err := path.MapPoints(func(point reach.Point, leftEdge, rightEdge *reach.Edge) (reach.Point, error) {
+			resource, err := t.referenceResolver.Resolve(point.Ref)
+			if err != nil {
+				return reach.Point{}, err
+			}
+			traceable, ok := resource.Properties.(reach.Traceable)
+			if !ok {
+				return reach.Point{}, fmt.Errorf("cannot return-trace point that doesn't implement the traceable interface: '%v'", point.Ref)
+			}
+
+			factorsReturn, err := traceable.FactorsReturn(t.domainClientResolver, rightEdge)
+			if err != nil {
+				return reach.Point{}, err
+			}
+
+			return reach.Point{
+				Ref:            point.Ref,
+				FactorsForward: point.FactorsForward,
+				FactorsReturn:  factorsReturn,
+				SegmentDivider: point.SegmentDivider,
+			}, nil
+		})
+
+		if err != nil {
+			return nil, err
+		}
+		paths[i] = updatedPath
+	}
 
 	t.logger.Info("trace successful", "numPaths", len(paths))
 	return paths, nil
@@ -131,13 +161,13 @@ func (t *Tracer) tracePoint(ctx context.Context, job traceJob) <-chan traceResul
 
 				factors, err := traceable.FactorsForward(t.domainClientResolver, previousEdge)
 				t.logger.Debug("discovered factors", "ref", job.ref, "numFactors", len(factors))
-				point := reach.Point{Ref: job.ref, FactorsForward: factors}
+				point := reach.Point{Ref: job.ref, FactorsForward: factors, SegmentDivider: traceable.Segments()}
 
 				var path reach.Path
 				if isFirstTraceJob {
 					path = reach.NewPath(point)
 				} else {
-					path = job.path.Add(job.edge, point, traceable.Segments())
+					path = job.path.Add(job.edge, point)
 				}
 
 				if traceable.Ref().Equal(job.destinationRef) {
