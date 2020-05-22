@@ -76,6 +76,6 @@ func resolveSubjectExplicitly(subj qualifiedSubject, domains reach.DomainClientR
 	case "ec2":
 		return aws.ResolveEC2InstanceSubject(subj.identifier, domains)
 	default:
-		return nil, reacherr.New(nil, "unable to resolve subject because subject type '%s' is not recognized", subj.identifier, subj.typePrefix)
+		return nil, reacherr.New(nil, "unable to resolve subject because subject type '%s' is not recognized", subj.typePrefix)
 	}
 }

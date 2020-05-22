@@ -1,8 +1,6 @@
 package apiclient
 
 import (
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
@@ -26,17 +24,17 @@ func (client *DomainClient) EC2Instance(id string) (*reachAWS.EC2Instance, error
 	}
 	result, err := client.ec2.DescribeInstances(input)
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			return nil, reacherr.New(err, awsErrMessage(aerr))
+		}
 		return nil, err
 	}
 
 	instances := extractEC2Instances(result.Reservations)
 
-	if len(instances) == 0 {
-		return nil, fmt.Errorf("AWS API returned no instances for ID '%s'", id)
-	}
-
-	if len(instances) > 1 {
-		return nil, fmt.Errorf("AWS API returned more than one instance for ID '%s'", id)
+	err = ensureSingleResult(len(instances), reachAWS.ResourceKindEC2Instance, id)
+	if err != nil {
+		return nil, err
 	}
 
 	instance := instances[0]
@@ -48,10 +46,8 @@ func (client *DomainClient) EC2Instance(id string) (*reachAWS.EC2Instance, error
 func (client *DomainClient) AllEC2Instances() ([]reachAWS.EC2Instance, error) {
 	describeInstancesOutput, err := client.ec2.DescribeInstances(nil)
 	if err != nil {
-		msg := err.Error()
 		if awsErr, ok := err.(awserr.Error); ok {
-			msg = awsErrMessage(awsErr)
-			return nil, reacherr.New(err, msg)
+			return nil, reacherr.New(err, awsErrMessage(awsErr))
 		}
 		return nil, err
 	}
@@ -79,12 +75,15 @@ func (client *DomainClient) EC2InstanceByENI(eniID string) (*reachAWS.EC2Instanc
 
 	results, err := client.ec2.DescribeInstances(input)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get EC2 instance by ENI (ENI ID: %s): %v", eniID, err)
+		if aerr, ok := err.(awserr.Error); ok {
+			return nil, reacherr.New(err, awsErrMessage(aerr))
+		}
+		return nil, err
 	}
 
 	instances := extractEC2Instances(results.Reservations)
 	if err = ensureSingleResult(len(instances), reachAWS.ResourceKindEC2Instance, eniID); err != nil {
-		return nil, fmt.Errorf("unable to get EC2 instance by ENI (ENI ID: %s): %v", eniID, err)
+		return nil, err
 	}
 
 	i := instances[0]

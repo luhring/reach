@@ -241,7 +241,7 @@ func TestAnalyze(t *testing.T) {
 
 					catalog.Store(aws.ResourceDomainAWS, awsClient)
 					catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
-					analyzer := New(catalog)
+					analyzer := New(catalog, nil)
 
 					log.Print("analyzing...")
 					analysis, err := analyzer.Analyze(*source, *destination)

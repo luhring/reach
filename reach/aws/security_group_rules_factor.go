@@ -20,7 +20,7 @@ func (eni ElasticNetworkInterface) securityGroupRulesFactor(
 ) (*reach.Factor, error) {
 	sgs, err := eni.securityGroups(client)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get ENI's security groups: %v", err)
+		return nil, err
 	}
 
 	var ip net.IP
@@ -37,7 +37,7 @@ func (eni ElasticNetworkInterface) securityGroupRulesFactor(
 		rules = func(sg SecurityGroup) []SecurityGroupRule { return sg.InboundRules }
 		direction = securityGroupRuleDirectionInbound
 	default:
-		return nil, fmt.Errorf("determing security group rules factors for flow '%s' is not supported", flow)
+		return nil, fmt.Errorf("determining security group rules factors for flow '%s' is not supported", flow)
 	}
 
 	components, err := applicableSecurityGroupRules(client, sgs, ip, rules, direction)
@@ -47,7 +47,7 @@ func (eni ElasticNetworkInterface) securityGroupRulesFactor(
 
 	traffic, err := trafficFromSecurityGroupRulesFactorComponents(components)
 	if err != nil {
-		return nil, fmt.Errorf("unable to consolidate factor traffic: %v", err)
+		return nil, err
 	}
 
 	factor := &reach.Factor{

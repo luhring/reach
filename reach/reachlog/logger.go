@@ -9,11 +9,11 @@ import (
 
 // Logger is the interface that wraps methods for Reach to use during logging
 type Logger interface {
-	Debug(message string, args ...interface{})
-	Info(message string, args ...interface{})
-	Warn(message string, args ...interface{})
-	Error(message string, args ...interface{})
-	Fatal(message string, args ...interface{})
+	Debug(message string, keysAndValues ...interface{})
+	Info(message string, keysAndValues ...interface{})
+	Warn(message string, keysAndValues ...interface{})
+	Error(message string, keysAndValues ...interface{})
+	Fatal(message string, keysAndValues ...interface{})
 }
 
 // Level indicates a specified logging level
@@ -76,26 +76,26 @@ func New(minLevel Level) Logger {
 }
 
 // Debug logs the received message and parameters at the DEBUG logging level
-func (w zapWrapper) Debug(message string, args ...interface{}) {
-	w.sugar.Debugw(message, args...)
+func (w zapWrapper) Debug(message string, keysAndValues ...interface{}) {
+	w.sugar.Debugw(message, keysAndValues...)
 }
 
 // Info logs the received message and parameters at the INFO logging level
-func (w zapWrapper) Info(message string, args ...interface{}) {
-	w.sugar.Infow(message, args...)
+func (w zapWrapper) Info(message string, keysAndValues ...interface{}) {
+	w.sugar.Infow(message, keysAndValues...)
 }
 
 // Warn logs the received message and parameters at the WARN logging level
-func (w zapWrapper) Warn(message string, args ...interface{}) {
-	w.sugar.Warnw(message, args...)
+func (w zapWrapper) Warn(message string, keysAndValues ...interface{}) {
+	w.sugar.Warnw(message, keysAndValues...)
 }
 
 // Error logs the received message and parameters at the ERROR logging level
-func (w zapWrapper) Error(message string, args ...interface{}) {
-	w.sugar.Errorw(message, args...)
+func (w zapWrapper) Error(message string, keysAndValues ...interface{}) {
+	w.sugar.Errorw(message, keysAndValues...)
 }
 
 // Fatal logs the received message and parameters at the FATAL logging level
-func (w zapWrapper) Fatal(message string, args ...interface{}) {
-	w.sugar.Fatalw(message, args...)
+func (w zapWrapper) Fatal(message string, keysAndValues ...interface{}) {
+	w.sugar.Fatalw(message, keysAndValues...)
 }

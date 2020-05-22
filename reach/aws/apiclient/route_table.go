@@ -2,9 +2,11 @@ package apiclient
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	reachAWS "github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // RouteTable queries the AWS API for a route table matching the given ID.
@@ -22,6 +24,9 @@ func (client *DomainClient) RouteTable(id string) (*reachAWS.RouteTable, error) 
 	}
 	result, err := client.ec2.DescribeRouteTables(input)
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			return nil, reacherr.New(err, awsErrMessage(aerr))
+		}
 		return nil, err
 	}
 

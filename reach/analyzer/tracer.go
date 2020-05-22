@@ -7,29 +7,36 @@ import (
 	"sync"
 
 	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/reacherr"
+	"github.com/luhring/reach/reach/reachlog"
 )
 
 // Tracer is the analyzer-specific implementation of the interface reach.Tracer. This implementation features a mechanism for tracing paths that concurrently follows all possible paths of network traffic from source to destination.
 type Tracer struct {
-	referenceResolver    reach.ReferenceResolver
+	referenceResolver    *ReferenceResolver
 	domainClientResolver reach.DomainClientResolver
+	logger               reachlog.Logger
 }
 
 // NewTracer returns a reference to a new instance of a Tracer.
-func NewTracer(domainClientResolver reach.DomainClientResolver) *Tracer {
+func NewTracer(domainClientResolver reach.DomainClientResolver, logger reachlog.Logger) *Tracer {
 	referenceResolver := NewReferenceResolver(domainClientResolver)
 
 	return &Tracer{
 		referenceResolver:    &referenceResolver,
 		domainClientResolver: domainClientResolver,
+		logger:               logger,
 	}
 }
 
 // Trace uses available information to map all possible network paths from the specified source to the specified destination. If Trace is unable to provide a complete set of paths, it returns an error.
 func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) {
+	t.logger.Debug("beginning trace", "source", source, "destination", destination)
+
 	dstIPs, err := t.subjectIPs(destination)
 	if err != nil {
-		return nil, fmt.Errorf("trace failed: unable to get IPs for destination: %v", err)
+		t.logger.Error("trace failed: unable to get IPs for destination", "err", err, "destination", destination.Ref())
+		return nil, err
 	}
 
 	initialJob := traceJob{
@@ -47,33 +54,41 @@ func (t *Tracer) Trace(source, destination reach.Subject) ([]reach.Path, error) 
 
 	for result := range results {
 		if result.error != nil {
+			t.logger.Error("trace failed: error while tracing point", "err", result.error)
 			return nil, result.error
 		}
 		paths = append(paths, *result.path)
 	}
 
-	// TODO: Backtrace all paths to fill in return factors
+	// TODO: PREVENT RELEASE: Backtrace all paths to fill in return factors
 
+	t.logger.Info("trace successful", "numPaths", len(paths))
 	return paths, nil
 }
 
 func (t *Tracer) subjectIPs(s reach.Subject) ([]net.IP, error) {
-	infrastructure, err := t.referenceResolver.Resolve(s.Ref())
+	subjectResource, err := t.referenceResolver.Resolve(s.Ref())
 	if err != nil {
-		return nil, fmt.Errorf("unable to get infrastructure for subject (%v): %v", s.Ref(), err)
+		return nil, err
 	}
-	addressable, ok := infrastructure.Properties.(reach.IPAddressable)
+	addressable, ok := subjectResource.Properties.(reach.IPAddressable)
 	if !ok {
-		return nil, fmt.Errorf("subject does not implement IPAddressable (%v)", s.Ref())
+		msg := "subject does not implement IPAddressable"
+		t.logger.Error(msg, "subject", s.Ref())
+		err = fmt.Errorf(msg+": %v", s.Ref())
+		return nil, err
 	}
 	ips, err := addressable.IPs(t.domainClientResolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get IP addresses for subject (%v): %v", s.Ref(), err)
+		t.logger.Error("unable to get subject IPs", "err", err, "subject", s.Ref())
+		return nil, err
 	}
 	return ips, nil
 }
 
 func (t *Tracer) tracePoint(ctx context.Context, job traceJob) <-chan traceResult {
+	t.logger.Info("tracing point", "ref", job.ref)
+
 	results := make(chan traceResult)
 
 	go func() {
@@ -99,7 +114,8 @@ func (t *Tracer) tracePoint(ctx context.Context, job traceJob) <-chan traceResul
 
 				err = ensureNoPathCycles(job.path, traceable)
 				if err != nil {
-					results <- traceResult{error: fmt.Errorf("tracer detected a path cycle: %v", err)}
+					t.logger.Error("path cycle detected", "err", err)
+					results <- traceResult{error: err}
 					return
 				}
 
@@ -114,6 +130,7 @@ func (t *Tracer) tracePoint(ctx context.Context, job traceJob) <-chan traceResul
 				}
 
 				factors, err := traceable.FactorsForward(t.domainClientResolver, previousEdge)
+				t.logger.Debug("discovered factors", "ref", job.ref, "numFactors", len(factors))
 				point := reach.Point{Ref: job.ref, FactorsForward: factors}
 
 				var path reach.Path
@@ -125,28 +142,36 @@ func (t *Tracer) tracePoint(ctx context.Context, job traceJob) <-chan traceResul
 
 				if traceable.Ref().Equal(job.destinationRef) {
 					// Path is complete!
+					t.logger.Info("completed trace of path", "source", job.sourceRef, "destination", job.destinationRef)
+
 					results <- traceResult{path: &path}
 					return
 				}
 
 				edges, err := traceable.EdgesForward(t.domainClientResolver, previousEdge, previousRef, job.destinationIPs)
 				if err != nil {
+					t.logger.Error("tracer was unable to get edges forward", "err", err, "ref", job.ref)
 					results <- traceResult{
-						error: fmt.Errorf("tracer was unable to get edges for ref (%s): %v", job.ref, err),
+						error: err,
 					}
 					return
 				}
 
 				numEdges := len(edges)
 				if numEdges < 1 {
+					msg := "no forward edges found when processing job"
+					err = reacherr.New(nil, msg+":\n%+v", job)
+					t.logger.Error(msg, "job", job)
 					results <- traceResult{
-						error: fmt.Errorf("no forward edges found when processing job:\n%+v", job)}
+						error: err,
+					}
 					return
 				}
+				t.logger.Debug("found edge(s) forward from trace point", "ref", job.ref, "numEdges", numEdges)
 
 				resultChannels := make([]<-chan traceResult, numEdges)
 				for i, edge := range edges {
-					j := traceJob{
+					nextJob := traceJob{
 						ref:            edge.EndRef,
 						path:           path,
 						edge:           edge,
@@ -154,7 +179,8 @@ func (t *Tracer) tracePoint(ctx context.Context, job traceJob) <-chan traceResul
 						destinationRef: job.destinationRef,
 						destinationIPs: job.destinationIPs,
 					}
-					resultChannels[i] = t.tracePoint(ctx, j)
+
+					resultChannels[i] = t.tracePoint(ctx, nextJob)
 				}
 
 				// Wait for downstream results to come in and pass them upstream.
@@ -179,7 +205,7 @@ func ensureNoPathCycles(path reach.Path, traceable reach.Traceable) error {
 
 	ref := traceable.Ref()
 	if traceable.Visitable(path.Contains(ref)) == false {
-		return fmt.Errorf("cannot visit point again: %s", ref)
+		return reacherr.New(nil, "cannot visit point again: %s", ref)
 	}
 	return nil
 }

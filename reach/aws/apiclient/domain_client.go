@@ -71,11 +71,13 @@ func nameTag(tags []*ec2.Tag) string {
 
 func ensureSingleResult(resultSetLength int, entity reach.Kind, id string) error {
 	if resultSetLength == 0 {
-		return fmt.Errorf("AWS API did not return a %s for ID '%s'", entity, id)
+		err := reacherr.New(nil, "no %s resources found for ID '%s'", entity, id)
+		return err
 	}
 
 	if resultSetLength > 1 {
-		return fmt.Errorf("AWS API returned more than one %s for ID '%s'", entity, id)
+		err := reacherr.New(nil, "more than one %s resources found for ID '%s'", entity, id)
+		return err
 	}
 
 	return nil
@@ -105,7 +107,7 @@ func convertAWSIPProtocolStringToProtocol(ipProtocol *string) (reach.Protocol, e
 	case "icmpv6":
 		protocolNumber = reach.ProtocolICMPv6
 	default:
-		return 0, errors.New("unrecognized ipProtocol value")
+		return 0, fmt.Errorf("unrecognized ipProtocol value: %v", ipProtocol)
 	}
 
 	return protocolNumber, nil

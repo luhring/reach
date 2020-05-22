@@ -4,9 +4,11 @@ import (
 	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	reachAWS "github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // VPC queries the AWS API for a VPC matching the given ID.
@@ -24,6 +26,9 @@ func (client *DomainClient) VPC(id string) (*reachAWS.VPC, error) {
 	}
 	result, err := client.ec2.DescribeVpcs(input)
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			return nil, reacherr.New(err, awsErrMessage(aerr))
+		}
 		return nil, err
 	}
 

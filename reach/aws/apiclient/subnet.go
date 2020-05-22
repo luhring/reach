@@ -5,9 +5,11 @@ import (
 	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	reachAWS "github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // Subnet queries the AWS API for a subnet matching the given ID.
@@ -25,6 +27,9 @@ func (client *DomainClient) Subnet(id string) (*reachAWS.Subnet, error) {
 	}
 	result, err := client.ec2.DescribeSubnets(input)
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			return nil, reacherr.New(err, awsErrMessage(aerr))
+		}
 		return nil, err
 	}
 
@@ -77,10 +82,7 @@ func (client *DomainClient) newSubnetFromAPI(subnet *ec2.Subnet) (*reachAWS.Subn
 		return nil, err
 	}
 
-	routeTableID, err := client.routeTableIDFromSubnetID(subnet)
-	if err != nil {
-		return nil, err
-	}
+	routeTableID := client.routeTableIDFromSubnetID(subnet)
 
 	ipv4CIDR, err := ipv4CIDRFromSubnet(subnet)
 	if err != nil {
@@ -150,7 +152,7 @@ func (client *DomainClient) networkACLIDFromSubnet(subnet *ec2.Subnet) (string, 
 	return aws.StringValue(result.NetworkAcls[0].NetworkAclId), nil
 }
 
-func (client *DomainClient) routeTableIDFromSubnetID(subnet *ec2.Subnet) (string, error) {
+func (client *DomainClient) routeTableIDFromSubnetID(subnet *ec2.Subnet) string {
 	subnetID := subnet.SubnetId
 	input := &ec2.DescribeRouteTablesInput{
 		Filters: []*ec2.Filter{
@@ -163,12 +165,12 @@ func (client *DomainClient) routeTableIDFromSubnetID(subnet *ec2.Subnet) (string
 
 	result, err := client.ec2.DescribeRouteTables(input)
 	if err != nil {
-		return "", nil
+		return ""
 	}
 
 	if err = ensureSingleResult(len(result.RouteTables), "route table (via subnet)", *subnetID); err != nil {
-		return "", nil
+		return ""
 	}
 
-	return aws.StringValue(result.RouteTables[0].RouteTableId), nil
+	return aws.StringValue(result.RouteTables[0].RouteTableId)
 }

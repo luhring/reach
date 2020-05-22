@@ -1,12 +1,12 @@
 package apiclient
 
 import (
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	reachAWS "github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // SecurityGroupReference queries the AWS API for a security group matching the given ID, but returns a security group reference representation instead of the full security group representation.
@@ -42,7 +42,10 @@ func (client *DomainClient) ResolveSecurityGroupReference(sgID string) ([]reachA
 
 	results, err := client.ec2.DescribeNetworkInterfaces(input)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get network interfaces by security group ID: %v", err)
+		if aerr, ok := err.(awserr.Error); ok {
+			return nil, reacherr.New(err, awsErrMessage(aerr))
+		}
+		return nil, err
 	}
 	for _, resultENI := range results.NetworkInterfaces {
 		eni := newElasticNetworkInterfaceFromAPI(resultENI)

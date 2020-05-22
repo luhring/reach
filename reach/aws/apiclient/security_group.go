@@ -5,10 +5,12 @@ import (
 	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/luhring/reach/reach"
 	reachAWS "github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/reacherr"
 	"github.com/luhring/reach/reach/set"
 )
 
@@ -27,6 +29,9 @@ func (client *DomainClient) SecurityGroup(id string) (*reachAWS.SecurityGroup, e
 	}
 	result, err := client.ec2.DescribeSecurityGroups(input)
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			return nil, reacherr.New(err, awsErrMessage(aerr))
+		}
 		return nil, err
 	}
 

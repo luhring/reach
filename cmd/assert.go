@@ -30,7 +30,7 @@ func exitFailedAssertion(text string) {
 	secondaryMessage := ansi.Color(text, "red")
 	_, _ = fmt.Fprintf(os.Stderr, "\n%v %v\n", failedMessage, secondaryMessage)
 
-	os.Exit(2)
+	os.Exit(1)
 }
 
 func exitSuccessfulAssertion(text string) {

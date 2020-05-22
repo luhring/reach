@@ -82,10 +82,10 @@ See https://github.com/luhring/reach for documentation.`,
 			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
 		}
 
-		a := analyzer.New(catalog)
+		a := analyzer.New(catalog, logger)
 		analysis, err := a.Analyze(*source, *destination)
 		if err != nil {
-			exitWithError(err)
+			handleError(err)
 		}
 
 		if outputJSON {
@@ -102,11 +102,11 @@ See https://github.com/luhring/reach for documentation.`,
 			paths := analysis.Paths
 			tcs, err := reach.TrafficContentsFromPaths(paths)
 			if err != nil {
-				exitWithError(err)
+				handleError(err)
 			}
 			mergedTraffic, err := reach.MergeTraffic(tcs...)
 			if err != nil {
-				exitWithError(err)
+				handleError(err)
 			}
 
 			fmt.Print("network traffic allowed from source to destination:" + "\n")

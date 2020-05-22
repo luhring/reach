@@ -25,6 +25,15 @@ func New(err error, messagef string, messageArgs ...interface{}) ReachErr {
 	}
 }
 
+// SafeWrap wraps the provided err with a new ReachErr only if the err is already a ReachErr. If err is not a ReachErr, the err is returned as is.
+func SafeWrap(err error, messagef string, messageArgs ...interface{}) error {
+	if reachErr, ok := err.(ReachErr); ok {
+		wrapper := New(reachErr, messagef, messageArgs...)
+		return wrapper
+	}
+	return err
+}
+
 type reachErr struct {
 	inner      error
 	stackTrace string

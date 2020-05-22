@@ -2,9 +2,11 @@ package apiclient
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	reachAWS "github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // InternetGateway queries the AWS API for an Internet gateway matching the given ID.
@@ -20,6 +22,9 @@ func (client *DomainClient) InternetGateway(id string) (*reachAWS.InternetGatewa
 	}
 	result, err := client.ec2.DescribeInternetGateways(input)
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			return nil, reacherr.New(err, awsErrMessage(aerr))
+		}
 		return nil, err
 	}
 

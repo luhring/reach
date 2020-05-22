@@ -23,7 +23,7 @@ func (r VPCRouter) networkACLRulesFactor(
 ) (*reach.Factor, error) {
 	nacl, err := client.NetworkACL(subnet.NetworkACLID)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get factors: %v", err)
+		return nil, err
 	}
 
 	var ip net.IP

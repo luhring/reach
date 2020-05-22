@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // ResourceKindVPCRouter specifies the unique name for the VPCRouter kind of resource.
@@ -22,7 +23,7 @@ type VPCRouter struct {
 func NewVPCRouter(client DomainClient, id string) (*VPCRouter, error) {
 	vpc, err := client.VPC(id)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get VPC: %v", err)
+		return nil, err
 	}
 
 	return &VPCRouter{VPC: *vpc}, nil
@@ -70,7 +71,7 @@ func (r VPCRouter) Segments() bool {
 func (r VPCRouter) EdgesForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge, previousRef *reach.Reference, _ []net.IP) ([]reach.Edge, error) {
 	err := r.checkNilPreviousEdge(previousEdge)
 	if err != nil {
-		return nil, fmt.Errorf("unablee to generate forward edges: %v", err)
+		return nil, err
 	}
 
 	// VPC Routers don't mutate the IP tuple
@@ -78,20 +79,20 @@ func (r VPCRouter) EdgesForward(resolver reach.DomainClientResolver, previousEdg
 
 	client, err := unpackDomainClient(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get client: %v", err)
+		return nil, err
 	}
 
 	if r.trafficStaysWithinVPC(tuple) {
 		eni, err := client.ElasticNetworkInterfaceByIP(tuple.Dst)
 		if err != nil {
-			return nil, fmt.Errorf("unable to determine forward edges for VPC router: %v", err)
+			return nil, err
 		}
 		return r.newEdges(tuple, eni.Ref()), nil
 	}
 
 	rt, err := r.routeTable(client, tuple, *previousRef)
 	if err != nil {
-		return nil, fmt.Errorf("unable to route traffic: %v", err)
+		return nil, err
 	}
 	target, err := rt.routeTarget(tuple.Dst)
 	if err != nil {
@@ -105,16 +106,16 @@ func (r VPCRouter) FactorsForward(resolver reach.DomainClientResolver, previousE
 	tuple := previousEdge.Tuple
 	client, err := unpackDomainClient(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get client: %v", err)
+		return nil, err
 	}
 
 	srcSubnet, srcSubnetExists, err := r.VPC.subnetThatContains(client, tuple.Src)
 	if err != nil {
-		return nil, fmt.Errorf("unable to determine if traffic stays within a subnet: %v", err)
+		return nil, err
 	}
 	dstSubnet, dstSubnetExists, err := r.VPC.subnetThatContains(client, tuple.Dst)
 	if err != nil {
-		return nil, fmt.Errorf("unable to determine if traffic stays within a subnet: %v", err)
+		return nil, err
 	}
 	if srcSubnetExists && dstSubnetExists && srcSubnet.equal(*dstSubnet) {
 		// Same subnet —— no factors to return!
@@ -126,14 +127,14 @@ func (r VPCRouter) FactorsForward(resolver reach.DomainClientResolver, previousE
 	if srcSubnetExists {
 		factor, err := r.networkACLRulesFactor(client, *srcSubnet, networkACLRuleDirectionOutbound, tuple)
 		if err != nil {
-			return nil, fmt.Errorf("unable to get network ACL rules for src subnet: %v", err)
+			return nil, err
 		}
 		factors = append(factors, *factor)
 	}
 	if dstSubnetExists {
 		factor, err := r.networkACLRulesFactor(client, *dstSubnet, networkACLRuleDirectionInbound, tuple)
 		if err != nil {
-			return nil, fmt.Errorf("unable to get network ACL rules for dst subnet: %v", err)
+			return nil, err
 		}
 		factors = append(factors, *factor)
 	}
@@ -168,14 +169,14 @@ func (r VPCRouter) routeTable(client DomainClient, tuple reach.IPTuple, previous
 	if r.VPC.contains(tuple.Src) {
 		srcSubnet, exists, err := r.VPC.subnetThatContains(client, tuple.Src)
 		if err != nil {
-			return nil, fmt.Errorf("VPC router cannot find originating subnet for tuple (%s): %v", tuple, err)
+			return nil, err
 		}
 		if !exists {
 			return nil, fmt.Errorf("unable to find src's subnet (tuple: %s)", tuple)
 		}
 		subnetRouteTable, err := client.RouteTable(srcSubnet.RouteTableID)
 		if err != nil {
-			return nil, fmt.Errorf("unable to get routes for traffic (%s) in subnet (%s): %v", tuple, srcSubnet.ID, err)
+			return nil, err
 		}
 		return subnetRouteTable, nil
 	}
@@ -192,20 +193,20 @@ func (r VPCRouter) routeTable(client DomainClient, tuple reach.IPTuple, previous
 		case ResourceKindInternetGateway:
 			igw, err := client.InternetGateway(previousRef.ID)
 			if err != nil {
-				return nil, fmt.Errorf("could not load Internet Gateway (the previous point) to get route table: %v", err)
+				return nil, err
 			}
 			igwRouteTable, err := client.RouteTableForGateway(igw.ID)
 			if err != nil {
-				return nil, fmt.Errorf("could not load Route Table for Internet Gateway (id: %s): %v", igw.ID, err)
+				return nil, err
 			}
 			return igwRouteTable, nil
 		}
 
-		return nil, fmt.Errorf("VPC router is unable to find route table for traffic (%s), src infrastructure (%s) is either unrecognized or not yet supported by Reach", tuple, previousRef.Kind)
+		return nil, reacherr.New(nil, "VPC router is unable to find route table for traffic (%s), src infrastructure (%s) is either unrecognized or not yet supported by Reach", tuple, previousRef.Kind)
 	}
 
 	//noinspection GoErrorStringFormat
-	return nil, fmt.Errorf("Somehow the VPC Router received traffic from infrastructure not within AWS. Please report this as a bug, and include this information... tuple: %s; previousRef: %v", tuple, previousRef)
+	return nil, fmt.Errorf("Somehow the VPC Router received traffic from infrastructure not within AWS. tuple: %s; previousRef: %v", tuple, previousRef)
 }
 
 func (r VPCRouter) trafficStaysWithinVPC(tuple reach.IPTuple) bool {

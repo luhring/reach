@@ -5,10 +5,12 @@ import (
 	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	"github.com/luhring/reach/reach"
 	reachAWS "github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // NetworkACL queries the AWS API for a network ACL matching the given ID.
@@ -26,6 +28,9 @@ func (client *DomainClient) NetworkACL(id string) (*reachAWS.NetworkACL, error) 
 	}
 	result, err := client.ec2.DescribeNetworkAcls(input)
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			return nil, reacherr.New(err, awsErrMessage(aerr))
+		}
 		return nil, err
 	}
 

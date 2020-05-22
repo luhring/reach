@@ -76,7 +76,7 @@ func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousE
 	if previousEdge == nil { // This is the first point in the path.
 		t, err := i.firstPointTuples(resolver, destinationIPs)
 		if err != nil {
-			return nil, fmt.Errorf("cannot generate tuples for first point: %v", err)
+			return nil, err
 		}
 		tuples = t
 	} else {
@@ -86,12 +86,12 @@ func (i EC2Instance) EdgesForward(resolver reach.DomainClientResolver, previousE
 
 	client, err := unpackDomainClient(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get client: %v", err)
+		return nil, err
 	}
 
 	enis, err := i.elasticNetworkInterfaces(client)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't get ENIs: %v", err)
+		return nil, err
 	}
 	var edges []reach.Edge
 	for _, eni := range enis {
@@ -128,12 +128,12 @@ func (i EC2Instance) FactorsReturn(_ reach.DomainClientResolver, _ *reach.Edge) 
 func (i EC2Instance) IPs(resolver reach.DomainClientResolver) ([]net.IP, error) {
 	client, err := unpackDomainClient(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get client: %v", err)
+		return nil, err
 	}
 
 	enis, err := i.elasticNetworkInterfaces(client)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't look up ENIs: %v", err)
+		return nil, err
 	}
 
 	var ips []net.IP
@@ -152,12 +152,12 @@ func (i EC2Instance) IPs(resolver reach.DomainClientResolver) ([]net.IP, error) 
 func (i EC2Instance) InterfaceIPs(resolver reach.DomainClientResolver) ([]net.IP, error) {
 	client, err := unpackDomainClient(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get client: %v", err)
+		return nil, err
 	}
 
 	enis, err := i.elasticNetworkInterfaces(client)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't look up ENIs: %v", err)
+		return nil, err
 	}
 
 	var ips []net.IP
@@ -176,7 +176,7 @@ func (i EC2Instance) firstPointTuples(resolver reach.DomainClientResolver, desti
 
 	srcIPs, err := i.InterfaceIPs(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("cannot determine possible src IPs: %v", err)
+		return nil, err
 	}
 	// TODO: We need some mechanism to confirm destination addresses are valid in the context of source's network.
 	var tuples []reach.IPTuple
@@ -231,7 +231,7 @@ func (i EC2Instance) elasticNetworkInterfaces(client DomainClient) ([]ElasticNet
 	for _, id := range eniIDs {
 		eni, err := client.ElasticNetworkInterface(id)
 		if err != nil {
-			return nil, fmt.Errorf("couldn't get ENI (%s): %v", id, err)
+			return nil, err
 		}
 
 		enis = append(enis, *eni)

@@ -1,12 +1,12 @@
 package aws
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"strings"
 
 	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // ResourceKindElasticNetworkInterface specifies the unique name for the ElasticNetworkInterface kind of resource.
@@ -107,19 +107,19 @@ func (eni ElasticNetworkInterface) EdgesForward(resolver reach.DomainClientResol
 func (eni ElasticNetworkInterface) FactorsForward(resolver reach.DomainClientResolver, previousEdge *reach.Edge) ([]reach.Factor, error) {
 	err := eni.checkNilPreviousEdge(previousEdge)
 	if err != nil {
-		return nil, fmt.Errorf("unable to generate forward edges: %v", err)
+		return nil, err
 	}
 
 	client, err := unpackDomainClient(resolver)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get client: %v", err)
+		return nil, err
 	}
 
 	var factors []reach.Factor
 
 	sgRulesFactor, err := eni.securityGroupRulesFactor(client, *previousEdge)
 	if err != nil {
-		return nil, fmt.Errorf("unable to determine security group rules factors: %v", err)
+		return nil, err
 	}
 	factors = append(factors, *sgRulesFactor)
 
@@ -178,7 +178,7 @@ func (eni ElasticNetworkInterface) flow(tuple reach.IPTuple, previousEdgeConnect
 
 func (eni ElasticNetworkInterface) checkNilPreviousEdge(previousEdge *reach.Edge) error {
 	if previousEdge == nil {
-		return errors.New("reach does not support an Elastic Network Interface being the first point in a path")
+		return reacherr.New(nil, "reach does not support an Elastic Network Interface being the first point in a path")
 	}
 	return nil
 }
@@ -214,7 +214,7 @@ func (eni ElasticNetworkInterface) securityGroups(client DomainClient) ([]Securi
 	for _, id := range eni.SecurityGroupIDs {
 		sg, err := client.SecurityGroup(id)
 		if err != nil {
-			return nil, fmt.Errorf("unable to get security group (id: %s): %v", id, err)
+			return nil, err
 		}
 		sgs = append(sgs, *sg)
 	}

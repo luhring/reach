@@ -5,9 +5,11 @@ import (
 	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
 	reachAWS "github.com/luhring/reach/reach/aws"
+	"github.com/luhring/reach/reach/reacherr"
 )
 
 // ElasticNetworkInterface queries the AWS API for an ElasticNetworkInterface matching the given ID.
@@ -25,6 +27,9 @@ func (client *DomainClient) ElasticNetworkInterface(id string) (*reachAWS.Elasti
 	}
 	result, err := client.ec2.DescribeNetworkInterfaces(input)
 	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			return nil, reacherr.New(err, awsErrMessage(aerr))
+		}
 		return nil, err
 	}
 
@@ -69,6 +74,7 @@ func (client *DomainClient) ElasticNetworkInterfaceByIP(ip net.IP) (*reachAWS.El
 		return &eni, nil
 	}
 
+	// TODO: Handle error possibilities more gracefully
 	return nil, fmt.Errorf("unable to find matching elastic network interface for IP (%s), either because no such ENI exists or because a more serious error has occurred (such as with the network connection or with AWS authentication)", ip)
 }
 
