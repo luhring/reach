@@ -69,11 +69,6 @@ func networkACLRulesForDirection(entries []*ec2.NetworkAclEntry, direction reach
 
 	var rules []reachAWS.NetworkACLRule
 
-	directionMatches := func(direction reachAWS.NetworkACLRuleDirection, entry ec2.NetworkAclEntry) bool {
-		outboundEntry := aws.BoolValue(entry.Egress)
-		return outboundEntry && direction == reachAWS.NetworkACLRuleDirectionOutbound
-	}
-
 	for _, entry := range entries {
 		if entry != nil {
 			if directionMatches(direction, *entry) {
@@ -87,6 +82,11 @@ func networkACLRulesForDirection(entries []*ec2.NetworkAclEntry, direction reach
 	}
 
 	return rules, nil
+}
+
+func directionMatches(direction reachAWS.NetworkACLRuleDirection, entry ec2.NetworkAclEntry) bool {
+	outboundEntry := aws.BoolValue(entry.Egress)
+	return outboundEntry == (direction == reachAWS.NetworkACLRuleDirectionOutbound)
 }
 
 func networkACLRule(entry ec2.NetworkAclEntry) (reachAWS.NetworkACLRule, error) { // note: this function ignores rule direction (inbound vs. outbound)
