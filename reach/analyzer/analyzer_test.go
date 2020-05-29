@@ -12,6 +12,7 @@ import (
 	"github.com/luhring/reach/reach/cache"
 	"github.com/luhring/reach/reach/generic"
 	"github.com/luhring/reach/reach/generic/standard"
+	"github.com/luhring/reach/reach/reachlog"
 	"github.com/luhring/reach/reach/set"
 )
 
@@ -239,9 +240,11 @@ func TestAnalyze(t *testing.T) {
 						t.Fatal(err)
 					}
 
+					logger := reachlog.New(reachlog.LevelNone)
+
 					catalog.Store(aws.ResourceDomainAWS, awsClient)
 					catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())
-					analyzer := New(catalog, nil)
+					analyzer := New(catalog, logger)
 
 					log.Print("analyzing...")
 					analysis, err := analyzer.Analyze(*source, *destination)
