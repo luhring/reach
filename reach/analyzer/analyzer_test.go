@@ -240,7 +240,7 @@ func TestAnalyze(t *testing.T) {
 						t.Fatal(err)
 					}
 
-					logger := reachlog.New(reachlog.LevelNone)
+					logger := reachlog.New(reachlog.LevelDebug)
 
 					catalog.Store(aws.ResourceDomainAWS, awsClient)
 					catalog.Store(generic.ResourceDomainGeneric, standard.NewDomainClient())

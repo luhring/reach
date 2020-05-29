@@ -145,7 +145,7 @@ func (tf *Terraform) Apply() error {
 	tf.t.Helper()
 
 	if tf.logging {
-		log.Print("deploying resources from Terraform plan...")
+		log.Print("applying Terraform plan...")
 	}
 
 	err := tf.action("unable to apply plan", "apply", terraformPlan)
