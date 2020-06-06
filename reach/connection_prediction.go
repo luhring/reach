@@ -3,8 +3,8 @@ package reach
 type ConnectionPrediction int
 
 const (
-	ProtocolConnectionPredictionUnknown ConnectionPrediction = iota
-	ProtocolConnectionPredictionGuaranteedSuccess
-	ProtocolConnectionPredictionPotentialFailure
-	ProtocolConnectionPredictionGuaranteedFailure
+	ConnectionPredictionUnknown ConnectionPrediction = iota
+	ConnectionPredictionGuaranteedSuccess
+	ConnectionPredictionPotentialFailure
+	ConnectionPredictionGuaranteedFailure
 )

@@ -172,10 +172,6 @@ func TestAnalyze(t *testing.T) {
 		t.Run(g.name, func(t *testing.T) {
 			for _, tc := range g.cases {
 				t.Run(tc.name, func(t *testing.T) {
-					// if tc.name != "Postgres with tightened rules" || g.name != "same VPC" { // TODO: remove this to run full test suite
-					// 	t.SkipNow()
-					// }
-
 					// Setup (and deferred teardown)
 					tf, err := terraform.New(t)
 					if err != nil {
