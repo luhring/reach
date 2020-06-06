@@ -1,0 +1,10 @@
+package reach
+
+type ConnectionPrediction int
+
+const (
+	ProtocolConnectionPredictionUnknown ConnectionPrediction = iota
+	ProtocolConnectionPredictionGuaranteedSuccess
+	ProtocolConnectionPredictionPotentialFailure
+	ProtocolConnectionPredictionGuaranteedFailure
+)
