@@ -148,7 +148,7 @@ func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 
 	if !tc.None() {
 		for p := range tc.protocols {
-			mergedProtocolContent, err := result.protocol(p).merge(tc.protocol(p))
+			mergedProtocolContent, err := result.Protocol(p).merge(tc.Protocol(p))
 			if err != nil {
 				return TrafficContent{}, err
 			}
@@ -159,7 +159,7 @@ func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 
 	if !other.None() {
 		for p := range other.protocols {
-			mergedProtocolContent, err := result.protocol(p).merge(other.protocol(p))
+			mergedProtocolContent, err := result.Protocol(p).merge(other.Protocol(p))
 			if err != nil {
 				return TrafficContent{}, err
 			}
@@ -198,8 +198,8 @@ func (tc *TrafficContent) Intersect(other TrafficContent) (TrafficContent, error
 	result := newTrafficContent()
 
 	for p, shouldProcess := range protocolsToProcess {
-		if shouldProcess && !tc.protocol(p).empty() && !other.protocol(p).empty() {
-			intersection, err := tc.protocol(p).intersect(other.protocol(p))
+		if shouldProcess && !tc.Protocol(p).empty() && !other.Protocol(p).empty() {
+			intersection, err := tc.Protocol(p).intersect(other.Protocol(p))
 			if err != nil {
 				return TrafficContent{}, err
 			}
@@ -224,7 +224,7 @@ func (tc *TrafficContent) Subtract(other TrafficContent) (TrafficContent, error)
 	result := newTrafficContent()
 
 	for p, pc := range tc.protocols {
-		pcDifference, err := pc.subtract(other.protocol(p))
+		pcDifference, err := pc.subtract(other.Protocol(p))
 		if err != nil {
 			return TrafficContent{}, fmt.Errorf("unable to subtract traffic content: %v", err)
 		}
@@ -452,7 +452,7 @@ func (tc TrafficContent) ProtocolsWithRestrictedReturnPath(returnTraffic Traffic
 	}
 
 	for _, protocol := range protocolsToAssess {
-		returnTrafficProtocolContent := returnTraffic.protocol(protocol)
+		returnTrafficProtocolContent := returnTraffic.Protocol(protocol)
 
 		if !returnTrafficProtocolContent.complete() {
 
@@ -497,7 +497,8 @@ func (tc *TrafficContent) setProtocolContent(p Protocol, content ProtocolContent
 	tc.protocols[p] = &content
 }
 
-func (tc TrafficContent) protocol(p Protocol) ProtocolContent {
+// Protocol returns the protocol-specific content within the TrafficContent for the specified IP protocol.
+func (tc TrafficContent) Protocol(p Protocol) ProtocolContent {
 	content := tc.protocols[p]
 
 	if content == nil {

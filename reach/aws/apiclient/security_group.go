@@ -128,7 +128,7 @@ func newPortSetFromAWSPortRange(portRange *ec2.PortRange) (set.PortSet, error) {
 	from := aws.Int64Value(portRange.From)
 	to := aws.Int64Value(portRange.To)
 
-	return set.NewPortSetFromRange(uint16(from), uint16(to))
+	return set.NewPortSetFromRange(uint16(from), uint16(to)), nil
 }
 
 func newPortSetFromAWSIPPermission(permission *ec2.IpPermission) (set.PortSet, error) {
@@ -139,7 +139,7 @@ func newPortSetFromAWSIPPermission(permission *ec2.IpPermission) (set.PortSet, e
 	from := aws.Int64Value(permission.FromPort)
 	to := aws.Int64Value(permission.ToPort)
 
-	return set.NewPortSetFromRange(uint16(from), uint16(to))
+	return set.NewPortSetFromRange(uint16(from), uint16(to)), nil
 }
 
 func securityGroupReferenceID(pair *ec2.UserIdGroupPair) string {

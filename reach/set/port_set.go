@@ -2,12 +2,6 @@ package set
 
 import (
 	"encoding/json"
-	"fmt"
-)
-
-const (
-	minimumPort = 0
-	maximumPort = 65535
 )
 
 // A PortSet represents a set of network traffic in terms of ports, suitable for describing TCP or UDP traffic. The PortSet type itself does not specify that the described content is for a particular IP protocol (like TCP or UDP).
@@ -30,18 +24,10 @@ func NewFullPortSet() PortSet {
 }
 
 // NewPortSetFromRange returns a new PortSet containing all ports contained in the specified range, inclusively.
-func NewPortSetFromRange(lowPort, highPort uint16) (PortSet, error) {
-	if err := validatePort(lowPort); err != nil {
-		return PortSet{}, fmt.Errorf("unable to use lowPort: %v", err)
-	}
-
-	if err := validatePort(highPort); err != nil {
-		return PortSet{}, fmt.Errorf("unable to use highPort: %v", err)
-	}
-
+func NewPortSetFromRange(lowPort, highPort uint16) PortSet {
 	return PortSet{
 		set: newSetFromRange(lowPort, highPort),
-	}, nil
+	}
 }
 
 // Complete returns a boolean indicating whether or not the PortSet is complete.
@@ -88,17 +74,4 @@ func (s PortSet) String() string {
 // MarshalJSON returns the JSON representation of the PortSet.
 func (s PortSet) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s)
-}
-
-func validatePort(port uint16) error {
-	if port < minimumPort || port > maximumPort {
-		return fmt.Errorf(
-			"port number %v is not valid, must be between %v and %v",
-			port,
-			minimumPort,
-			maximumPort,
-		)
-	}
-
-	return nil
 }
