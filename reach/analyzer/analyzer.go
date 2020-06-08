@@ -44,6 +44,24 @@ func ConnectionPredictions(path reach.Path) (map[reach.Protocol]reach.Connection
 	}
 	result[reach.ProtocolTCP] = tcpPrediction
 
+	udpPrediction, err := ConnectionPredictionUDP(path)
+	if err != nil {
+		return nil, err
+	}
+	result[reach.ProtocolUDP] = udpPrediction
+
+	icmpv4Prediction, err := ConnectionPredictionICMPv4(path)
+	if err != nil {
+		return nil, err
+	}
+	result[reach.ProtocolICMPv4] = icmpv4Prediction
+
+	icmpv6Prediction, err := ConnectionPredictionICMPv6(path)
+	if err != nil {
+		return nil, err
+	}
+	result[reach.ProtocolICMPv6] = icmpv6Prediction
+
 	return result, nil
 }
 
@@ -64,6 +82,62 @@ func ConnectionPredictionTCP(path reach.Path) (reach.ConnectionPrediction, error
 		case content.Ports == nil || content.Ports.Empty():
 			return reach.ConnectionPredictionFailure, nil
 		case content.Ports.Complete() == false:
+			failurePossible = true
+		}
+	}
+
+	if failurePossible {
+		return reach.ConnectionPredictionPossibleFailure, nil
+	}
+
+	return reach.ConnectionPredictionSuccess, nil
+}
+
+// ConnectionPredictionUDP inspects the path to predict the viability of a UDP connection made across this network path.
+func ConnectionPredictionUDP(path reach.Path) (reach.ConnectionPrediction, error) {
+	for _, point := range path.Points {
+		returnTraffic, err := reach.NewTrafficContentFromIntersectingMultiple(
+			reach.TrafficFromFactors(point.FactorsReturn),
+		)
+		if err != nil {
+			return reach.ConnectionPredictionUnknown, err
+		}
+
+		content := returnTraffic.Protocol(reach.ProtocolUDP)
+		if content.Ports == nil || content.Ports.Complete() == false {
+			return reach.ConnectionPredictionPossibleFailure, nil
+		}
+	}
+
+	return reach.ConnectionPredictionSuccess, nil
+}
+
+// ConnectionPredictionICMPv4 inspects the path to predict the viability of an ICMPv4 interaction across this network path.
+func ConnectionPredictionICMPv4(path reach.Path) (reach.ConnectionPrediction, error) {
+	return connectionPredictionICMP(path, reach.ProtocolICMPv4)
+}
+
+// ConnectionPredictionICMPv6 inspects the path to predict the viability of an ICMPv6 interaction across this network path.
+func ConnectionPredictionICMPv6(path reach.Path) (reach.ConnectionPrediction, error) {
+	return connectionPredictionICMP(path, reach.ProtocolICMPv6)
+}
+
+func connectionPredictionICMP(path reach.Path, icmpProtocol reach.Protocol) (reach.ConnectionPrediction, error) {
+	failurePossible := false
+
+	for _, point := range path.Points {
+		returnTraffic, err := reach.NewTrafficContentFromIntersectingMultiple(
+			reach.TrafficFromFactors(point.FactorsReturn),
+		)
+		if err != nil {
+			return reach.ConnectionPredictionUnknown, err
+		}
+
+		content := returnTraffic.Protocol(icmpProtocol)
+		switch {
+		case content.ICMP == nil || content.ICMP.Empty():
+			return reach.ConnectionPredictionFailure, nil
+		case content.ICMP.Complete() == false:
 			failurePossible = true
 		}
 	}

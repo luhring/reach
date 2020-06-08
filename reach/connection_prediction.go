@@ -10,3 +10,16 @@ const (
 	ConnectionPredictionPossibleFailure
 	ConnectionPredictionFailure
 )
+
+func (cp ConnectionPrediction) String() string {
+	switch cp {
+	case ConnectionPredictionSuccess:
+		return "success"
+	case ConnectionPredictionPossibleFailure:
+		return "possible failure"
+	case ConnectionPredictionFailure:
+		return "failure"
+	default:
+		return "unknown"
+	}
+}

@@ -282,9 +282,12 @@ func TestConnectionPredictions(t *testing.T) {
 					pointForReturnTraffic(trafficTCP(), false),
 				},
 			},
-			predictions: map[reach.Protocol]reach.ConnectionPrediction{
-				reach.ProtocolTCP: reach.ConnectionPredictionSuccess,
-			},
+			predictions: connectionPredictionsByProtocol(
+				reach.ConnectionPredictionSuccess,
+				reach.ConnectionPredictionPossibleFailure,
+				reach.ConnectionPredictionFailure,
+				reach.ConnectionPredictionFailure,
+			),
 		},
 		{
 			name: "single point with some TCP",
@@ -293,20 +296,26 @@ func TestConnectionPredictions(t *testing.T) {
 					pointForReturnTraffic(trafficTCPHighPortsOnly(), false),
 				},
 			},
-			predictions: map[reach.Protocol]reach.ConnectionPrediction{
-				reach.ProtocolTCP: reach.ConnectionPredictionPossibleFailure,
-			},
+			predictions: connectionPredictionsByProtocol(
+				reach.ConnectionPredictionPossibleFailure,
+				reach.ConnectionPredictionPossibleFailure,
+				reach.ConnectionPredictionFailure,
+				reach.ConnectionPredictionFailure,
+			),
 		},
 		{
-			name: "single point no traffic TCP",
+			name: "single point no traffic",
 			path: reach.Path{
 				Points: []reach.Point{
 					pointForReturnTraffic(reach.NewTrafficContentForNoTraffic(), false),
 				},
 			},
-			predictions: map[reach.Protocol]reach.ConnectionPrediction{
-				reach.ProtocolTCP: reach.ConnectionPredictionFailure,
-			},
+			predictions: connectionPredictionsByProtocol(
+				reach.ConnectionPredictionFailure,
+				reach.ConnectionPredictionPossibleFailure,
+				reach.ConnectionPredictionFailure,
+				reach.ConnectionPredictionFailure,
+			),
 		},
 	}
 
@@ -318,9 +327,18 @@ func TestConnectionPredictions(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(result, tc.predictions) {
-				t.Errorf("result did not match expectation, result was \n%v\n", result)
+				t.Errorf("result did not match expectation\nresult: %v\nexpected: %v\n", result, tc.predictions)
 			}
 		})
+	}
+}
+
+func connectionPredictionsByProtocol(tcp, udp, icmpv4, icmpv6 reach.ConnectionPrediction) map[reach.Protocol]reach.ConnectionPrediction {
+	return map[reach.Protocol]reach.ConnectionPrediction{
+		reach.ProtocolTCP:    tcp,
+		reach.ProtocolUDP:    udp,
+		reach.ProtocolICMPv4: icmpv4,
+		reach.ProtocolICMPv6: icmpv6,
 	}
 }
 
