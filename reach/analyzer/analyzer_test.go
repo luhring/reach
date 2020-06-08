@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"log"
+	"reflect"
 	"testing"
 
 	"github.com/luhring/reach/reach"
@@ -268,29 +269,86 @@ func TestAnalyze(t *testing.T) {
 	}
 }
 
-func trafficSSH() reach.TrafficContent {
-	ports, err := set.NewPortSetFromRange(22, 22)
-	if err != nil {
-		panic(err)
+func TestConnectionPredictions(t *testing.T) {
+	cases := []struct {
+		name        string
+		path        reach.Path
+		predictions map[reach.Protocol]reach.ConnectionPrediction
+	}{
+		{
+			name: "single point with all TCP",
+			path: reach.Path{
+				Points: []reach.Point{
+					pointForReturnTraffic(trafficTCP(), false),
+				},
+			},
+			predictions: map[reach.Protocol]reach.ConnectionPrediction{
+				reach.ProtocolTCP: reach.ConnectionPredictionSuccess,
+			},
+		},
+		{
+			name: "single point with some TCP",
+			path: reach.Path{
+				Points: []reach.Point{
+					pointForReturnTraffic(trafficTCPHighPortsOnly(), false),
+				},
+			},
+			predictions: map[reach.Protocol]reach.ConnectionPrediction{
+				reach.ProtocolTCP: reach.ConnectionPredictionPossibleFailure,
+			},
+		},
+		{
+			name: "single point no traffic TCP",
+			path: reach.Path{
+				Points: []reach.Point{
+					pointForReturnTraffic(reach.NewTrafficContentForNoTraffic(), false),
+				},
+			},
+			predictions: map[reach.Protocol]reach.ConnectionPrediction{
+				reach.ProtocolTCP: reach.ConnectionPredictionFailure,
+			},
+		},
 	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := ConnectionPredictions(tc.path)
+			if err != nil {
+				t.Error(err)
+			}
+
+			if !reflect.DeepEqual(result, tc.predictions) {
+				t.Errorf("result did not match expectation, result was \n%v\n", result)
+			}
+		})
+	}
+}
+
+func pointForReturnTraffic(traffic reach.TrafficContent, nat bool) reach.Point {
+	return reach.Point{
+		FactorsReturn: []reach.Factor{
+			{
+				Traffic: traffic,
+			},
+		},
+		SegmentDivider: nat,
+	}
+}
+
+func trafficSSH() reach.TrafficContent {
+	ports := set.NewPortSetFromRange(22, 22)
 
 	return reach.NewTrafficContentForPorts(reach.ProtocolTCP, ports)
 }
 
 func trafficHTTPS() reach.TrafficContent {
-	ports, err := set.NewPortSetFromRange(443, 443)
-	if err != nil {
-		panic(err)
-	}
+	ports := set.NewPortSetFromRange(443, 443)
 
 	return reach.NewTrafficContentForPorts(reach.ProtocolTCP, ports)
 }
 
 func trafficDNS() reach.TrafficContent {
-	ports, err := set.NewPortSetFromRange(53, 53)
-	if err != nil {
-		panic(err)
-	}
+	ports := set.NewPortSetFromRange(53, 53)
 
 	return reach.NewTrafficContentForPorts(reach.ProtocolUDP, ports)
 }
@@ -316,11 +374,12 @@ func trafficTCP() reach.TrafficContent {
 	return reach.NewTrafficContentForPorts(reach.ProtocolTCP, set.NewFullPortSet())
 }
 
+func trafficTCPHighPortsOnly() reach.TrafficContent {
+	return reach.NewTrafficContentForPorts(reach.ProtocolTCP, set.NewPortSetFromRange(1024, 65535))
+}
+
 func trafficPostgres() reach.TrafficContent {
-	ports, err := set.NewPortSetFromRange(5432, 5432)
-	if err != nil {
-		panic(err)
-	}
+	ports := set.NewPortSetFromRange(5432, 5432)
 
 	return reach.NewTrafficContentForPorts(reach.ProtocolTCP, ports)
 }

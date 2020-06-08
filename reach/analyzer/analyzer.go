@@ -33,3 +33,44 @@ func (a *Analyzer) Analyze(source, destination reach.Subject) (*reach.Analysis, 
 
 	return reach.NewAnalysis([]reach.Subject{source, destination}, paths), nil
 }
+
+// ConnectionPredictions inspects the path to predict the viability of a various kinds of connections made across this network path.
+func ConnectionPredictions(path reach.Path) (map[reach.Protocol]reach.ConnectionPrediction, error) {
+	result := make(map[reach.Protocol]reach.ConnectionPrediction)
+
+	tcpPrediction, err := ConnectionPredictionTCP(path)
+	if err != nil {
+		return nil, err
+	}
+	result[reach.ProtocolTCP] = tcpPrediction
+
+	return result, nil
+}
+
+// ConnectionPredictionTCP inspects the path to predict the viability of a TCP connection made across this network path.
+func ConnectionPredictionTCP(path reach.Path) (reach.ConnectionPrediction, error) {
+	failurePossible := false
+
+	for _, point := range path.Points {
+		returnTraffic, err := reach.NewTrafficContentFromIntersectingMultiple(
+			reach.TrafficFromFactors(point.FactorsReturn),
+		)
+		if err != nil {
+			return reach.ConnectionPredictionUnknown, err
+		}
+
+		content := returnTraffic.Protocol(reach.ProtocolTCP)
+		switch {
+		case content.Ports == nil || content.Ports.Empty():
+			return reach.ConnectionPredictionFailure, nil
+		case content.Ports.Complete() == false:
+			failurePossible = true
+		}
+	}
+
+	if failurePossible {
+		return reach.ConnectionPredictionPossibleFailure, nil
+	}
+
+	return reach.ConnectionPredictionSuccess, nil
+}
