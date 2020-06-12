@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/luhring/reach/reach"
+	traffic2 "github.com/luhring/reach/reach/traffic"
 )
 
 // ResourceKindEC2Instance specifies the unique name for the EC2Instance kind of resource.
@@ -193,12 +194,12 @@ func (i EC2Instance) firstPointTuples(resolver reach.DomainClientResolver, desti
 const FactorKindInstanceState = "InstanceState"
 
 func (i EC2Instance) newInstanceStateFactor() reach.Factor {
-	var traffic reach.TrafficContent
+	var traffic traffic2.Content
 
 	if i.isRunning() {
-		traffic = reach.NewTrafficContentForAllTraffic()
+		traffic = traffic2.All()
 	} else {
-		traffic = reach.NewTrafficContentForNoTraffic()
+		traffic = traffic2.None()
 	}
 
 	return reach.Factor{

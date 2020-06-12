@@ -9,6 +9,7 @@ import (
 	"github.com/mgutz/ansi"
 
 	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/traffic"
 )
 
 func printMergedResultsWarning() {
@@ -19,7 +20,7 @@ func printMergedResultsWarning() {
 func printConnectionPredictionWarnings(path reach.AnalyzedPath) {
 	connectionPredictions := path.ConnectionPredictions
 
-	var protocolsToCheck []reach.Protocol
+	var protocolsToCheck []traffic.Protocol
 	for p := range connectionPredictions {
 		protocolsToCheck = append(protocolsToCheck, p)
 	}
@@ -40,7 +41,7 @@ func printConnectionPredictionWarnings(path reach.AnalyzedPath) {
 	}
 }
 
-func connectionPredictionWarning(protocol reach.Protocol, prediction reach.ConnectionPrediction) string {
+func connectionPredictionWarning(protocol traffic.Protocol, prediction reach.ConnectionPrediction) string {
 	var warning string
 
 	switch prediction {
@@ -53,6 +54,6 @@ func connectionPredictionWarning(protocol reach.Protocol, prediction reach.Conne
 	return warning
 }
 
-func warningMessageForProtocolPrognosis(protocol reach.Protocol, prognosis string) string {
+func warningMessageForProtocolPrognosis(protocol traffic.Protocol, prognosis string) string {
 	return fmt.Sprintf("Warning: %s communication attempts %s because %s traffic from the destination has an impeded path back to the source.", protocol, prognosis, protocol)
 }

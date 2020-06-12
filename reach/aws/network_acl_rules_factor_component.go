@@ -1,11 +1,13 @@
 package aws
 
-import "github.com/luhring/reach/reach"
+import (
+	"github.com/luhring/reach/reach/traffic"
+)
 
 type networkACLRulesFactorComponent struct {
 	NetworkACLID  string
 	RuleDirection NetworkACLRuleDirection
 	RuleIndex     int64
 	Match         networkACLRuleMatch
-	Traffic       reach.TrafficContent
+	Traffic       traffic.Content
 }

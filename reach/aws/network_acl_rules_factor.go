@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/traffic"
 )
 
 // FactorKindNetworkACLRules specifies the unique name for the networkACLRulesFactor kind of Factor.
@@ -65,7 +66,7 @@ func applicableNetworkACLRules(
 	})
 
 	var components []networkACLRulesFactorComponent
-	decided := reach.NewTrafficContentForNoTraffic()
+	decided := traffic.None()
 
 	for _, rule := range rules {
 		match := matchNetworkACLRule(rule, ip)
@@ -87,7 +88,7 @@ func applicableNetworkACLRules(
 			}
 
 			var err error
-			decided, err = reach.NewTrafficContentFromMergingMultiple([]reach.TrafficContent{
+			decided, err = traffic.Merge([]traffic.Content{
 				decided,
 				rule.TrafficContent,
 			})
@@ -102,15 +103,15 @@ func applicableNetworkACLRules(
 
 func trafficFromNetworkACLRulesFactorComponents(
 	components []networkACLRulesFactorComponent,
-) (reach.TrafficContent, error) {
-	var segments []reach.TrafficContent
+) (traffic.Content, error) {
+	var segments []traffic.Content
 	for _, c := range components {
 		segments = append(segments, c.Traffic)
 	}
 
-	tc, err := reach.NewTrafficContentFromMergingMultiple(segments)
+	tc, err := traffic.Merge(segments)
 	if err != nil {
-		return reach.TrafficContent{}, err
+		return traffic.Content{}, err
 
 	}
 	return tc, nil

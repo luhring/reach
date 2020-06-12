@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net"
 
-	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/traffic"
 )
 
 // A NetworkACLRuleAction is the action specified by a network ACL rule -- either allow or deny.
@@ -36,7 +36,7 @@ func (action NetworkACLRuleAction) MarshalJSON() ([]byte, error) {
 // An NetworkACLRule resource representation.
 type NetworkACLRule struct {
 	Number          int64
-	TrafficContent  reach.TrafficContent
+	TrafficContent  traffic.Content
 	TargetIPNetwork *net.IPNet
 	Action          NetworkACLRuleAction
 }

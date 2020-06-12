@@ -8,10 +8,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
-	"github.com/luhring/reach/reach"
 	reachAWS "github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/reacherr"
 	"github.com/luhring/reach/reach/set"
+	"github.com/luhring/reach/reach/traffic"
 )
 
 // SecurityGroup queries the AWS API for a security group matching the given ID.
@@ -182,35 +182,35 @@ func ipNetworksFromSecurityGroupRule(ipv4Ranges []*ec2.IpRange, ipv6Ranges []*ec
 	return networks
 }
 
-func trafficContentFromAWSIPPermission(permission *ec2.IpPermission) (reach.TrafficContent, error) {
+func trafficContentFromAWSIPPermission(permission *ec2.IpPermission) (traffic.Content, error) {
 	protocol, err := convertAWSIPProtocolStringToProtocol(permission.IpProtocol)
 	if err != nil {
-		return reach.TrafficContent{}, err
+		return traffic.Content{}, err
 	}
 
-	if protocol == reach.ProtocolAll {
-		return reach.NewTrafficContentForAllTraffic(), nil
+	if protocol == traffic.ProtocolAll {
+		return traffic.All(), nil
 	}
 
 	if protocol.UsesPorts() {
 		portSet, err := newPortSetFromAWSIPPermission(permission)
 		if err != nil {
-			return reach.TrafficContent{}, err
+			return traffic.Content{}, err
 		}
 
-		return reach.NewTrafficContentForPorts(protocol, portSet), nil
+		return traffic.ForPorts(protocol, portSet), nil
 	}
 
-	if protocol == reach.ProtocolICMPv4 || protocol == reach.ProtocolICMPv6 {
+	if protocol == traffic.ProtocolICMPv4 || protocol == traffic.ProtocolICMPv6 {
 		icmpSet, err := newICMPSetFromAWSIPPermission(permission)
 		if err != nil {
-			return reach.TrafficContent{}, err
+			return traffic.Content{}, err
 		}
 
-		return reach.NewTrafficContentForICMP(protocol, icmpSet), nil
+		return traffic.ForICMP(protocol, icmpSet), nil
 	}
 
-	return reach.NewTrafficContentForCustomProtocol(protocol, true), nil
+	return traffic.ForCustomProtocol(protocol, true), nil
 }
 
 func newICMPSetFromAWSICMPTypeCode(icmpTypeCode *ec2.IcmpTypeCode) (set.ICMPSet, error) {

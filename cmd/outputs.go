@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/traffic"
 )
 
 func handleShowJSON(analysis reach.Analysis) {
@@ -24,7 +25,7 @@ func handleShowPaths(analysis reach.Analysis) {
 func handleDefaultOutput(analysis reach.Analysis) {
 	paths := analysis.Paths
 	tcs := reach.TrafficContentsFromAnalyzedPaths(paths)
-	mergedTraffic := reach.MergeTraffic(tcs...)
+	mergedTraffic := traffic.MergeTraffic(tcs...)
 
 	fmt.Print("network traffic allowed from source to destination:" + "\n")
 	fmt.Print(mergedTraffic.ColorStringWithSymbols())

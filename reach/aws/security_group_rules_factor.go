@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/luhring/reach/reach"
+	"github.com/luhring/reach/reach/traffic"
 )
 
 // FactorKindSecurityGroupRules specifies the unique name for the security group rules kind of factor.
@@ -65,7 +66,7 @@ func (eni ElasticNetworkInterface) securityGroupRulesFactorReturn() reach.Factor
 	return reach.Factor{
 		Kind:       FactorKindSecurityGroupRules,
 		Resource:   eni.Ref(),
-		Traffic:    reach.NewTrafficContentForAllTraffic(),
+		Traffic:    traffic.All(),
 		Properties: nil,
 	}
 }
@@ -102,15 +103,15 @@ func applicableSecurityGroupRules(
 	return components, nil
 }
 
-func trafficFromSecurityGroupRulesFactorComponents(components []securityGroupRulesFactorComponent) (reach.TrafficContent, error) {
-	var segments []reach.TrafficContent
+func trafficFromSecurityGroupRulesFactorComponents(components []securityGroupRulesFactorComponent) (traffic.Content, error) {
+	var segments []traffic.Content
 	for _, component := range components {
 		segments = append(segments, component.Traffic)
 	}
 
-	tc, err := reach.NewTrafficContentFromMergingMultiple(segments)
+	tc, err := traffic.Merge(segments)
 	if err != nil {
-		return reach.TrafficContent{}, err
+		return traffic.Content{}, err
 	}
 	return tc, nil
 }

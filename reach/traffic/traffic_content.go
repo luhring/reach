@@ -1,4 +1,4 @@
-package reach
+package traffic
 
 import (
 	"encoding/json"
@@ -22,72 +22,73 @@ const (
 
 type trafficContentIndicator int
 
-// TrafficContent defines a set of network traffic across potentially multiple IP protocols.
-type TrafficContent struct {
+// Content defines a set of network traffic across potentially multiple IP protocols.
+type Content struct {
 	indicator trafficContentIndicator
 	protocols map[Protocol]*ProtocolContent
 }
 
-func newTrafficContent() TrafficContent {
-	return TrafficContent{
+// NewContent returns a fresh, unset Content.
+func NewContent() Content {
+	return Content{
 		indicator: trafficContentIndicatorUnset,
 		protocols: nil,
 	}
 }
 
-// NewTrafficContentForAllTraffic creates a new TrafficContent that represents the set of all expressible network traffic across all protocols.
-func NewTrafficContentForAllTraffic() TrafficContent {
-	return TrafficContent{
+// All creates a new Content that represents the set of all expressible network traffic across all protocols.
+func All() Content {
+	return Content{
 		indicator: trafficContentIndicatorAll,
 	}
 }
 
-// NewTrafficContentForNoTraffic creates a new TrafficContent that represents a set of no network traffic.
-func NewTrafficContentForNoTraffic() TrafficContent {
-	return TrafficContent{
+// None creates a new Content that represents a set of no network traffic.
+func None() Content {
+	return Content{
 		indicator: trafficContentIndicatorNone,
 	}
 }
 
-// NewTrafficContentForPorts creates a new TrafficContent for a ports-oriented IP protocol, i.e. TCP or UDP.
-func NewTrafficContentForPorts(protocol Protocol, ports set.PortSet) TrafficContent {
+// ForPorts creates a new Content for a ports-oriented IP protocol, i.e. TCP or UDP.
+func ForPorts(protocol Protocol, ports set.PortSet) Content {
 	protocols := make(map[Protocol]*ProtocolContent)
 	content := newProtocolContentWithPorts(protocol, &ports)
 	protocols[protocol] = &content
 
-	return TrafficContent{
+	return Content{
 		indicator: trafficContentIndicatorUnset,
 		protocols: protocols,
 	}
 }
 
-// NewTrafficContentForICMP creates a new TrafficContent for either ICMPv4 or ICMPv6 traffic.
-func NewTrafficContentForICMP(protocol Protocol, icmp set.ICMPSet) TrafficContent {
+// ForICMP creates a new Content for either ICMPv4 or ICMPv6 traffic.
+func ForICMP(protocol Protocol, icmp set.ICMPSet) Content {
 	protocols := make(map[Protocol]*ProtocolContent)
 	content := newProtocolContentWithICMP(protocol, &icmp)
 	protocols[protocol] = &content
 
-	return TrafficContent{
+	return Content{
 		indicator: trafficContentIndicatorUnset,
 		protocols: protocols,
 	}
 }
 
-// NewTrafficContentForCustomProtocol creates a new TrafficContent for a specified, custom IP protocol. The resulting TrafficContent will express either all traffic for that protocol or no traffic for that protocol, depending on the `hasContent` parameter.
-func NewTrafficContentForCustomProtocol(protocol Protocol, hasContent bool) TrafficContent {
+// ForCustomProtocol creates a new Content for a specified, custom IP protocol. The resulting Content will express either all traffic for that protocol or no traffic for that protocol, depending on the `hasContent` parameter.
+func ForCustomProtocol(protocol Protocol, hasContent bool) Content {
 	protocols := make(map[Protocol]*ProtocolContent)
 	content := newProtocolContentForCustomProtocol(protocol, hasContent)
 	protocols[protocol] = &content
 
-	return TrafficContent{
+	return Content{
 		indicator: trafficContentIndicatorUnset,
 		protocols: protocols,
 	}
 }
 
-// NewTrafficContentFromMergingMultiple creates a new TrafficContent by merging any number of input TrafficContents.
-func NewTrafficContentFromMergingMultiple(contents []TrafficContent) (TrafficContent, error) {
-	result := newTrafficContent()
+// Merge creates a new Content by merging any number of input TrafficContents.
+func Merge(contents []Content) (Content, error) {
+	result := NewContent()
 
 	for _, trafficContent := range contents {
 		if result.All() {
@@ -96,7 +97,7 @@ func NewTrafficContentFromMergingMultiple(contents []TrafficContent) (TrafficCon
 
 		mergedTrafficContent, err := result.Merge(trafficContent)
 		if err != nil {
-			return TrafficContent{}, err
+			return Content{}, err
 		}
 
 		result = mergedTrafficContent
@@ -105,9 +106,9 @@ func NewTrafficContentFromMergingMultiple(contents []TrafficContent) (TrafficCon
 	return result, nil
 }
 
-// NewTrafficContentFromIntersectingMultiple creates a new TrafficContent by intersecting any number of input TrafficContents.
-func NewTrafficContentFromIntersectingMultiple(contents []TrafficContent) TrafficContent {
-	var result TrafficContent
+// Intersect creates a new Content by intersecting any number of input TrafficContents.
+func Intersect(contents []Content) Content {
+	var result Content
 
 	for i, trafficContent := range contents {
 		if i == 0 {
@@ -124,28 +125,28 @@ func NewTrafficContentFromIntersectingMultiple(contents []TrafficContent) Traffi
 	return result
 }
 
-// MergeTraffic returns the result of merging all input traffic contents. (MergeTraffic is a shortcut for NewTrafficContentFromIntersectingMultiple.)
-func MergeTraffic(tcs ...TrafficContent) TrafficContent {
-	return NewTrafficContentFromIntersectingMultiple(tcs)
+// MergeTraffic returns the result of merging all input traffic contents. (MergeTraffic is a shortcut for Intersect.)
+func MergeTraffic(tcs ...Content) Content {
+	return Intersect(tcs)
 }
 
 // Merge performs a set merge operation on two TrafficContents.
-func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
-	if tc.All() || other.All() {
-		return NewTrafficContentForAllTraffic(), nil
+func (c *Content) Merge(other Content) (Content, error) {
+	if c.All() || other.All() {
+		return All(), nil
 	}
 
-	if tc.None() && other.None() {
-		return NewTrafficContentForNoTraffic(), nil
+	if c.None() && other.None() {
+		return None(), nil
 	}
 
-	result := newTrafficContent()
+	result := NewContent()
 
-	if !tc.None() {
-		for p := range tc.protocols {
-			mergedProtocolContent, err := result.Protocol(p).merge(tc.Protocol(p))
+	if !c.None() {
+		for p := range c.protocols {
+			mergedProtocolContent, err := result.Protocol(p).merge(c.Protocol(p))
 			if err != nil {
-				return TrafficContent{}, err
+				return Content{}, err
 			}
 
 			result.setProtocolContent(p, mergedProtocolContent)
@@ -156,7 +157,7 @@ func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 		for p := range other.protocols {
 			mergedProtocolContent, err := result.Protocol(p).merge(other.Protocol(p))
 			if err != nil {
-				return TrafficContent{}, err
+				return Content{}, err
 			}
 
 			result.setProtocolContent(p, mergedProtocolContent)
@@ -167,19 +168,19 @@ func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 }
 
 // Intersect performs a set intersection operation on two TrafficContents.
-func (tc *TrafficContent) Intersect(other TrafficContent) TrafficContent {
-	if tc.None() || other.None() {
-		return NewTrafficContentForNoTraffic()
+func (c *Content) Intersect(other Content) Content {
+	if c.None() || other.None() {
+		return None()
 	}
 
-	if tc.All() && other.All() {
-		return NewTrafficContentForAllTraffic()
+	if c.All() && other.All() {
+		return All()
 	}
 
 	protocolsToProcess := make(map[Protocol]bool)
 
-	if !tc.All() {
-		for p := range tc.protocols {
+	if !c.All() {
+		for p := range c.protocols {
 			protocolsToProcess[p] = true
 		}
 	}
@@ -190,11 +191,11 @@ func (tc *TrafficContent) Intersect(other TrafficContent) TrafficContent {
 		}
 	}
 
-	result := newTrafficContent()
+	result := NewContent()
 
 	for p, shouldProcess := range protocolsToProcess {
-		if shouldProcess && !tc.Protocol(p).Empty() && !other.Protocol(p).Empty() {
-			intersection := tc.Protocol(p).intersect(other.Protocol(p))
+		if shouldProcess && !c.Protocol(p).Empty() && !other.Protocol(p).Empty() {
+			intersection := c.Protocol(p).intersect(other.Protocol(p))
 			result.setProtocolContent(p, intersection)
 		}
 	}
@@ -203,21 +204,21 @@ func (tc *TrafficContent) Intersect(other TrafficContent) TrafficContent {
 }
 
 // Subtract performs a set subtraction (self - other) on two TrafficContents.
-func (tc *TrafficContent) Subtract(other TrafficContent) (TrafficContent, error) {
-	if tc.None() || other.All() {
-		return NewTrafficContentForNoTraffic(), nil
+func (c *Content) Subtract(other Content) (Content, error) {
+	if c.None() || other.All() {
+		return None(), nil
 	}
 
 	if other.None() {
-		return *tc, nil
+		return *c, nil
 	}
 
-	result := newTrafficContent()
+	result := NewContent()
 
-	for p, pc := range tc.protocols {
+	for p, pc := range c.protocols {
 		pcDifference, err := pc.subtract(other.Protocol(p))
 		if err != nil {
-			return TrafficContent{}, fmt.Errorf("unable to subtract traffic content: %v", err)
+			return Content{}, fmt.Errorf("unable to subtract traffic content: %v", err)
 		}
 
 		result.setProtocolContent(p, pcDifference)
@@ -226,19 +227,19 @@ func (tc *TrafficContent) Subtract(other TrafficContent) (TrafficContent, error)
 	return result, nil
 }
 
-// MarshalJSON returns the JSON representation of the TrafficContent.
-func (tc TrafficContent) MarshalJSON() ([]byte, error) {
-	if tc.None() {
+// MarshalJSON returns the JSON representation of the Content.
+func (c Content) MarshalJSON() ([]byte, error) {
+	if c.None() {
 		return json.Marshal("[no traffic]")
 	}
 
-	if tc.All() {
+	if c.All() {
 		return json.Marshal("[all traffic]")
 	}
 
 	result := make(map[string][]string)
 
-	for protocol, content := range tc.protocols {
+	for protocol, content := range c.protocols {
 		key := ProtocolName(protocol)
 		if protocol.UsesPorts() {
 			result[key] = content.Ports.RangeStrings()
@@ -260,13 +261,13 @@ func (tc TrafficContent) MarshalJSON() ([]byte, error) {
 	return json.Marshal(result)
 }
 
-// String returns the string representation of the TrafficContent.
-func (tc TrafficContent) String() string {
-	if tc.All() {
+// String returns the string representation of the Content.
+func (c Content) String() string {
+	if c.All() {
 		return allTrafficString + "\n"
 	}
 
-	if tc.None() {
+	if c.None() {
 		return noTrafficString + "\n"
 	}
 
@@ -275,7 +276,7 @@ func (tc TrafficContent) String() string {
 	var customOutputItems []string
 	var outputItems []string
 
-	for _, content := range tc.protocols {
+	for _, content := range c.protocols {
 		switch content.Protocol {
 		case ProtocolTCP:
 			tcpLines = append(tcpLines, content.lines()...)
@@ -318,13 +319,13 @@ func (tc TrafficContent) String() string {
 	return strings.Join(outputItems, "\n") + "\n"
 }
 
-// StringWithSymbols returns the string representation of the TrafficContent, with the added feature of pre-pending each output line with a symbol, intended for display to the user.
-func (tc TrafficContent) StringWithSymbols() string {
-	if tc.All() {
+// StringWithSymbols returns the string representation of the Content, with the added feature of pre-pending each output line with a symbol, intended for display to the user.
+func (c Content) StringWithSymbols() string {
+	if c.All() {
 		return "✓ " + allTrafficString + "\n"
 	}
 
-	if tc.None() {
+	if c.None() {
 		return noTrafficString + "\n"
 	}
 
@@ -333,7 +334,7 @@ func (tc TrafficContent) StringWithSymbols() string {
 	var customOutputItems []string
 	var outputItems []string
 
-	for _, content := range tc.protocols {
+	for _, content := range c.protocols {
 		switch content.Protocol {
 		case ProtocolTCP:
 			tcpLines = append(tcpLines, content.lines()...)
@@ -376,71 +377,71 @@ func (tc TrafficContent) StringWithSymbols() string {
 	return strings.Join(outputItems, "\n") + "\n"
 }
 
-// ColorString returns the string representation of the TrafficContent, where the positive traffic findings are displayed as green, and the absence of traffic is displayed as red.
-func (tc TrafficContent) ColorString() string {
-	if tc.None() {
-		return ansi.Color(tc.String(), "red+b")
+// ColorString returns the string representation of the Content, where the positive traffic findings are displayed as green, and the absence of traffic is displayed as red.
+func (c Content) ColorString() string {
+	if c.None() {
+		return ansi.Color(c.String(), "red+b")
 	}
-	return ansi.Color(tc.String(), "green+b")
+	return ansi.Color(c.String(), "green+b")
 }
 
 // ColorStringWithSymbols returns the colored version of the output from StringWithSymbols().
-func (tc TrafficContent) ColorStringWithSymbols() string {
-	if tc.None() {
-		return ansi.Color(tc.StringWithSymbols(), "red+b")
+func (c Content) ColorStringWithSymbols() string {
+	if c.None() {
+		return ansi.Color(c.StringWithSymbols(), "red+b")
 	}
-	return ansi.Color(tc.StringWithSymbols(), "green+b")
+	return ansi.Color(c.StringWithSymbols(), "green+b")
 }
 
-// All returns a boolean indicating whether or not the TrafficContent represents all network traffic.
-func (tc TrafficContent) All() bool {
-	return tc.indicator == trafficContentIndicatorAll
+// All returns a boolean indicating whether or not the Content represents all network traffic.
+func (c Content) All() bool {
+	return c.indicator == trafficContentIndicatorAll
 }
 
-// None returns a boolean indicating whether or not the TrafficContent represents no network traffic.
-func (tc TrafficContent) None() bool {
-	return tc.indicator == trafficContentIndicatorNone || (tc.indicator == trafficContentIndicatorUnset && len(tc.protocols) == 0)
+// None returns a boolean indicating whether or not the Content represents no network traffic.
+func (c Content) None() bool {
+	return c.indicator == trafficContentIndicatorNone || (c.indicator == trafficContentIndicatorUnset && len(c.protocols) == 0)
 }
 
 // Protocols returns a slice of the IP protocols described by the traffic content.
-func (tc TrafficContent) Protocols() []Protocol {
-	if tc.protocols == nil {
+func (c Content) Protocols() []Protocol {
+	if c.protocols == nil {
 		return nil
 	}
 
 	var result []Protocol
 
-	for protocol := range tc.protocols {
+	for protocol := range c.protocols {
 		result = append(result, protocol)
 	}
 
 	return result
 }
 
-func (tc *TrafficContent) setProtocolContent(p Protocol, content ProtocolContent) {
-	tc.indicator = trafficContentIndicatorUnset
+func (c *Content) setProtocolContent(p Protocol, content ProtocolContent) {
+	c.indicator = trafficContentIndicatorUnset
 
-	if tc.protocols == nil {
-		tc.protocols = make(map[Protocol]*ProtocolContent)
+	if c.protocols == nil {
+		c.protocols = make(map[Protocol]*ProtocolContent)
 	}
 
-	tc.protocols[p] = &content
+	c.protocols[p] = &content
 }
 
-// Protocol returns the protocol-specific content within the TrafficContent for the specified IP protocol.
-func (tc TrafficContent) Protocol(p Protocol) ProtocolContent {
-	content := tc.protocols[p]
+// Protocol returns the protocol-specific content within the Content for the specified IP protocol.
+func (c Content) Protocol(p Protocol) ProtocolContent {
+	content := c.protocols[p]
 
 	if content == nil {
 		if p.UsesPorts() {
-			if tc.All() {
+			if c.All() {
 				return newProtocolContentWithPortsFull(p)
 			}
 			return newProtocolContentWithPortsEmpty(p)
 		}
 
 		if p.UsesICMPTypeCodes() {
-			if tc.All() {
+			if c.All() {
 				return newProtocolContentWithICMPFull(p)
 			}
 			return newProtocolContentWithICMPEmpty(p)
@@ -448,7 +449,7 @@ func (tc TrafficContent) Protocol(p Protocol) ProtocolContent {
 
 		// custom protocol
 
-		if tc.All() {
+		if c.All() {
 			return newProtocolContentForCustomProtocolFull(p)
 		}
 		return newProtocolContentForCustomProtocolEmpty(p)
@@ -458,6 +459,6 @@ func (tc TrafficContent) Protocol(p Protocol) ProtocolContent {
 }
 
 // HasProtocol returns a bool to indicate whether the specified protocol exists within the traffic content.
-func (tc TrafficContent) HasProtocol(p Protocol) bool {
-	return tc.Protocol(p).Empty() == false
+func (c Content) HasProtocol(p Protocol) bool {
+	return c.Protocol(p).Empty() == false
 }

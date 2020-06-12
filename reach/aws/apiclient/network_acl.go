@@ -7,9 +7,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/ec2"
 
-	"github.com/luhring/reach/reach"
 	reachAWS "github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/reacherr"
+	"github.com/luhring/reach/reach/traffic"
 )
 
 // NetworkACL queries the AWS API for a network ACL matching the given ID.
@@ -116,33 +116,33 @@ func networkACLRule(entry ec2.NetworkAclEntry) (reachAWS.NetworkACLRule, error) 
 	}, nil
 }
 
-func newTrafficContentFromAWSNACLEntry(entry ec2.NetworkAclEntry) (reach.TrafficContent, error) {
+func newTrafficContentFromAWSNACLEntry(entry ec2.NetworkAclEntry) (traffic.Content, error) {
 	protocol, err := convertAWSIPProtocolStringToProtocol(entry.Protocol)
 	if err != nil {
-		return reach.TrafficContent{}, err
+		return traffic.Content{}, err
 	}
 
-	if protocol == reach.ProtocolAll {
-		return reach.NewTrafficContentForAllTraffic(), nil
+	if protocol == traffic.ProtocolAll {
+		return traffic.All(), nil
 	}
 
 	if protocol.UsesPorts() {
 		portSet, err := newPortSetFromAWSPortRange(entry.PortRange)
 		if err != nil {
-			return reach.TrafficContent{}, err
+			return traffic.Content{}, err
 		}
 
-		return reach.NewTrafficContentForPorts(protocol, portSet), nil
+		return traffic.ForPorts(protocol, portSet), nil
 	}
 
-	if protocol == reach.ProtocolICMPv4 || protocol == reach.ProtocolICMPv6 {
+	if protocol == traffic.ProtocolICMPv4 || protocol == traffic.ProtocolICMPv6 {
 		icmpSet, err := newICMPSetFromAWSICMPTypeCode(entry.IcmpTypeCode)
 		if err != nil {
-			return reach.TrafficContent{}, err
+			return traffic.Content{}, err
 		}
 
-		return reach.NewTrafficContentForICMP(protocol, icmpSet), nil
+		return traffic.ForICMP(protocol, icmpSet), nil
 	}
 
-	return reach.NewTrafficContentForCustomProtocol(protocol, true), nil
+	return traffic.ForCustomProtocol(protocol, true), nil
 }

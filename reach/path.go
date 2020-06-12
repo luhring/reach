@@ -1,5 +1,7 @@
 package reach
 
+import "github.com/luhring/reach/reach/traffic"
+
 // Path is the series of points, and the connections in between, from one point in a network to another.
 type Path struct {
 	Points []Point
@@ -76,15 +78,15 @@ func (p Path) FactorsReturn() []Factor {
 }
 
 // TrafficForward returns the traffic that is allowed to travel forward along the entire network path.
-func (p Path) TrafficForward() TrafficContent {
-	return NewTrafficContentFromIntersectingMultiple(TrafficFromFactors(p.FactorsForward()))
+func (p Path) TrafficForward() traffic.Content {
+	return traffic.Intersect(TrafficFromFactors(p.FactorsForward()))
 }
 
 // TrafficReturn returns the traffic that is allowed to travel backward along the entire network path. IMPORTANT: This operation only makes sense if this path is not divided into multiple segments.
-func (p Path) TrafficReturn() TrafficContent {
+func (p Path) TrafficReturn() traffic.Content {
 	f := p.FactorsReturn()
 	ts := TrafficFromFactors(f)
-	return NewTrafficContentFromIntersectingMultiple(ts)
+	return traffic.Intersect(ts)
 }
 
 // MapPoints creates a new version of the path where each point has been transformed by the supplied mapper function.

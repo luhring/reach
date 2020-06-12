@@ -14,6 +14,7 @@ import (
 	"github.com/luhring/reach/reach"
 	reachAWS "github.com/luhring/reach/reach/aws"
 	"github.com/luhring/reach/reach/reacherr"
+	"github.com/luhring/reach/reach/traffic"
 )
 
 var _ reachAWS.DomainClient = (*DomainClient)(nil)
@@ -83,7 +84,7 @@ func ensureSingleResult(resultSetLength int, entity reach.Kind, id string) error
 	return nil
 }
 
-func convertAWSIPProtocolStringToProtocol(ipProtocol *string) (reach.Protocol, error) {
+func convertAWSIPProtocolStringToProtocol(ipProtocol *string) (traffic.Protocol, error) {
 	if ipProtocol == nil {
 		return 0, errors.New("unexpected nil ipProtocol")
 	}
@@ -91,21 +92,21 @@ func convertAWSIPProtocolStringToProtocol(ipProtocol *string) (reach.Protocol, e
 	protocolString := strings.ToLower(aws.StringValue(ipProtocol))
 
 	if p, err := strconv.ParseInt(protocolString, 10, 64); err == nil {
-		var protocol = reach.Protocol(p)
+		var protocol = traffic.Protocol(p)
 		return protocol, nil
 	}
 
-	var protocolNumber reach.Protocol
+	var protocolNumber traffic.Protocol
 
 	switch protocolString {
 	case "tcp":
-		protocolNumber = reach.ProtocolTCP
+		protocolNumber = traffic.ProtocolTCP
 	case "udp":
-		protocolNumber = reach.ProtocolUDP
+		protocolNumber = traffic.ProtocolUDP
 	case "icmp":
-		protocolNumber = reach.ProtocolICMPv4
+		protocolNumber = traffic.ProtocolICMPv4
 	case "icmpv6":
-		protocolNumber = reach.ProtocolICMPv6
+		protocolNumber = traffic.ProtocolICMPv6
 	default:
 		return 0, fmt.Errorf("unrecognized ipProtocol value: %v", ipProtocol)
 	}

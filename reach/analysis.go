@@ -3,6 +3,8 @@ package reach
 import (
 	"encoding/json"
 	"log"
+
+	"github.com/luhring/reach/reach/traffic"
 )
 
 // Analysis is the central structure of a Reach analysis. It describes what subjects were analyzed, what resources were retrieved, and a collection of network vectors between all source-to-destination pairings of subjects.
@@ -28,15 +30,15 @@ func (a *Analysis) ToJSON() string {
 	return string(b)
 }
 
-// MergedTraffic gets the TrafficContent results of each of the analysis's network vectors and returns them as a merged TrafficContent.
-func (a *Analysis) MergedTraffic() (TrafficContent, error) {
-	result := newTrafficContent()
+// MergedTraffic gets the Content results of each of the analysis's network vectors and returns them as a merged Content.
+func (a *Analysis) MergedTraffic() (traffic.Content, error) {
+	result := traffic.NewContent()
 
 	for _, path := range a.Paths {
 		t := path.TrafficForward()
 		mergedTrafficContent, err := result.Merge(t)
 		if err != nil {
-			return TrafficContent{}, err
+			return traffic.Content{}, err
 		}
 
 		result = mergedTrafficContent
@@ -45,15 +47,15 @@ func (a *Analysis) MergedTraffic() (TrafficContent, error) {
 	return result, nil
 }
 
-// MergedReturnTraffic gets the return TrafficContent results of each of the analysis's network vectors and returns them as a merged TrafficContent.
-func (a *Analysis) MergedReturnTraffic() (TrafficContent, error) {
+// MergedReturnTraffic gets the return Content results of each of the analysis's network vectors and returns them as a merged Content.
+func (a *Analysis) MergedReturnTraffic() (traffic.Content, error) {
 	// result := newTrafficContent()
 	//
 	// for _, path := range a.Paths {
 	// 	if t := path.ReturnTraffic; t != nil { // TODO: Need to figure out return traffic!
 	// 		mergedTrafficContent, err := result.Merge(*t)
 	// 		if err != nil {
-	// 			return TrafficContent{}, err
+	// 			return Content{}, err
 	// 		}
 	//
 	// 		result = mergedTrafficContent

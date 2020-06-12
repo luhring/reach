@@ -1,9 +1,13 @@
 package reach
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/luhring/reach/reach/traffic"
+)
 
 // ConnectionPredictionSet wraps the common map association between protocols and their predictions.
-type ConnectionPredictionSet map[Protocol]ConnectionPrediction
+type ConnectionPredictionSet map[traffic.Protocol]ConnectionPrediction
 
 // MarshalJSON returns the JSON representation of the ConnectionPredictionSet.
 func (cps ConnectionPredictionSet) MarshalJSON() ([]byte, error) {

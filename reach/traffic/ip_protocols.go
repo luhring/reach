@@ -1,4 +1,4 @@
-package reach
+package traffic
 
 var ipProtocols = map[Protocol]string{
 	0:   "HOPOPT",

@@ -15,6 +15,7 @@ import (
 	"github.com/luhring/reach/reach/generic/standard"
 	"github.com/luhring/reach/reach/reachlog"
 	"github.com/luhring/reach/reach/set"
+	"github.com/luhring/reach/reach/traffic"
 )
 
 func TestAnalyze(t *testing.T) {
@@ -23,8 +24,8 @@ func TestAnalyze(t *testing.T) {
 	type testCase struct {
 		name                   string
 		files                  []string
-		expectedForwardTraffic reach.TrafficContent
-		expectedReturnTraffic  reach.TrafficContent
+		expectedForwardTraffic traffic.Content
+		expectedReturnTraffic  traffic.Content
 	}
 
 	groupings := []struct {
@@ -48,8 +49,8 @@ func TestAnalyze(t *testing.T) {
 						"ec2_instances_same_subnet_no_security_group_rules.tf",
 						"security_group_no_rules.tf",
 					},
-					reach.NewTrafficContentForNoTraffic(),
-					reach.NewTrafficContentForAllTraffic(),
+					traffic.None(),
+					traffic.All(),
 				},
 				{
 					"multiple protocols",
@@ -64,7 +65,7 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_ssh.tf",
 					},
 					trafficAssorted(),
-					reach.NewTrafficContentForAllTraffic(),
+					traffic.All(),
 				},
 				{
 					"UDP DNS via SG reference",
@@ -75,7 +76,7 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_udp_dns_from_sg_no_rules.tf",
 					},
 					trafficDNS(),
-					reach.NewTrafficContentForAllTraffic(),
+					traffic.All(),
 				},
 				{
 					"HTTPS via two-way IP match",
@@ -85,7 +86,7 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_https_from_ip.tf",
 					},
 					trafficHTTPS(),
-					reach.NewTrafficContentForAllTraffic(),
+					traffic.All(),
 				},
 				{
 					"SSH",
@@ -95,7 +96,7 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_ssh.tf",
 					},
 					trafficSSH(),
-					reach.NewTrafficContentForAllTraffic(),
+					traffic.All(),
 				},
 				{
 					"all traffic",
@@ -104,8 +105,8 @@ func TestAnalyze(t *testing.T) {
 						"security_group_outbound_allow_all.tf",
 						"security_group_inbound_allow_all.tf",
 					},
-					reach.NewTrafficContentForAllTraffic(),
-					reach.NewTrafficContentForAllTraffic(),
+					traffic.All(),
+					traffic.All(),
 				},
 			},
 		},
@@ -127,8 +128,8 @@ func TestAnalyze(t *testing.T) {
 						"security_group_outbound_allow_all.tf",
 						"security_group_inbound_allow_all.tf",
 					},
-					reach.NewTrafficContentForAllTraffic(),
-					reach.NewTrafficContentForAllTraffic(),
+					traffic.All(),
+					traffic.All(),
 				},
 				{
 					"no NACL allow rules",
@@ -138,8 +139,8 @@ func TestAnalyze(t *testing.T) {
 						"security_group_outbound_allow_all.tf",
 						"security_group_inbound_allow_all.tf",
 					},
-					reach.NewTrafficContentForNoTraffic(),
-					reach.NewTrafficContentForNoTraffic(),
+					traffic.None(),
+					traffic.None(),
 				},
 				{
 					"NACL rules don't match SG rules",
@@ -149,7 +150,7 @@ func TestAnalyze(t *testing.T) {
 						"security_group_outbound_allow_esp.tf",
 						"security_group_inbound_allow_all.tf",
 					},
-					reach.NewTrafficContentForNoTraffic(),
+					traffic.None(),
 					trafficTCP(), // TODO: Revisit return traffic calculation for this scenario
 				},
 				{
@@ -299,7 +300,7 @@ func TestConnectionPredictions(t *testing.T) {
 		{
 			name: "single point, no return traffic",
 			path: pathWithPoints(
-				pointWithReturnTraffic(reach.NewTrafficContentForNoTraffic(), false),
+				pointWithReturnTraffic(traffic.None(), false),
 			),
 			predictions: connectionPredictionsByProtocol(
 				reach.ConnectionPredictionFailure,
@@ -311,9 +312,9 @@ func TestConnectionPredictions(t *testing.T) {
 		{
 			name: "multiple points, no port translation, all traffic",
 			path: pathWithPoints(
-				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
-				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
-				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
+				pointWithReturnTraffic(traffic.All(), false),
+				pointWithReturnTraffic(traffic.All(), false),
+				pointWithReturnTraffic(traffic.All(), false),
 			),
 			predictions: connectionPredictionsByProtocol(
 				reach.ConnectionPredictionSuccess,
@@ -325,9 +326,9 @@ func TestConnectionPredictions(t *testing.T) {
 		{
 			name: "multiple points, port translation, all traffic",
 			path: pathWithPoints(
-				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
-				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), true),
-				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
+				pointWithReturnTraffic(traffic.All(), false),
+				pointWithReturnTraffic(traffic.All(), true),
+				pointWithReturnTraffic(traffic.All(), false),
 			),
 			predictions: connectionPredictionsByProtocol(
 				reach.ConnectionPredictionSuccess,
@@ -340,7 +341,7 @@ func TestConnectionPredictions(t *testing.T) {
 			name: "multiple points, no port translation, mix of TCP some and all",
 			path: pathWithPoints(
 				pointWithReturnTraffic(trafficTCP(), false),
-				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
+				pointWithReturnTraffic(traffic.All(), false),
 				pointWithReturnTraffic(trafficSSH(), false),
 			),
 			predictions: connectionPredictionsByProtocol(
@@ -353,8 +354,8 @@ func TestConnectionPredictions(t *testing.T) {
 		{
 			name: "multiple points, port translation, mix of TCP some and all",
 			path: pathWithPoints(
-				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
-				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), true),
+				pointWithReturnTraffic(traffic.All(), false),
+				pointWithReturnTraffic(traffic.All(), true),
 				pointWithReturnTraffic(trafficTCPHighPortsOnly(), false),
 			),
 			predictions: connectionPredictionsByProtocol(
@@ -367,8 +368,8 @@ func TestConnectionPredictions(t *testing.T) {
 		{
 			name: "multiple points, port translation, mix of TCP none and some",
 			path: pathWithPoints(
-				pointWithReturnTraffic(reach.NewTrafficContentForNoTraffic(), false),
-				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), true),
+				pointWithReturnTraffic(traffic.None(), false),
+				pointWithReturnTraffic(traffic.All(), true),
 				pointWithReturnTraffic(trafficTCPHighPortsOnly(), false),
 			),
 			predictions: connectionPredictionsByProtocol(
@@ -385,18 +386,18 @@ func TestConnectionPredictions(t *testing.T) {
 				point(trafficTCP(), trafficTCPHighPortsOnly(), false),
 			),
 			predictions: reach.ConnectionPredictionSet{
-				reach.ProtocolTCP: reach.ConnectionPredictionFailure,
+				traffic.ProtocolTCP: reach.ConnectionPredictionFailure,
 			},
 		},
 		{
 			name: "multiple points, port translation, mix of mutually exclusive TCP ports",
 			path: pathWithPoints(
 				point(trafficTCP(), trafficSSH(), false),
-				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), true),
+				pointWithReturnTraffic(traffic.All(), true),
 				point(trafficTCP(), trafficTCPHighPortsOnly(), false),
 			),
 			predictions: reach.ConnectionPredictionSet{
-				reach.ProtocolTCP: reach.ConnectionPredictionPossibleFailure,
+				traffic.ProtocolTCP: reach.ConnectionPredictionPossibleFailure,
 			},
 		},
 	}
@@ -416,19 +417,19 @@ func TestConnectionPredictions(t *testing.T) {
 }
 
 func connectionPredictionsByProtocol(tcp, udp, icmpv4, icmpv6 reach.ConnectionPrediction) reach.ConnectionPredictionSet {
-	return map[reach.Protocol]reach.ConnectionPrediction{
-		reach.ProtocolTCP:    tcp,
-		reach.ProtocolUDP:    udp,
-		reach.ProtocolICMPv4: icmpv4,
-		reach.ProtocolICMPv6: icmpv6,
+	return map[traffic.Protocol]reach.ConnectionPrediction{
+		traffic.ProtocolTCP:    tcp,
+		traffic.ProtocolUDP:    udp,
+		traffic.ProtocolICMPv4: icmpv4,
+		traffic.ProtocolICMPv6: icmpv6,
 	}
 }
 
-func pointWithReturnTraffic(returnTraffic reach.TrafficContent, translatesPorts bool) reach.Point {
-	return point(reach.NewTrafficContentForAllTraffic(), returnTraffic, translatesPorts)
+func pointWithReturnTraffic(returnTraffic traffic.Content, translatesPorts bool) reach.Point {
+	return point(traffic.All(), returnTraffic, translatesPorts)
 }
 
-func point(forwardTraffic, returnTraffic reach.TrafficContent, translatesPorts bool) reach.Point {
+func point(forwardTraffic, returnTraffic traffic.Content, translatesPorts bool) reach.Point {
 	return reach.Point{
 		FactorsForward: []reach.Factor{
 			{
@@ -444,30 +445,30 @@ func point(forwardTraffic, returnTraffic reach.TrafficContent, translatesPorts b
 	}
 }
 
-func trafficSSH() reach.TrafficContent {
+func trafficSSH() traffic.Content {
 	ports := set.NewPortSetFromRange(22, 22)
 
-	return reach.NewTrafficContentForPorts(reach.ProtocolTCP, ports)
+	return traffic.ForPorts(traffic.ProtocolTCP, ports)
 }
 
-func trafficHTTPS() reach.TrafficContent {
+func trafficHTTPS() traffic.Content {
 	ports := set.NewPortSetFromRange(443, 443)
 
-	return reach.NewTrafficContentForPorts(reach.ProtocolTCP, ports)
+	return traffic.ForPorts(traffic.ProtocolTCP, ports)
 }
 
-func trafficDNS() reach.TrafficContent {
+func trafficDNS() traffic.Content {
 	ports := set.NewPortSetFromRange(53, 53)
 
-	return reach.NewTrafficContentForPorts(reach.ProtocolUDP, ports)
+	return traffic.ForPorts(traffic.ProtocolUDP, ports)
 }
 
-func trafficESP() reach.TrafficContent {
-	return reach.NewTrafficContentForCustomProtocol(50, true)
+func trafficESP() traffic.Content {
+	return traffic.ForCustomProtocol(50, true)
 }
 
-func trafficAssorted() reach.TrafficContent {
-	tc, err := reach.NewTrafficContentFromMergingMultiple([]reach.TrafficContent{
+func trafficAssorted() traffic.Content {
+	tc, err := traffic.Merge([]traffic.Content{
 		trafficDNS(),
 		trafficSSH(),
 		trafficESP(),
@@ -479,18 +480,18 @@ func trafficAssorted() reach.TrafficContent {
 	return tc
 }
 
-func trafficTCP() reach.TrafficContent {
-	return reach.NewTrafficContentForPorts(reach.ProtocolTCP, set.NewFullPortSet())
+func trafficTCP() traffic.Content {
+	return traffic.ForPorts(traffic.ProtocolTCP, set.NewFullPortSet())
 }
 
-func trafficTCPHighPortsOnly() reach.TrafficContent {
-	return reach.NewTrafficContentForPorts(reach.ProtocolTCP, set.NewPortSetFromRange(1024, 65535))
+func trafficTCPHighPortsOnly() traffic.Content {
+	return traffic.ForPorts(traffic.ProtocolTCP, set.NewPortSetFromRange(1024, 65535))
 }
 
-func trafficPostgres() reach.TrafficContent {
+func trafficPostgres() traffic.Content {
 	ports := set.NewPortSetFromRange(5432, 5432)
 
-	return reach.NewTrafficContentForPorts(reach.ProtocolTCP, ports)
+	return traffic.ForPorts(traffic.ProtocolTCP, ports)
 }
 
 func pathWithPoints(points ...reach.Point) reach.Path {
