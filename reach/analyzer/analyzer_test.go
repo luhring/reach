@@ -22,10 +22,10 @@ func TestAnalyze(t *testing.T) {
 	acceptance.Check(t)
 
 	type testCase struct {
-		name                   string
-		files                  []string
-		expectedForwardTraffic traffic.Content
-		expectedReturnTraffic  traffic.Content
+		name                          string
+		files                         []string
+		expectedForwardTraffic        traffic.Content
+		expectedConnectionPredictions reach.ConnectionPredictionSet
 	}
 
 	groupings := []struct {
@@ -50,7 +50,7 @@ func TestAnalyze(t *testing.T) {
 						"security_group_no_rules.tf",
 					},
 					traffic.None(),
-					traffic.All(),
+					reach.ConnectionPredictionSet{},
 				},
 				{
 					"multiple protocols",
@@ -65,7 +65,10 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_ssh.tf",
 					},
 					trafficAssorted(),
-					traffic.All(),
+					reach.ConnectionPredictionSet{
+						traffic.ProtocolTCP: reach.ConnectionPredictionSuccess,
+						traffic.ProtocolUDP: reach.ConnectionPredictionSuccess,
+					},
 				},
 				{
 					"UDP DNS via SG reference",
@@ -76,7 +79,9 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_udp_dns_from_sg_no_rules.tf",
 					},
 					trafficDNS(),
-					traffic.All(),
+					reach.ConnectionPredictionSet{
+						traffic.ProtocolUDP: reach.ConnectionPredictionSuccess,
+					},
 				},
 				{
 					"HTTPS via two-way IP match",
@@ -86,7 +91,9 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_https_from_ip.tf",
 					},
 					trafficHTTPS(),
-					traffic.All(),
+					reach.ConnectionPredictionSet{
+						traffic.ProtocolTCP: reach.ConnectionPredictionSuccess,
+					},
 				},
 				{
 					"SSH",
@@ -96,7 +103,9 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_ssh.tf",
 					},
 					trafficSSH(),
-					traffic.All(),
+					reach.ConnectionPredictionSet{
+						traffic.ProtocolTCP: reach.ConnectionPredictionSuccess,
+					},
 				},
 				{
 					"all traffic",
@@ -106,7 +115,12 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_all.tf",
 					},
 					traffic.All(),
-					traffic.All(),
+					reach.ConnectionPredictionSet{
+						traffic.ProtocolTCP:    reach.ConnectionPredictionSuccess,
+						traffic.ProtocolUDP:    reach.ConnectionPredictionSuccess,
+						traffic.ProtocolICMPv4: reach.ConnectionPredictionSuccess,
+						traffic.ProtocolICMPv6: reach.ConnectionPredictionSuccess,
+					},
 				},
 			},
 		},
@@ -129,7 +143,12 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_all.tf",
 					},
 					traffic.All(),
-					traffic.All(),
+					reach.ConnectionPredictionSet{
+						traffic.ProtocolTCP:    reach.ConnectionPredictionSuccess,
+						traffic.ProtocolUDP:    reach.ConnectionPredictionSuccess,
+						traffic.ProtocolICMPv4: reach.ConnectionPredictionSuccess,
+						traffic.ProtocolICMPv6: reach.ConnectionPredictionSuccess,
+					},
 				},
 				{
 					"no NACL allow rules",
@@ -140,7 +159,7 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_all.tf",
 					},
 					traffic.None(),
-					traffic.None(),
+					reach.ConnectionPredictionSet{},
 				},
 				{
 					"NACL rules don't match SG rules",
@@ -151,7 +170,7 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_all.tf",
 					},
 					traffic.None(),
-					trafficTCP(), // TODO: Revisit return traffic calculation for this scenario
+					reach.ConnectionPredictionSet{},
 				},
 				{
 					"Postgres with tightened rules",
@@ -164,7 +183,9 @@ func TestAnalyze(t *testing.T) {
 						"security_group_inbound_allow_postgres_from_sg_no_rules.tf",
 					},
 					trafficPostgres(),
-					trafficTCP(),
+					reach.ConnectionPredictionSet{
+						traffic.ProtocolTCP: reach.ConnectionPredictionSuccess,
+					},
 				},
 			},
 		},
@@ -254,12 +275,19 @@ func TestAnalyze(t *testing.T) {
 
 					log.Print("verifying analysis results...")
 
-					ft := analysis.Paths[0].TrafficForward()
+					p := analysis.Paths[0]
+					ft := p.Traffic
 
 					if ft.String() != tc.expectedForwardTraffic.String() { // TODO: consider a better comparison method besides strings
 						t.Errorf("forward traffic -- expected:\n%v\nbut was:\n%v\n", tc.expectedForwardTraffic, ft)
 					} else {
 						log.Print("✓ forward traffic content is correct")
+					}
+
+					if !reflect.DeepEqual(p.ConnectionPredictions, tc.expectedConnectionPredictions) {
+						t.Errorf("connection predictions result did not match expectation\nresult: %v\nexpected: %v\n", p.ConnectionPredictions, tc.expectedConnectionPredictions)
+					} else {
+						log.Print("✓ connection predictions are correct")
 					}
 				})
 			}
