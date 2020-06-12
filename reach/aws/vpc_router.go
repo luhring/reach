@@ -166,14 +166,14 @@ func (r VPCRouter) FactorsReturn(resolver reach.DomainClientResolver, rightEdge 
 	var factors []reach.Factor
 
 	if srcSubnetExists {
-		factor, err := r.networkACLRulesFactor(client, *srcSubnet, NetworkACLRuleDirectionInbound, tuple.Src)
+		factor, err := r.networkACLRulesFactor(client, *srcSubnet, NetworkACLRuleDirectionInbound, tuple.Dst)
 		if err != nil {
 			return nil, err
 		}
 		factors = append(factors, *factor)
 	}
 	if dstSubnetExists {
-		factor, err := r.networkACLRulesFactor(client, *dstSubnet, NetworkACLRuleDirectionOutbound, tuple.Dst)
+		factor, err := r.networkACLRulesFactor(client, *dstSubnet, NetworkACLRuleDirectionOutbound, tuple.Src)
 		if err != nil {
 			return nil, err
 		}
