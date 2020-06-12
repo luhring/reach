@@ -78,7 +78,14 @@ See https://github.com/luhring/reach for documentation.`,
 		destination.SetRoleToDestination()
 
 		if !(showJSON || explain || showPaths) {
-			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
+			fmt.Printf("source:\n  \"%s\" => %s %s\ndestination:\n  \"%s\" => %s %s\n\n",
+				sourceInput,
+				source.Kind,
+				source.ID,
+				destinationInput,
+				destination.Kind,
+				destination.ID,
+			)
 		}
 
 		a := analyzer.New(catalog, logger)
