@@ -84,8 +84,8 @@ func (p Path) TrafficForward() traffic.Content {
 
 // TrafficReturn returns the traffic that is allowed to travel backward along the entire network path. IMPORTANT: This operation only makes sense if this path is not divided into multiple segments.
 func (p Path) TrafficReturn() traffic.Content {
-	f := p.FactorsReturn()
-	ts := TrafficFromFactors(f)
+	fs := p.FactorsReturn()
+	ts := TrafficFromFactors(fs)
 	return traffic.Intersect(ts)
 }
 

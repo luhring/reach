@@ -53,7 +53,7 @@ func None() Content {
 // ForPorts creates a new Content for a ports-oriented IP protocol, i.e. TCP or UDP.
 func ForPorts(protocol Protocol, ports set.PortSet) Content {
 	protocols := make(map[Protocol]*ProtocolContent)
-	content := newProtocolContentWithPorts(protocol, &ports)
+	content := newProtocolContentWithPorts(protocol, ports)
 	protocols[protocol] = &content
 
 	return Content{
@@ -114,7 +114,7 @@ func Intersect(contents []Content) Content {
 		if i == 0 {
 			result = trafficContent
 		} else {
-			result := result.Intersect(trafficContent)
+			result = result.Intersect(trafficContent)
 
 			if result.None() {
 				return result

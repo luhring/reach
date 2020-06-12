@@ -404,9 +404,6 @@ func TestConnectionPredictions(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			// if tc.name != "multiple points, no port translation, mix of TCP some and all" {
-			// 	t.Skip()
-			// }
 			result := ConnectionPredictions(tc.path)
 
 			if !reflect.DeepEqual(result, tc.predictions) {

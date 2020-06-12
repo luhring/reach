@@ -29,18 +29,18 @@ func newProtocolContent(protocol Protocol, ports *set.PortSet, icmp *set.ICMPSet
 	}
 }
 
-func newProtocolContentWithPorts(protocol Protocol, ports *set.PortSet) ProtocolContent {
-	return newProtocolContent(protocol, ports, nil, nil)
+func newProtocolContentWithPorts(protocol Protocol, ports set.PortSet) ProtocolContent {
+	return newProtocolContent(protocol, &ports, nil, nil)
 }
 
 func newProtocolContentWithPortsEmpty(protocol Protocol) ProtocolContent {
 	ports := set.NewEmptyPortSet()
-	return newProtocolContentWithPorts(protocol, &ports)
+	return newProtocolContentWithPorts(protocol, ports)
 }
 
 func newProtocolContentWithPortsFull(protocol Protocol) ProtocolContent {
 	ports := set.NewFullPortSet()
-	return newProtocolContentWithPorts(protocol, &ports)
+	return newProtocolContentWithPorts(protocol, ports)
 }
 
 func newProtocolContentWithICMP(protocol Protocol, icmp *set.ICMPSet) ProtocolContent {
@@ -74,9 +74,9 @@ func newProtocolContentForCustomProtocolFull(protocol Protocol) ProtocolContent 
 // Empty returns a bool indicating whether this ProtocolContent represents no traffic for this protocol.
 func (pc ProtocolContent) Empty() bool {
 	if pc.isTCPOrUDP() {
-		return pc.Ports.Empty()
+		return pc.Ports == nil || pc.Ports.Empty()
 	} else if pc.isICMPv4OrICMPv6() {
-		return pc.ICMP.Empty()
+		return pc.ICMP == nil || pc.ICMP.Empty()
 	} else {
 		return !*pc.CustomProtocolHasContent
 	}
@@ -153,7 +153,7 @@ func (pc ProtocolContent) intersect(other ProtocolContent) ProtocolContent {
 
 	if pc.isTCPOrUDP() {
 		portSet := pc.Ports.Intersect(*other.Ports)
-		return newProtocolContentWithPorts(pc.Protocol, &portSet)
+		return newProtocolContentWithPorts(pc.Protocol, portSet)
 	}
 
 	if pc.isICMPv4OrICMPv6() {
@@ -183,7 +183,7 @@ func (pc ProtocolContent) merge(other ProtocolContent) (ProtocolContent, error) 
 
 	if pc.isTCPOrUDP() {
 		portSet := pc.Ports.Merge(*other.Ports)
-		return newProtocolContentWithPorts(pc.Protocol, &portSet), nil
+		return newProtocolContentWithPorts(pc.Protocol, portSet), nil
 	}
 
 	if pc.isICMPv4OrICMPv6() {
@@ -213,7 +213,7 @@ func (pc ProtocolContent) subtract(other ProtocolContent) (ProtocolContent, erro
 
 	if pc.isTCPOrUDP() {
 		portSet := pc.Ports.Subtract(*other.Ports)
-		return newProtocolContentWithPorts(pc.Protocol, &portSet), nil
+		return newProtocolContentWithPorts(pc.Protocol, portSet), nil
 	}
 
 	if pc.isICMPv4OrICMPv6() {
