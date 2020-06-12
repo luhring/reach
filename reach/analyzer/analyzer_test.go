@@ -253,10 +253,7 @@ func TestAnalyze(t *testing.T) {
 
 					log.Print("verifying analysis results...")
 
-					ft, err := analysis.Paths[0].TrafficForward()
-					if err != nil {
-						t.Fatal(err)
-					}
+					ft := analysis.Paths[0].TrafficForward()
 
 					if ft.String() != tc.expectedForwardTraffic.String() { // TODO: consider a better comparison method besides strings
 						t.Errorf("forward traffic -- expected:\n%v\nbut was:\n%v\n", tc.expectedForwardTraffic, ft)
@@ -273,15 +270,13 @@ func TestConnectionPredictions(t *testing.T) {
 	cases := []struct {
 		name        string
 		path        reach.Path
-		predictions map[reach.Protocol]reach.ConnectionPrediction
+		predictions reach.ConnectionPredictionSet
 	}{
 		{
-			name: "single point with all TCP",
-			path: reach.Path{
-				Points: []reach.Point{
-					pointForReturnTraffic(trafficTCP(), false),
-				},
-			},
+			name: "single point, all TCP return",
+			path: pathWithPoints(
+				pointWithReturnTraffic(trafficTCP(), false),
+			),
 			predictions: connectionPredictionsByProtocol(
 				reach.ConnectionPredictionSuccess,
 				reach.ConnectionPredictionPossibleFailure,
@@ -290,12 +285,10 @@ func TestConnectionPredictions(t *testing.T) {
 			),
 		},
 		{
-			name: "single point with some TCP",
-			path: reach.Path{
-				Points: []reach.Point{
-					pointForReturnTraffic(trafficTCPHighPortsOnly(), false),
-				},
-			},
+			name: "single point, some TCP return",
+			path: pathWithPoints(
+				pointWithReturnTraffic(trafficTCPHighPortsOnly(), false),
+			),
 			predictions: connectionPredictionsByProtocol(
 				reach.ConnectionPredictionPossibleFailure,
 				reach.ConnectionPredictionPossibleFailure,
@@ -304,12 +297,10 @@ func TestConnectionPredictions(t *testing.T) {
 			),
 		},
 		{
-			name: "single point no traffic",
-			path: reach.Path{
-				Points: []reach.Point{
-					pointForReturnTraffic(reach.NewTrafficContentForNoTraffic(), false),
-				},
-			},
+			name: "single point, no return traffic",
+			path: pathWithPoints(
+				pointWithReturnTraffic(reach.NewTrafficContentForNoTraffic(), false),
+			),
 			predictions: connectionPredictionsByProtocol(
 				reach.ConnectionPredictionFailure,
 				reach.ConnectionPredictionPossibleFailure,
@@ -317,14 +308,105 @@ func TestConnectionPredictions(t *testing.T) {
 				reach.ConnectionPredictionFailure,
 			),
 		},
+		{
+			name: "multiple points, no port translation, all traffic",
+			path: pathWithPoints(
+				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
+				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
+				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
+			),
+			predictions: connectionPredictionsByProtocol(
+				reach.ConnectionPredictionSuccess,
+				reach.ConnectionPredictionSuccess,
+				reach.ConnectionPredictionSuccess,
+				reach.ConnectionPredictionSuccess,
+			),
+		},
+		{
+			name: "multiple points, port translation, all traffic",
+			path: pathWithPoints(
+				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
+				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), true),
+				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
+			),
+			predictions: connectionPredictionsByProtocol(
+				reach.ConnectionPredictionSuccess,
+				reach.ConnectionPredictionSuccess,
+				reach.ConnectionPredictionSuccess,
+				reach.ConnectionPredictionSuccess,
+			),
+		},
+		{
+			name: "multiple points, no port translation, mix of TCP some and all",
+			path: pathWithPoints(
+				pointWithReturnTraffic(trafficTCP(), false),
+				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
+				pointWithReturnTraffic(trafficSSH(), false),
+			),
+			predictions: connectionPredictionsByProtocol(
+				reach.ConnectionPredictionPossibleFailure,
+				reach.ConnectionPredictionPossibleFailure,
+				reach.ConnectionPredictionFailure,
+				reach.ConnectionPredictionFailure,
+			),
+		},
+		{
+			name: "multiple points, port translation, mix of TCP some and all",
+			path: pathWithPoints(
+				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), false),
+				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), true),
+				pointWithReturnTraffic(trafficTCPHighPortsOnly(), false),
+			),
+			predictions: connectionPredictionsByProtocol(
+				reach.ConnectionPredictionPossibleFailure,
+				reach.ConnectionPredictionPossibleFailure,
+				reach.ConnectionPredictionFailure,
+				reach.ConnectionPredictionFailure,
+			),
+		},
+		{
+			name: "multiple points, port translation, mix of TCP none and some",
+			path: pathWithPoints(
+				pointWithReturnTraffic(reach.NewTrafficContentForNoTraffic(), false),
+				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), true),
+				pointWithReturnTraffic(trafficTCPHighPortsOnly(), false),
+			),
+			predictions: connectionPredictionsByProtocol(
+				reach.ConnectionPredictionFailure,
+				reach.ConnectionPredictionPossibleFailure,
+				reach.ConnectionPredictionFailure,
+				reach.ConnectionPredictionFailure,
+			),
+		},
+		{
+			name: "multiple points, no port translation, mix of mutually exclusive TCP ports",
+			path: pathWithPoints(
+				point(trafficTCP(), trafficSSH(), false),
+				point(trafficTCP(), trafficTCPHighPortsOnly(), false),
+			),
+			predictions: reach.ConnectionPredictionSet{
+				reach.ProtocolTCP: reach.ConnectionPredictionFailure,
+			},
+		},
+		{
+			name: "multiple points, port translation, mix of mutually exclusive TCP ports",
+			path: pathWithPoints(
+				point(trafficTCP(), trafficSSH(), false),
+				pointWithReturnTraffic(reach.NewTrafficContentForAllTraffic(), true),
+				point(trafficTCP(), trafficTCPHighPortsOnly(), false),
+			),
+			predictions: reach.ConnectionPredictionSet{
+				reach.ProtocolTCP: reach.ConnectionPredictionPossibleFailure,
+			},
+		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := ConnectionPredictions(tc.path)
-			if err != nil {
-				t.Error(err)
-			}
+			// if tc.name != "multiple points, no port translation, mix of TCP some and all" {
+			// 	t.Skip()
+			// }
+			result := ConnectionPredictions(tc.path)
 
 			if !reflect.DeepEqual(result, tc.predictions) {
 				t.Errorf("result did not match expectation\nresult: %v\nexpected: %v\n", result, tc.predictions)
@@ -333,7 +415,7 @@ func TestConnectionPredictions(t *testing.T) {
 	}
 }
 
-func connectionPredictionsByProtocol(tcp, udp, icmpv4, icmpv6 reach.ConnectionPrediction) map[reach.Protocol]reach.ConnectionPrediction {
+func connectionPredictionsByProtocol(tcp, udp, icmpv4, icmpv6 reach.ConnectionPrediction) reach.ConnectionPredictionSet {
 	return map[reach.Protocol]reach.ConnectionPrediction{
 		reach.ProtocolTCP:    tcp,
 		reach.ProtocolUDP:    udp,
@@ -342,14 +424,23 @@ func connectionPredictionsByProtocol(tcp, udp, icmpv4, icmpv6 reach.ConnectionPr
 	}
 }
 
-func pointForReturnTraffic(traffic reach.TrafficContent, nat bool) reach.Point {
+func pointWithReturnTraffic(returnTraffic reach.TrafficContent, translatesPorts bool) reach.Point {
+	return point(reach.NewTrafficContentForAllTraffic(), returnTraffic, translatesPorts)
+}
+
+func point(forwardTraffic, returnTraffic reach.TrafficContent, translatesPorts bool) reach.Point {
 	return reach.Point{
-		FactorsReturn: []reach.Factor{
+		FactorsForward: []reach.Factor{
 			{
-				Traffic: traffic,
+				Traffic: forwardTraffic,
 			},
 		},
-		SegmentDivider: nat,
+		FactorsReturn: []reach.Factor{
+			{
+				Traffic: returnTraffic,
+			},
+		},
+		SegmentDivider: translatesPorts,
 	}
 }
 
@@ -400,4 +491,11 @@ func trafficPostgres() reach.TrafficContent {
 	ports := set.NewPortSetFromRange(5432, 5432)
 
 	return reach.NewTrafficContentForPorts(reach.ProtocolTCP, ports)
+}
+
+func pathWithPoints(points ...reach.Point) reach.Path {
+	return reach.Path{
+		Points: points,
+		Edges:  make([]reach.Edge, len(points)-1),
+	}
 }

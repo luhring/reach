@@ -76,26 +76,15 @@ func (p Path) FactorsReturn() []Factor {
 }
 
 // TrafficForward returns the traffic that is allowed to travel forward along the entire network path.
-func (p Path) TrafficForward() (TrafficContent, error) {
-	tcs := TrafficFromFactors(p.FactorsForward())
-	result, err := NewTrafficContentFromIntersectingMultiple(tcs)
-	if err != nil {
-		return TrafficContent{}, err
-	}
-
-	return result, nil
+func (p Path) TrafficForward() TrafficContent {
+	return NewTrafficContentFromIntersectingMultiple(TrafficFromFactors(p.FactorsForward()))
 }
 
-// TrafficReturn returns the traffic that is allowed to return from the last point to the first point along the network path.
-func (p Path) TrafficReturn() (TrafficContent, error) { // DEPRECATED
-	// TODO: This method shouldn't exist — return traffic should not be intersected across multiple segments!
-	tcs := TrafficFromFactors(p.FactorsReturn())
-	result, err := NewTrafficContentFromIntersectingMultiple(tcs)
-	if err != nil {
-		return TrafficContent{}, err
-	}
-
-	return result, nil
+// TrafficReturn returns the traffic that is allowed to travel backward along the entire network path. IMPORTANT: This operation only makes sense if this path is not divided into multiple segments.
+func (p Path) TrafficReturn() TrafficContent {
+	f := p.FactorsReturn()
+	ts := TrafficFromFactors(f)
+	return NewTrafficContentFromIntersectingMultiple(ts)
 }
 
 // MapPoints creates a new version of the path where each point has been transformed by the supplied mapper function.
@@ -125,4 +114,30 @@ func (p Path) MapPoints(
 		Points: mappedPoints,
 		Edges:  p.Edges,
 	}, nil
+}
+
+// Segments returns the continuous sets of points where no PAT occurs that comprise the Path.
+func (p Path) Segments() []Path {
+	var segments []Path
+	var currentSegment Path
+	points := p.Points
+
+	for i, point := range points {
+		if i != 0 {
+			currentSegment = currentSegment.Add(p.Edges[i-1], point)
+		} else {
+			currentSegment = NewPath(point)
+		}
+
+		// I.e. if segment is complete
+		if len(points) == 1 || point.SegmentDivider || i == len(points)-1 {
+			segments = append(segments, currentSegment)
+		}
+
+		if point.SegmentDivider {
+			currentSegment = NewPath(point)
+		}
+	}
+
+	return segments
 }

@@ -7,3 +7,13 @@ type Point struct {
 	FactorsReturn  []Factor
 	SegmentDivider bool
 }
+
+// TrafficForward returns the network traffic allowed to travel forward through this point.
+func (p Point) TrafficForward() TrafficContent {
+	return NewTrafficContentFromIntersectingMultiple(TrafficFromFactors(p.FactorsForward))
+}
+
+// TrafficReturn returns the network traffic allowed to travel backward through this point.
+func (p Point) TrafficReturn() TrafficContent {
+	return NewTrafficContentFromIntersectingMultiple(TrafficFromFactors(p.FactorsReturn))
+}

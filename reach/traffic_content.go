@@ -106,31 +106,26 @@ func NewTrafficContentFromMergingMultiple(contents []TrafficContent) (TrafficCon
 }
 
 // NewTrafficContentFromIntersectingMultiple creates a new TrafficContent by intersecting any number of input TrafficContents.
-func NewTrafficContentFromIntersectingMultiple(contents []TrafficContent) (TrafficContent, error) {
+func NewTrafficContentFromIntersectingMultiple(contents []TrafficContent) TrafficContent {
 	var result TrafficContent
 
 	for i, trafficContent := range contents {
 		if i == 0 {
 			result = trafficContent
 		} else {
-			intersection, err := result.Intersect(trafficContent)
-			if err != nil {
-				return TrafficContent{}, err
-			}
-
-			result = intersection
+			result := result.Intersect(trafficContent)
 
 			if result.None() {
-				return result, nil
+				return result
 			}
 		}
 	}
 
-	return result, nil
+	return result
 }
 
 // MergeTraffic returns the result of merging all input traffic contents. (MergeTraffic is a shortcut for NewTrafficContentFromIntersectingMultiple.)
-func MergeTraffic(tcs ...TrafficContent) (TrafficContent, error) {
+func MergeTraffic(tcs ...TrafficContent) TrafficContent {
 	return NewTrafficContentFromIntersectingMultiple(tcs)
 }
 
@@ -172,13 +167,13 @@ func (tc *TrafficContent) Merge(other TrafficContent) (TrafficContent, error) {
 }
 
 // Intersect performs a set intersection operation on two TrafficContents.
-func (tc *TrafficContent) Intersect(other TrafficContent) (TrafficContent, error) {
+func (tc *TrafficContent) Intersect(other TrafficContent) TrafficContent {
 	if tc.None() || other.None() {
-		return NewTrafficContentForNoTraffic(), nil
+		return NewTrafficContentForNoTraffic()
 	}
 
 	if tc.All() && other.All() {
-		return NewTrafficContentForAllTraffic(), nil
+		return NewTrafficContentForAllTraffic()
 	}
 
 	protocolsToProcess := make(map[Protocol]bool)
@@ -198,17 +193,13 @@ func (tc *TrafficContent) Intersect(other TrafficContent) (TrafficContent, error
 	result := newTrafficContent()
 
 	for p, shouldProcess := range protocolsToProcess {
-		if shouldProcess && !tc.Protocol(p).empty() && !other.Protocol(p).empty() {
-			intersection, err := tc.Protocol(p).intersect(other.Protocol(p))
-			if err != nil {
-				return TrafficContent{}, err
-			}
-
+		if shouldProcess && !tc.Protocol(p).Empty() && !other.Protocol(p).Empty() {
+			intersection := tc.Protocol(p).intersect(other.Protocol(p))
 			result.setProtocolContent(p, intersection)
 		}
 	}
 
-	return result, nil
+	return result
 }
 
 // Subtract performs a set subtraction (self - other) on two TrafficContents.
@@ -411,67 +402,6 @@ func (tc TrafficContent) None() bool {
 	return tc.indicator == trafficContentIndicatorNone || (tc.indicator == trafficContentIndicatorUnset && len(tc.protocols) == 0)
 }
 
-// TrafficContentsFromPaths returns the set of forward-bound traffic that can traverse the entirety of any of the input paths.
-func TrafficContentsFromPaths(paths []Path) ([]TrafficContent, error) {
-	var result []TrafficContent
-
-	for _, p := range paths {
-		ft, err := p.TrafficForward()
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, ft)
-	}
-
-	return result, nil
-}
-
-// RestrictedProtocol describes an IP protocol whose return traffic has been restricted.
-type RestrictedProtocol struct {
-	Protocol        Protocol
-	NoReturnTraffic bool
-}
-
-// ProtocolsWithRestrictedReturnPath returns a list of IP protocols whose communication would be disrupted if return traffic was restricted.
-func (tc TrafficContent) ProtocolsWithRestrictedReturnPath(returnTraffic TrafficContent) []RestrictedProtocol {
-	var restrictedProtocols []RestrictedProtocol
-	var protocolsToAssess []Protocol
-
-	// if tc specifies all traffic, warn about protocols not listed in returnTraffic
-	if tc.All() {
-		protocolsToAssess = []Protocol{
-			ProtocolTCP,
-			ProtocolUDP,
-			ProtocolICMPv4,
-			ProtocolICMPv6,
-		}
-	} else {
-		for p := range tc.protocols {
-			protocolsToAssess = append(protocolsToAssess, p)
-		}
-	}
-
-	for _, protocol := range protocolsToAssess {
-		returnTrafficProtocolContent := returnTraffic.Protocol(protocol)
-
-		if !returnTrafficProtocolContent.complete() {
-
-			noReturnTraffic := false
-
-			if returnTrafficProtocolContent.empty() { // return traffic is completely blocked
-				noReturnTraffic = true
-			}
-
-			restrictedProtocols = append(restrictedProtocols, RestrictedProtocol{
-				Protocol:        protocol,
-				NoReturnTraffic: noReturnTraffic,
-			})
-		}
-	}
-
-	return restrictedProtocols
-}
-
 // Protocols returns a slice of the IP protocols described by the traffic content.
 func (tc TrafficContent) Protocols() []Protocol {
 	if tc.protocols == nil {
@@ -525,4 +455,9 @@ func (tc TrafficContent) Protocol(p Protocol) ProtocolContent {
 	}
 
 	return *content
+}
+
+// HasProtocol returns a bool to indicate whether the specified protocol exists within the traffic content.
+func (tc TrafficContent) HasProtocol(p Protocol) bool {
+	return tc.Protocol(p).Empty() == false
 }

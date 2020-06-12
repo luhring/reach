@@ -2,18 +2,17 @@ package reach
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 )
 
 // Analysis is the central structure of a Reach analysis. It describes what subjects were analyzed, what resources were retrieved, and a collection of network vectors between all source-to-destination pairings of subjects.
 type Analysis struct {
 	Subjects []Subject
-	Paths    []Path
+	Paths    []AnalyzedPath
 }
 
 // NewAnalysis simply creates a new Analysis struct.
-func NewAnalysis(subjects []Subject, paths []Path) *Analysis {
+func NewAnalysis(subjects []Subject, paths []AnalyzedPath) *Analysis {
 	return &Analysis{
 		Subjects: subjects,
 		Paths:    paths,
@@ -34,10 +33,7 @@ func (a *Analysis) MergedTraffic() (TrafficContent, error) {
 	result := newTrafficContent()
 
 	for _, path := range a.Paths {
-		t, err := path.TrafficForward()
-		if err != nil {
-			return TrafficContent{}, fmt.Errorf("unable to merge traffic: %v", err)
-		}
+		t := path.TrafficForward()
 		mergedTrafficContent, err := result.Merge(t)
 		if err != nil {
 			return TrafficContent{}, err

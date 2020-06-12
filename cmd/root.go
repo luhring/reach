@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -26,7 +25,7 @@ const assertNotReachableFlag = "assert-not-reachable"
 
 var explain bool
 var showPaths bool
-var outputJSON bool
+var showJSON bool
 var assertReachable bool
 var assertNotReachable bool
 var verbose bool
@@ -78,7 +77,7 @@ See https://github.com/luhring/reach for documentation.`,
 		}
 		destination.SetRoleToDestination()
 
-		if !(outputJSON || explain || showPaths) {
+		if !(showJSON || explain || showPaths) {
 			fmt.Printf("source: %s\ndestination: %s\n\n", source.ID, destination.ID)
 		}
 
@@ -88,36 +87,13 @@ See https://github.com/luhring/reach for documentation.`,
 			handleError(err)
 		}
 
-		if outputJSON {
-			fmt.Println(analysis.ToJSON())
-		} else if showPaths {
-			var pathDescriptions []string
-
-			for _, p := range analysis.Paths {
-				pathDescriptions = append(pathDescriptions, fmt.Sprint(p))
-			}
-
-			fmt.Print(strings.Join(pathDescriptions, "\n"))
-		} else {
-			paths := analysis.Paths
-			tcs, err := reach.TrafficContentsFromPaths(paths)
-			if err != nil {
-				handleError(err)
-			}
-			mergedTraffic, err := reach.MergeTraffic(tcs...)
-			if err != nil {
-				handleError(err)
-			}
-
-			fmt.Print("network traffic allowed from source to destination:" + "\n")
-			fmt.Print(mergedTraffic.ColorStringWithSymbols())
-
-			if len(paths) > 1 { // handling this case with care; this view isn't optimized for multi-vector output!
-				printMergedResultsWarning()
-				// warnIfAnyVectorHasRestrictedReturnTraffic(paths)
-			} else {
-				// warnings about return traffic?
-			}
+		switch {
+		case showJSON:
+			handleShowJSON(*analysis)
+		case showPaths:
+			handleShowPaths(*analysis)
+		default:
+			handleDefaultOutput(*analysis)
 		}
 
 		if assertReachable {
@@ -140,7 +116,7 @@ func Execute() {
 func init() {
 	rootCmd.Flags().BoolVar(&explain, explainFlag, false, "explain how the configuration was analyzed")
 	rootCmd.Flags().BoolVar(&showPaths, pathsFlag, false, "show allowed traffic in terms of network paths")
-	rootCmd.Flags().BoolVar(&outputJSON, jsonFlag, false, "output full analysis as JSON (overrides other display flags)")
+	rootCmd.Flags().BoolVar(&showJSON, jsonFlag, false, "output full analysis as JSON (overrides other display flags)")
 	rootCmd.Flags().BoolVar(&assertReachable, assertReachableFlag, false, "exit non-zero if no traffic is allowed from source to destination")
 	rootCmd.Flags().BoolVar(&assertNotReachable, assertNotReachableFlag, false, "exit non-zero if any traffic can reach destination from source")
 	rootCmd.Flags().BoolVarP(&verbose, "", "v", false, "show verbose output (displays full log output)")

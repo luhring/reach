@@ -1,6 +1,7 @@
 package reach
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -43,6 +44,27 @@ func (p Protocol) IsCustomProtocol() bool {
 // String returns the common name of the IP protocol.
 func (p Protocol) String() string {
 	return ProtocolName(p)
+}
+
+// MarshalJSON returns the JSON representation of the Protocol.
+func (p Protocol) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.String())
+}
+
+// DisplayOrder returns an opinionated display order for the given protocol.
+func (p Protocol) DisplayOrder() int {
+	switch p {
+	case ProtocolTCP:
+		return -100
+	case ProtocolUDP:
+		return -90
+	case ProtocolICMPv4:
+		return -80
+	case ProtocolICMPv6:
+		return -70
+	default:
+		return int(p)
+	}
 }
 
 // ProtocolName returns the name of an IP protocol given the protocol's assigned number.

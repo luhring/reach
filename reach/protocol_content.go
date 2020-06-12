@@ -71,7 +71,8 @@ func newProtocolContentForCustomProtocolFull(protocol Protocol) ProtocolContent 
 	return newProtocolContent(protocol, nil, nil, &hasContent)
 }
 
-func (pc ProtocolContent) empty() bool {
+// Empty returns a bool indicating whether this ProtocolContent represents no traffic for this protocol.
+func (pc ProtocolContent) Empty() bool {
 	if pc.isTCPOrUDP() {
 		return pc.Ports.Empty()
 	} else if pc.isICMPv4OrICMPv6() {
@@ -81,7 +82,8 @@ func (pc ProtocolContent) empty() bool {
 	}
 }
 
-func (pc ProtocolContent) complete() bool {
+// Complete returns a bool indicating whether this ProtocolContent represents all traffic for this protocol.
+func (pc ProtocolContent) Complete() bool {
 	if pc.isTCPOrUDP() {
 		return pc.Ports.Complete()
 	} else if pc.isICMPv4OrICMPv6() {
@@ -95,7 +97,7 @@ func (pc ProtocolContent) complete() bool {
 func (pc ProtocolContent) String() string {
 	protocolName := ProtocolName(pc.Protocol)
 
-	if !pc.empty() {
+	if !pc.Empty() {
 		if pc.isTCPOrUDP() {
 			return fmt.Sprintf("%s %s", protocolName, pc.Ports.String())
 		} else if pc.isICMPv4OrICMPv6() {
@@ -112,7 +114,7 @@ func (pc ProtocolContent) String() string {
 func (pc ProtocolContent) lines() []string {
 	protocolName := ProtocolName(pc.Protocol)
 
-	if !pc.empty() {
+	if !pc.Empty() {
 		if pc.isTCPOrUDP() {
 
 			var lines []string
@@ -142,34 +144,30 @@ func (pc ProtocolContent) isICMPv4OrICMPv6() bool {
 	return pc.Protocol == ProtocolICMPv4 || pc.Protocol == ProtocolICMPv6
 }
 
-func (pc ProtocolContent) intersect(other ProtocolContent) (ProtocolContent, error) {
+func (pc ProtocolContent) intersect(other ProtocolContent) ProtocolContent {
 	if !pc.sameProtocolAs(other) {
-		return ProtocolContent{}, fmt.Errorf(
-			"cannot intersect with different protocols (IP protocols %v and %v)",
-			pc.Protocol,
-			other.Protocol,
-		)
+		return newProtocolContentForCustomProtocolEmpty(pc.Protocol)
 	}
 
 	// same protocols
 
 	if pc.isTCPOrUDP() {
 		portSet := pc.Ports.Intersect(*other.Ports)
-		return newProtocolContentWithPorts(pc.Protocol, &portSet), nil
+		return newProtocolContentWithPorts(pc.Protocol, &portSet)
 	}
 
 	if pc.isICMPv4OrICMPv6() {
 		icmpSet := pc.ICMP.Intersect(*other.ICMP)
-		return newProtocolContentWithICMP(pc.Protocol, &icmpSet), nil
+		return newProtocolContentWithICMP(pc.Protocol, &icmpSet)
 	}
 
 	// custom Protocol
 
 	if *pc.CustomProtocolHasContent && *other.CustomProtocolHasContent {
-		return newProtocolContentForCustomProtocolFull(pc.Protocol), nil
+		return newProtocolContentForCustomProtocolFull(pc.Protocol)
 	}
 
-	return newProtocolContentForCustomProtocolEmpty(pc.Protocol), nil
+	return newProtocolContentForCustomProtocolEmpty(pc.Protocol)
 }
 
 func (pc ProtocolContent) merge(other ProtocolContent) (ProtocolContent, error) {

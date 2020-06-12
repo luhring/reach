@@ -1,5 +1,7 @@
 package reach
 
+import "encoding/json"
+
 // ConnectionPrediction describes a prediction of success for a network connection using a particular protocol
 type ConnectionPrediction int
 
@@ -16,10 +18,20 @@ func (cp ConnectionPrediction) String() string {
 	case ConnectionPredictionSuccess:
 		return "success"
 	case ConnectionPredictionPossibleFailure:
-		return "possible failure"
+		return "possible-failure"
 	case ConnectionPredictionFailure:
 		return "failure"
 	default:
 		return "unknown"
 	}
+}
+
+// MarshalJSON returns the JSON representation fo the ConnectionPrediction.
+func (cp ConnectionPrediction) MarshalJSON() ([]byte, error) {
+	return json.Marshal(cp.String())
+}
+
+// ShouldWarn returns a bool to indicate whether this prediction warrants a warning to the user.
+func (cp ConnectionPrediction) ShouldWarn() bool {
+	return cp == ConnectionPredictionPossibleFailure || cp == ConnectionPredictionFailure
 }

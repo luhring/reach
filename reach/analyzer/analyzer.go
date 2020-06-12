@@ -29,122 +29,108 @@ func (a *Analyzer) Analyze(source, destination reach.Subject) (*reach.Analysis, 
 		a.logger.Error("analysis failed", "source", source, "destination", destination)
 		return nil, err
 	}
+
+	analyzedPaths := make([]reach.AnalyzedPath, len(paths))
+	for i, p := range paths {
+		traffic := p.TrafficForward()
+		predictions := ConnectionPredictions(p)
+
+		analyzedPaths[i] = reach.AnalyzedPath{
+			Path:                  p,
+			Traffic:               traffic,
+			ConnectionPredictions: predictions,
+		}
+
+	}
 	a.logger.Info("analysis successful", "source", source, "destination", destination)
 
-	return reach.NewAnalysis([]reach.Subject{source, destination}, paths), nil
+	return reach.NewAnalysis([]reach.Subject{source, destination}, analyzedPaths), nil
 }
 
 // ConnectionPredictions inspects the path to predict the viability of a various kinds of connections made across this network path.
-func ConnectionPredictions(path reach.Path) (map[reach.Protocol]reach.ConnectionPrediction, error) {
-	result := make(map[reach.Protocol]reach.ConnectionPrediction)
+func ConnectionPredictions(path reach.Path) reach.ConnectionPredictionSet {
+	result := make(reach.ConnectionPredictionSet)
+	traffic := path.TrafficForward()
 
-	tcpPrediction, err := ConnectionPredictionTCP(path)
-	if err != nil {
-		return nil, err
+	if traffic.HasProtocol(reach.ProtocolTCP) {
+		result[reach.ProtocolTCP] = ConnectionPredictionTCP(path)
 	}
-	result[reach.ProtocolTCP] = tcpPrediction
 
-	udpPrediction, err := ConnectionPredictionUDP(path)
-	if err != nil {
-		return nil, err
+	if traffic.HasProtocol(reach.ProtocolUDP) {
+		result[reach.ProtocolUDP] = ConnectionPredictionUDP(path)
 	}
-	result[reach.ProtocolUDP] = udpPrediction
 
-	icmpv4Prediction, err := ConnectionPredictionICMPv4(path)
-	if err != nil {
-		return nil, err
+	if traffic.HasProtocol(reach.ProtocolICMPv4) {
+		result[reach.ProtocolICMPv4] = ConnectionPredictionICMPv4(path)
 	}
-	result[reach.ProtocolICMPv4] = icmpv4Prediction
 
-	icmpv6Prediction, err := ConnectionPredictionICMPv6(path)
-	if err != nil {
-		return nil, err
+	if traffic.HasProtocol(reach.ProtocolICMPv6) {
+		result[reach.ProtocolICMPv6] = ConnectionPredictionICMPv6(path)
 	}
-	result[reach.ProtocolICMPv6] = icmpv6Prediction
 
-	return result, nil
+	return result
 }
 
 // ConnectionPredictionTCP inspects the path to predict the viability of a TCP connection made across this network path.
-func ConnectionPredictionTCP(path reach.Path) (reach.ConnectionPrediction, error) {
+func ConnectionPredictionTCP(path reach.Path) reach.ConnectionPrediction {
+	return connectionPredictionReturnTrafficRequired(path, reach.ProtocolTCP)
+}
+
+func connectionPredictionReturnTrafficRequired(path reach.Path, protocol reach.Protocol) reach.ConnectionPrediction {
 	failurePossible := false
 
-	for _, point := range path.Points {
-		returnTraffic, err := reach.NewTrafficContentFromIntersectingMultiple(
-			reach.TrafficFromFactors(point.FactorsReturn),
-		)
-		if err != nil {
-			return reach.ConnectionPredictionUnknown, err
-		}
-
-		content := returnTraffic.Protocol(reach.ProtocolTCP)
+	for _, segment := range path.Segments() {
+		protocolContent := segment.TrafficReturn().Protocol(protocol)
 		switch {
-		case content.Ports == nil || content.Ports.Empty():
-			return reach.ConnectionPredictionFailure, nil
-		case content.Ports.Complete() == false:
+		case protocolContent.Empty():
+			return reach.ConnectionPredictionFailure
+		case protocolContent.Complete() == false:
 			failurePossible = true
 		}
 	}
 
 	if failurePossible {
-		return reach.ConnectionPredictionPossibleFailure, nil
+		return reach.ConnectionPredictionPossibleFailure
 	}
 
-	return reach.ConnectionPredictionSuccess, nil
+	return reach.ConnectionPredictionSuccess
+}
+
+func connectionPredictionReturnTrafficOptional(path reach.Path, protocol reach.Protocol) reach.ConnectionPrediction {
+	tcs := returnTrafficForSegments(path)
+	for _, traffic := range tcs {
+		protocolContent := traffic.Protocol(protocol)
+		if protocolContent.Complete() == false {
+			return reach.ConnectionPredictionPossibleFailure
+		}
+	}
+
+	return reach.ConnectionPredictionSuccess
+}
+
+func returnTrafficForSegments(path reach.Path) []reach.TrafficContent {
+	var result []reach.TrafficContent
+	for _, segment := range path.Segments() {
+		result = append(result, segment.TrafficReturn())
+	}
+	return result
 }
 
 // ConnectionPredictionUDP inspects the path to predict the viability of a UDP connection made across this network path.
-func ConnectionPredictionUDP(path reach.Path) (reach.ConnectionPrediction, error) {
-	for _, point := range path.Points {
-		returnTraffic, err := reach.NewTrafficContentFromIntersectingMultiple(
-			reach.TrafficFromFactors(point.FactorsReturn),
-		)
-		if err != nil {
-			return reach.ConnectionPredictionUnknown, err
-		}
-
-		content := returnTraffic.Protocol(reach.ProtocolUDP)
-		if content.Ports == nil || content.Ports.Complete() == false {
-			return reach.ConnectionPredictionPossibleFailure, nil
-		}
-	}
-
-	return reach.ConnectionPredictionSuccess, nil
+func ConnectionPredictionUDP(path reach.Path) reach.ConnectionPrediction {
+	return connectionPredictionReturnTrafficOptional(path, reach.ProtocolUDP)
 }
 
 // ConnectionPredictionICMPv4 inspects the path to predict the viability of an ICMPv4 interaction across this network path.
-func ConnectionPredictionICMPv4(path reach.Path) (reach.ConnectionPrediction, error) {
+func ConnectionPredictionICMPv4(path reach.Path) reach.ConnectionPrediction {
 	return connectionPredictionICMP(path, reach.ProtocolICMPv4)
 }
 
 // ConnectionPredictionICMPv6 inspects the path to predict the viability of an ICMPv6 interaction across this network path.
-func ConnectionPredictionICMPv6(path reach.Path) (reach.ConnectionPrediction, error) {
+func ConnectionPredictionICMPv6(path reach.Path) reach.ConnectionPrediction {
 	return connectionPredictionICMP(path, reach.ProtocolICMPv6)
 }
 
-func connectionPredictionICMP(path reach.Path, icmpProtocol reach.Protocol) (reach.ConnectionPrediction, error) {
-	failurePossible := false
-
-	for _, point := range path.Points {
-		returnTraffic, err := reach.NewTrafficContentFromIntersectingMultiple(
-			reach.TrafficFromFactors(point.FactorsReturn),
-		)
-		if err != nil {
-			return reach.ConnectionPredictionUnknown, err
-		}
-
-		content := returnTraffic.Protocol(icmpProtocol)
-		switch {
-		case content.ICMP == nil || content.ICMP.Empty():
-			return reach.ConnectionPredictionFailure, nil
-		case content.ICMP.Complete() == false:
-			failurePossible = true
-		}
-	}
-
-	if failurePossible {
-		return reach.ConnectionPredictionPossibleFailure, nil
-	}
-
-	return reach.ConnectionPredictionSuccess, nil
+func connectionPredictionICMP(path reach.Path, icmpProtocol reach.Protocol) reach.ConnectionPrediction {
+	return connectionPredictionReturnTrafficRequired(path, icmpProtocol)
 }
